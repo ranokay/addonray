@@ -1,6 +1,6 @@
 # Phase 1 first slice: searchable, understandable inventory
 
-Status: the user approved A, Quick list, with a dark/black theme by default and these acceptance criteria on 2026-10-23. Production implementation is in progress. Native desktop and distribution gates remain open as recorded in [Phase 0 readiness](../evidence/2026-10-22-phase0-readiness.md).
+Status: the user approved A, Quick list, with a dark/black theme by default and these acceptance criteria on 2026-10-23. The slice is implemented in signed commit `a80125b`. [Current evidence](../evidence/2026-10-23-phase1-inventory.md) records tests, static review, observed Firefox behavior, and remaining native desktop/distribution gates.
 
 ## Problem and intended result
 

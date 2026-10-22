@@ -2,7 +2,7 @@
 
 ## Current state
 
-The first Phase 1 inventory slice is being implemented under [issue #1](https://github.com/ranokay/addonray/issues/1). The user selected layout A with a dark/black theme by default and the [documented acceptance criteria](plans/phase1-inventory.md). Search/filter controls and expandable permission explanations stay within the existing popup session. The three-variant prototype remains on its separate branch.
+The first Phase 1 inventory slice is implemented in signed commit `a80125b` under [issue #1](https://github.com/ranokay/addonray/issues/1). The user selected layout A with a dark/black theme by default and the [documented acceptance criteria](plans/phase1-inventory.md). All 37 behavior tests passed. Packaged Firefox checks passed all 15 cases on each of three exact versions across macOS, Linux, and Windows. The actual rewritten popup was observed on macOS with Firefox 158.0.1. See [current inventory evidence](evidence/2026-10-23-phase1-inventory.md) for source identities, static review, CI links, and remaining gaps. The three-variant prototype remains on its separate branch.
 
 The approved Phase 0 scaffold is implemented and published on `main` in private [ranokay/addonray](https://github.com/ranokay/addonray). Signed migration commit `abca489` replaces pnpm, Prettier, and Vitest with a pinned Bun canary and adds hk and jactionlint. Its [Linux CI run](https://github.com/ranokay/addonray/actions/runs/39720670911) passed. All 26 behavior tests, native formatting/lint/types, build, manifest checks, and workflow checks pass locally.
 
@@ -48,14 +48,14 @@ Signed packaging commit `bdad8f9` adds validated unsigned XPI/source archives an
 - [x] Select inventory utility in the existing popup as the first slice and draft [acceptance criteria](plans/phase1-inventory.md).
 - [x] Capture three fixture-only layouts on the signed [prototype branch](https://github.com/ranokay/addonray/tree/prototype/inventory-popup) and link them from [issue #1](https://github.com/ranokay/addonray/issues/1).
 - [x] Review the requested three-variant prototype and choose layout A with a dark/black default theme.
-- [ ] Finish the production rewrite, focused behavior tests, independent review, and current Firefox evidence for the first slice.
-- [ ] Publish the signed implementation and record the exact-head workflow results.
+- [x] Finish the production rewrite, focused behavior tests, independent static review, and current Firefox evidence for the first slice.
+- [x] Publish signed implementation `a80125b`; its quality check and six-job Firefox workflow passed at that exact head.
 
 The current workflow status is available in [GitHub Actions](https://github.com/ranokay/addonray/actions). Local evidence and remote CI are separate. Inspect the run associated with the current head before claiming that CI passed. The real-Firefox task records its own source commit and dirty status locally.
 
 ## Next action
 
-Validate and publish the approved first inventory slice under [issue #1](https://github.com/ranokay/addonray/issues/1). The chosen A layout is being rewritten for production with a dark default. The original prototype is captured in signed commit `36e4d24` outside `main` and remains runnable with `mise run prototype` from its checkout.
+Review the completed first inventory slice, then resolve the investigation lifetime before planning manual before/after comparisons. No comparison feature or longer-lived session is approved yet. The original prototype is captured in signed commit `36e4d24` outside `main` and remains runnable with `mise run prototype` from its checkout.
 
 The user approved planning for the private build with the remaining release gates open. Follow the [desktop QA handoff](desktop-popup-qa.md) when a visible Linux/Windows target becomes available, and complete signed-distribution checks at the release gate. Current hosted jobs provide headless API evidence.
 
