@@ -4,21 +4,23 @@
 
 All runs used macOS arm64 and Selenium WebDriver 4.51.0 with disposable profiles. The 12-check protocol and its test-only permission boundaries are described in [the original Firefox evidence](2026-10-22-firefox.md).
 
-| Requested release | Observed version | Result                                                                                                                                          |
-| ----------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Current release   | 158.0.1          | All 12 API checks pass on clean migration commit `abca489`. Native popup results are recorded below.                                            |
-| `153.5.1esr`      | 153.5.1          | All 12 API checks pass. Native ESR popup behavior remains untested.                                                                             |
-| `140.0`           | 140.0            | Zero checks complete. Navigation to the installed extension document times out after 30 seconds. Minimum-version qualification remains blocked. |
+| Requested release | Observed version | Result                                                                                                                                  |
+| ----------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Current release   | 158.0.1          | All 12 API checks pass on clean migration commit `abca489`. Native popup results are recorded below.                                    |
+| `153.5.1esr`      | 153.5.1          | All 12 API checks pass. Native ESR popup behavior remains untested.                                                                     |
+| `140.0`           | 140.0            | All 12 API checks pass after correcting temporary fixture installation. Native minimum-version popup behavior still needs verification. |
 
 Mozilla's [version metadata](https://product-details.mozilla.org/1.0/firefox_versions.json) named `158.0.1` and `153.5.1esr` as current release and ESR on 2026-10-22. Exact versions are selected and verified rather than following a moving browser label.
 
 The first ESR and minimum trials used parent commit `abca489` with uncommitted probe changes. Their local reports explicitly record `sourceDirty: true`; they are iteration evidence. For a clean committed rerun, use the commands in [testing](../testing.md) and inspect the report's source revision and dirty flag before calling it revision-bound evidence.
 
-### Firefox 140 blocker
+### Firefox 140 fixture installation
 
-In a focused diagnostic, Firefox 140 successfully navigated to a simple `data:` page and registered the temporary production extension. Navigation to its `moz-extension:` page timed out and left an empty HTML document. Copying the unchanged artifact into the operating system's temporary directory produced the same result. A separate minimal MV3 fixture containing only a manifest and static HTML also timed out with an empty document. That fixture has no AddonRay JavaScript, dependencies, or permission declarations.
+The initial run timed out before completing any checks. Both the actual toolbar popup and a separate static MV3 fixture displayed empty documents. Firefox's parent process could read the fixture, while content navigation logged an invalid file descriptor.
 
-These observations isolate the failure from AddonRay's application code but do not establish its underlying browser/driver cause. No product compatibility fix or minimum-version change follows from them. The next minimum-version investigation should compare a real toolbar launch with this direct-document WebDriver navigation, using the same Firefox 140 binary and a disposable profile. Preserve the failed full-run report in `.scratch/firefox-evidence-140.0.json` until the blocker is resolved.
+The controlled diagnostic confirmed that the Base64 installation route had deleted its temporary XPI. Installing the same static content through the classic endpoint's `path` parameter kept its files available and loaded successfully. This matches [Mozilla bug 2045054](https://bugzilla.mozilla.org/show_bug.cgi?id=2045054) and the deletion in [Firefox 140's installer source](https://raw.githubusercontent.com/mozilla-firefox/firefox/FIREFOX_140_0_RELEASE/remote/shared/Addon.sys.mjs).
+
+The shared test installer now uses retained local directories, and the Firefox 140.0 trial passes all 12 API checks with geckodriver 0.37.1 on macOS 27.2 arm64. Product code, its manifest, browser security settings, and the declared minimum remain unchanged. The initial failure is preserved in `.scratch/firefox-evidence-140.0-base64-failure.json`; the version-named report records the new result. These are unpacked-directory tests. Packaged XPI distribution remains a separate release check.
 
 ## Native toolbar popup
 

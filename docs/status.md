@@ -4,7 +4,7 @@
 
 The approved Phase 0 scaffold is implemented and published on `main` in private [ranokay/addonray](https://github.com/ranokay/addonray). Signed migration commit `abca489` replaces pnpm, Prettier, and Vitest with a pinned Bun canary and adds hk and jactionlint. Its [Linux CI run](https://github.com/ranokay/addonray/actions/runs/39720670911) passed. All 26 behavior tests, native formatting/lint/types, build, manifest checks, and workflow checks pass locally.
 
-Firefox 158.0.1 passed the 12 headless API checks and the observed native-popup protocol on macOS arm64. Firefox 153.5.1esr passed the 12 headless checks. Firefox 140 remains blocked at extension-document navigation, including a minimal static fixture. See [qualification evidence](evidence/2026-10-22-qualification.md) for the observed results, source boundaries, and remaining gaps. All test runs use disposable profiles.
+Firefox 158.0.1 passed the 12 headless API checks and the observed native-popup protocol on macOS arm64. Firefox 153.5.1esr and Firefox 140.0 passed the 12 headless checks. The minimum-version loading failure was a temporary fixture installation defect, resolved by retaining local directories. Native minimum/ESR popup checks remain. See [qualification evidence](evidence/2026-10-22-qualification.md) for the observed results, source boundaries, and remaining gaps. All test runs use disposable profiles.
 
 ## Checklist
 
@@ -28,14 +28,14 @@ Firefox 158.0.1 passed the 12 headless API checks and the observed native-popup 
 - [x] Configure Matt Pocock's engineering skills with the approved GitHub tracker, default triage labels, and existing single-context domain docs. See [agent configuration](agents/issue-tracker.md).
 - [x] Observe actual toolbar-popup consent, page inspection, Clear, close/reopen, retained grants, and renewed consent after Firefox UI revocation on Firefox 158.0.1/macOS arm64.
 - [x] Run the API protocol on exact ESR 153.5.1esr and record all 12 passing checks.
-- [ ] Resolve Firefox 140 extension-document loading and rerun the API/native-popup protocol.
-- [ ] Qualify native ESR popup behavior and intended additional operating systems.
+- [x] Resolve Firefox 140 fixture loading and rerun all 12 API checks without changing product code or its minimum.
+- [ ] Qualify native minimum/ESR popup behavior and intended additional operating systems.
 
 The current workflow status is available in [GitHub Actions](https://github.com/ranokay/addonray/actions). Local evidence and remote CI are separate. Inspect the run associated with the current head before claiming that CI passed. The real-Firefox task records its own source commit and dirty status locally.
 
 ## Next action
 
-Investigate the [Firefox 140 loading blocker](evidence/2026-10-22-qualification.md#firefox-140-blocker). Compare an actual toolbar launch through `FIREFOX_VERSION=140.0 mise run test-firefox-popup` with direct-document WebDriver navigation before changing product code or the manifest minimum. Complete native ESR and OS qualification before advertising broader support. Keep Phase 1 implementation behind a new scope decision.
+Run the native-popup protocol on Firefox 140.0 and ESR 153.5.1esr using the corrected local installer. Complete OS and packaging qualification before advertising broader support. Keep Phase 1 implementation behind a new scope decision.
 
 See [toolchain setup](toolchain.md) for the canary pin, hk installation, jactionlint, and rollback. Independent migration and qualification-tool reviews found no material issues. The popup launcher has been checked for normal startup and Enter-triggered browser/server cleanup; it does not issue an automated UI verdict.
 

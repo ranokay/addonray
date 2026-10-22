@@ -7,6 +7,7 @@ import { resolve, join } from 'node:path';
 import { platform, arch } from 'node:os';
 import { Builder, By, until } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
+import { installTemporaryExtension } from './firefox-install.mjs';
 
 // Selenium Manager's download telemetry is independent of the product. Disable it here too.
 process.env.SE_AVOID_STATS = 'true';
@@ -110,7 +111,7 @@ try {
     assert.equal(report.browserVersion, requestedVersion.replace(/esr$/, ''));
   }
   for (const extension of [ordinary, harness, resolve('.output/firefox-mv3')]) {
-    await driver.installWebExtension(extension, { permanent: false });
+    await installTemporaryExtension(driver, extension);
   }
 
   async function extensionUrl(id, path) {
