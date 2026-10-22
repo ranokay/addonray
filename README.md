@@ -1,14 +1,14 @@
 # AddonRay
 
-AddonRay helps Firefox users investigate broken or slow pages with an extension inventory, explicit capability limits, and guided comparisons.
+AddonRay helps Firefox and Chrome users investigate broken or slow pages with an extension inventory, explicit capability limits, and manual troubleshooting guidance.
 
 Product name and private repository identity `ranokay/addonray` were approved on 2026-10-22. This directory retains its original `fext` name. Licensing is undecided. The repository has no license grant.
 
 ## Current state
 
-Phase 0 is scaffolded. The approved first Phase 1 slice adds local inventory search, enabled-state filtering, permission explanations, and manual Firefox-controls guidance in a dark popup. The extension retains explicit consent, a minimal selected-page probe, and capability explanations. [Current status](docs/status.md) tracks implementation and qualification. [Earlier evidence](docs/evidence/2026-10-22-qualification.md) records minimum/release/ESR API and native-popup checks on macOS arm64. This is a private feasibility build; AMO distribution remains a separate release gate.
+Phase 0 is scaffolded. The approved first Phase 1 slice adds local inventory search, enabled-state filtering, permission explanations, and manual browser-controls guidance in a dark popup. The extension retains explicit consent, a minimal selected-page probe, and capability explanations. [Current status](docs/status.md) tracks implementation and qualification. [Earlier evidence](docs/evidence/2026-10-22-qualification.md) records minimum/release/ESR API and native-popup checks on macOS arm64. This is a private feasibility build; Store distribution remains a separate release gate.
 
-Desktop targets are macOS, Linux, and Windows. [Packaged-extension qualification](docs/evidence/2026-10-22-packaging.md) tracks unsigned XPI checks and the Linux/Windows API matrix separately from native-popup usability and signing. `mise run package` creates the XPI and source ZIP locally; it publishes nothing.
+The approved builds are Firefox MV3 and Chrome MV3. Desktop targets are macOS, Linux, and Windows. Other browsers and MV2 remain deferred. [Chrome compatibility criteria](docs/plans/chrome-mv3.md) distinguish repeatable Chrome for Testing checks from retail installation and native usability. [Packaged-extension qualification](docs/evidence/2026-10-22-packaging.md) tracks unsigned XPI checks and the Linux/Windows API matrix separately from native-popup usability and signing. `mise run package` creates the XPI and source ZIP locally; it publishes nothing.
 
 ## Run locally
 
@@ -30,6 +30,8 @@ mise run test-firefox
 
 The real-browser task builds the extension, then uses Selenium Manager to locate/download Firefox and its driver. It creates a disposable profile and controlled fixtures, and writes local evidence to ignored `.scratch/`. It never uses the ordinary Firefox profile. The test driver has browser-UI privileges solely for fixture setup and permission dialog automation. The production extension has no such privilege.
 
+For Chrome, use `mise exec -- bun run dev:chrome` or `mise run package-chrome`. The latter creates a validated Chrome ZIP and browser-named source ZIP. `mise run test-chrome` uses an exact Chrome for Testing version in a disposable profile; `mise run test-chrome-popup` opens a visible session for separate native-consent observations. [Testing](docs/testing.md) describes the pre-granted UI fixture and unmodified product checks.
+
 ## Read the project
 
 - [Vision](docs/vision.md) explains who this serves and what success means.
@@ -38,7 +40,7 @@ The real-browser task builds the extension, then uses Selenium Manager to locate
 - [API limits](docs/api-limits.md) separates documented APIs from observed behavior.
 - [Privacy](docs/privacy.md) defines permission requests and data retention.
 - [Phases](docs/phases.md) provides delivery gates and explicit stop conditions.
-- [Testing](docs/testing.md) distinguishes simulated tests from Firefox evidence.
+- [Testing](docs/testing.md) distinguishes simulated tests from observed browser evidence.
 - [Toolchain](docs/toolchain.md) covers Bun, hk, jactionlint, setup, and rollback.
 - [Decisions](docs/decisions.md) records answers and open questions.
 - [Naming research](docs/naming.md) records the shortlist and collision checks.

@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import JSZip from 'jszip';
-import { extensionArchive, sourceArchive } from './package-paths.mjs';
+import { packagePaths } from './package-paths.mjs';
 
 export function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
@@ -51,9 +51,11 @@ export function compareFiles(actual, expected) {
   }
 }
 
-export async function checkPackage() {
+export async function checkPackage(browser = 'firefox') {
+  const { extensionArchive, sourceArchive, outputDirectory } =
+    packagePaths(browser);
   const extension = await archiveFiles(extensionArchive);
-  compareFiles(extension.files, await directoryFiles('.output/firefox-mv3'));
+  compareFiles(extension.files, await directoryFiles(outputDirectory));
   assert(
     extension.files.has('manifest.json'),
     'Manifest must be at archive root',
@@ -82,7 +84,9 @@ export async function checkPackage() {
 }
 
 if (import.meta.main) {
-  const { extension, sources } = await checkPackage();
+  const paths = packagePaths(process.argv[2]);
+  const { extensionArchive } = paths;
+  const { extension, sources } = await checkPackage(paths.browser);
   console.log(
     `Package verified: ${relative('.', extensionArchive)}; SHA-256 ${extension.sha256}`,
   );

@@ -53,3 +53,9 @@ On 2026-10-22 the user chose to start Phase 1 planning for the private build whi
 The user then selected inventory search/filtering, plain-language permission explanations, and manual Firefox-settings guidance as the first slice, retaining the existing popup. Manual comparisons follow in a separate slice after an investigation-lifetime decision. The user explicitly invoked the prototype skill to explore the UI. The [slice plan](plans/phase1-inventory.md) records acceptance criteria and the pending visual decision.
 
 On 2026-10-23 the user chose A, Quick list, with a dark/black theme by default and the documented first-slice acceptance criteria. This authorizes the production rewrite of that slice. Search and filter controls operate on the loaded inventory in popup memory. The original three-variant experiment stays on its throwaway branch, linked from [issue #1](https://github.com/ranokay/addonray/issues/1).
+
+## Tooling and browser-target continuation
+
+On 2026-10-23 the user asked about Bun 1.4.4 and additional browser/manifest targets. The official stable binary now has native formatting and type checking, but no native lint command. After reviewing this distinction, the user chose to retain the pinned native-tool canary.
+
+The user approved Chrome MV3 first, qualified against the current desktop release, with Firefox MV3 retained. Edge is a later target; Safari and MV2 are deferred. The [Chrome slice contract](plans/chrome-mv3.md) records the scope and evidence requirements. Current private visibility, deferred licensing/publication, inspection-only behavior, and popup-memory rules continue. No tracker issue was requested for this slice; this checklist and plan remain its local work record.

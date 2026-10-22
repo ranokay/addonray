@@ -4,11 +4,11 @@
 
 | Evidence                       | What it proves                                                    | What it does not prove                      |
 | ------------------------------ | ----------------------------------------------------------------- | ------------------------------------------- |
-| Documentation/source research  | A documented contract or source behavior at the cited revision    | Installed Firefox behavior                  |
+| Documentation/source research  | A documented contract or source behavior at the cited revision    | Installed browser behavior                  |
 | Bun tests with browser fakes   | AddonRay's handling of success, denial, partial data, and failure | Browser permission prompts or API authority |
 | Type checking and build        | Type consistency and an extension artifact                        | Runtime support                             |
 | Manifest/package checks        | Permission budget, MV3 target, local packaging constraints        | Usability or actual consent                 |
-| Disposable-profile Firefox run | Observed cases on the named browser/OS                            | Every Firefox release, ESR, or OS           |
+| Disposable-profile Firefox run | Observed cases on the named browser/OS                            | Other distributions, releases, or OSs       |
 
 Keep these levels separate in reports. Record the tested commit after the initial repository exists. Never describe pending or skipped probes as passing.
 
@@ -59,10 +59,22 @@ Run `FIREFOX_VERSION=140.0 mise run test-firefox-package` to install the retaine
 
 The Linux/Windows qualification workflow runs source rebuilds and packaged API probes across all three exact browser versions. Inspect each job's report, source revision, installation mode, and actual browser/driver version. A green development gate does not replace this matrix. Passing headless jobs does not establish native-popup focus/lifetime behavior on those systems.
 
+## Chrome protocol and qualification
+
+`mise run test-chrome` validates the Chrome ZIP, extracts its unchanged contents into a Chrome-readable system temporary directory, and uses a disposable Chrome for Testing profile. The driver pins and asserts both browser and ChromeDriver 156.0.8078.47. `CHROME_VERSION` accepts only that exact pin. Selenium statistics are disabled and browser/driver binaries on PATH are ignored. Raw reports go to `.scratch/chrome-evidence.json`.
+
+The 11 checks distinguish unmodified product startup, toolbar-triggered `activeTab`, the production minimal page probe and scripting revocation, from a separately named pre-granted UI fixture. That fixture runs the production UI assets with required inventory/scripting permissions solely to exercise filtering, explanations, refresh, Clear, and disabled metadata without a native prompt. A third controller has host access and mutation authority for isolation, protected-page, and controlled-fixture checks. Neither fixture is included in product/source archives. See the [test-authority ADR](adr/0002-test-authority-and-browser-qualification.md).
+
+`mise run test-chrome-popup` opens the unmodified ZIP extraction visibly. Record real optional inventory denial/approval, keyboard operation, page inspection, Clear, close/reopen, and retained grants through the toolbar popup. Keep inventory permission granted before pressing Enter. The launcher then verifies empty reopening, action-triggered inventory with that grant, and clearing on actual management revocation. Its `.scratch/chrome-native-api-evidence.json` is an API report, not an automatic native UI verdict. Enter closes the owned browser and loopback server.
+
+`mise run package-chrome` produces `.output/addonray-0.0.1-chrome.zip` and `.output/addonray-0.0.1-chrome-sources.zip`. The Firefox source archive is now `.output/addonray-0.0.1-firefox-sources.zip`. `mise run test-source-build-chrome` compares an extracted frozen source rebuild with every Chrome ZIP file and writes `.scratch/source-build-evidence-chrome.json`. The same permission, file-path, CRC, and source allowlist rules apply to both targets.
+
+The Chrome workflow runs source rebuilds and these 11 checks on Ubuntu 24.04 x64 and Windows Server 2025 x64. Local macOS arm64 evidence is separate. Chrome for Testing evidence does not qualify retail Chrome installation, native Linux/Windows popup behavior, Chrome Web Store publication, or future Chrome releases.
+
 ## Repeatable developer checks
 
-`mise run check` runs the shared hk gate with native Bun formatting, linting, type checking and behavior tests, followed by packaging, manifest/archive validation, and jactionlint workflow checks. `mise run test-firefox` rebuilds and runs the real-browser probes. See [toolchain setup](toolchain.md) for the pinned canary and lockfile. Browser downloads stay in Selenium's cache, while raw local evidence stays in ignored `.scratch/`.
+`mise run check` runs the shared hk gate with native Bun formatting, linting, type checking and behavior tests, followed by both Firefox/Chrome packaging, manifest/archive validation, and jactionlint workflow checks. `mise run test-firefox` rebuilds and runs the real-browser probes. See [toolchain setup](toolchain.md) for the pinned canary and lockfile. Browser downloads stay in Selenium's cache, while raw local evidence stays in ignored `.scratch/`.
 
-CI runs the deterministic gate and a separate Linux/Windows browser matrix. Browser probes must fail visibly or report an explicit skip when no browser is available. They must not silently pass on mocks.
+CI runs the deterministic gate and separate Linux/Windows Firefox and Chrome matrices. Browser probes must fail visibly or report an explicit skip when no browser is available. They must not silently pass on mocks.
 
 The browser task reports `passed-with-qualification-gaps` when its observed checks pass but broader qualification remains. That is not a completed Phase 0 release gate. See [the dated evidence](evidence/2026-10-22-firefox.md) and [status](status.md) before deciding readiness.

@@ -1,4 +1,5 @@
 import type { ExtensionEntry } from './inspector';
+import { firefoxContext, type BrowserContext } from './browser-target';
 
 export type InventoryFilter = 'all' | 'enabled' | 'disabled';
 
@@ -20,23 +21,11 @@ export function filterInventory(
   });
 }
 
-// Meanings are bounded summaries of the Mozilla references in docs/api-limits.md.
+// Meanings are bounded summaries of the browser references in docs/api-limits.md.
 const explanations = new Map([
   [
     'activeTab',
     'Temporary access to the tab where you interact with the extension. Browser restrictions still apply.',
-  ],
-  [
-    'management',
-    'Read information about installed add-ons exposed by Firefox. This does not authorize switching ordinary extensions.',
-  ],
-  [
-    'scripting',
-    'Insert scripts and styles into pages where Firefox grants access. This permission alone does not grant access to every page.',
-  ],
-  [
-    'storage',
-    'Use Firefox extension storage to save and retrieve data. This metadata does not reveal what is stored.',
   ],
   [
     'tabs',
@@ -48,7 +37,24 @@ const explanations = new Map([
   ],
 ]);
 
-export function permissionExplanation(identifier: string) {
+export function permissionExplanation(
+  identifier: string,
+  context: BrowserContext = firefoxContext,
+) {
+  if (identifier === 'management') {
+    return context.target === 'chrome'
+      ? 'Read information about installed extensions exposed by Chrome. Chrome also permits extension state changes through this API when allowed; AddonRay only reads the inventory.'
+      : 'Read information about installed add-ons exposed by Firefox. This does not authorize switching ordinary extensions.';
+  }
+  if (identifier === 'scripting') {
+    return `Insert scripts and styles into pages where ${context.name} grants access. This permission alone does not grant access to every page.`;
+  }
+  if (identifier === 'storage') {
+    return `Use ${context.name} extension storage to save and retrieve data. This metadata does not reveal what is stored.`;
+  }
+  if (identifier === 'webRequest' && context.target === 'chrome') {
+    return 'Observe network requests within the permitted host scope. Chrome MV3 limits blocking webRequest listeners to policy-installed extensions.';
+  }
   return (
     explanations.get(identifier) ??
     'No explanation is available for this permission. Its original identifier is shown.'

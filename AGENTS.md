@@ -8,7 +8,7 @@ Implement one approved phase at a time. Keep missing metadata unknown. Separate 
 
 Before changing development tools, hooks, or CI, read [docs/toolchain.md](docs/toolchain.md). Use the checksum-pinned Bun canary through mise. The shared hk gate includes jactionlint. Keep hooks in check-only mode without automatic staging or stashing.
 
-Run `mise run check` before committing. Run `mise run test-firefox` for browser API changes and record the exact version, observed results, and gaps in [docs/evidence](docs/evidence). If a probe cannot run, leave its qualification incomplete. Keep raw local data in ignored `.scratch/`.
+Run `mise run check` before committing. Run `mise run test-firefox` and `mise run test-chrome` for shared browser API changes and record exact distributions, versions, observed results, and gaps in [docs/evidence](docs/evidence). Read [the Chrome plan](docs/plans/chrome-mv3.md) before changing target support or test authority. If a probe cannot run, leave its qualification incomplete. Keep raw local data in ignored `.scratch/`.
 
 The approved remote is private `ranokay/addonray`, integration branch `main`. Sign commits and stage authored paths explicitly. Preserve other work. Licensing, public visibility, AMO publication, and destructive operations need explicit user authorization. Current source has no license grant.
 

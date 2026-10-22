@@ -1,4 +1,5 @@
 import type { browser, Browser } from 'wxt/browser';
+import { firefoxContext, type BrowserContext } from './browser-target';
 
 export interface InspectorBrowser {
   permissions: {
@@ -42,42 +43,45 @@ export interface PageObservation {
   performanceEntryTypes: string[] | null;
 }
 
-export const capabilityLimits = [
-  {
-    name: 'Change other extensions globally',
-    status: 'Unsupported',
-    reason:
-      'Ordinary Firefox extensions cannot switch other extensions on or off.',
-  },
-  {
-    name: 'Change another extension for one site',
-    status: 'Unsupported',
-    reason:
-      'Use Firefox or that extension’s own controls. AddonRay has no authority over their site access.',
-  },
-  {
-    name: 'Tail other extensions’ consoles',
-    status: 'Unsupported',
-    reason:
-      'Firefox does not expose a cross-extension console feed to this tool.',
-  },
-  {
-    name: 'Identify a conflict or resource owner',
-    status: 'Unsupported',
-    reason:
-      'Page observations do not reliably attribute CPU, memory, or failures to a particular extension.',
-  },
-  {
-    name: 'Native companion',
-    status: 'Not implemented',
-    reason:
-      'A future optional companion needs separate consent and feasibility evidence.',
-  },
-] as const;
+export function capabilityLimits(context: BrowserContext = firefoxContext) {
+  return [
+    {
+      name: 'Change other extensions globally',
+      status: context.target === 'chrome' ? 'Not offered' : 'Unsupported',
+      reason:
+        context.target === 'chrome'
+          ? "Chrome's management API can enable or disable extensions when permitted. AddonRay is inspection-only and never changes other extensions."
+          : 'Ordinary Firefox extensions cannot switch other extensions on or off.',
+    },
+    {
+      name: 'Change another extension for one site',
+      status: 'Unsupported',
+      reason: `Use ${context.name} or that extension’s own controls. AddonRay has no authority over their site access.`,
+    },
+    {
+      name: 'Tail other extensions’ consoles',
+      status: 'Unsupported',
+      reason: `${context.name} does not expose a cross-extension console feed to this tool.`,
+    },
+    {
+      name: 'Identify a conflict or resource owner',
+      status: 'Unsupported',
+      reason:
+        'Page observations do not reliably attribute CPU, memory, or failures to a particular extension.',
+    },
+    {
+      name: 'Native companion',
+      status: 'Not implemented',
+      reason:
+        'A future optional companion needs separate consent and feasibility evidence.',
+    },
+  ] as const;
+}
 
 export async function loadInventory(
   api: InspectorBrowser,
   signal?: AbortSignal,
+  context: BrowserContext = firefoxContext,
 ): Promise<Result<ExtensionEntry[]>> {
   try {
     // Start the request before any await to preserve the caller's user gesture.
@@ -91,7 +95,7 @@ export async function loadInventory(
     if (!api.management?.getAll) {
       return {
         status: 'unavailable',
-        reason: 'Firefox inventory access is unavailable.',
+        reason: `${context.name} inventory access is unavailable.`,
       };
     }
     const entries = await api.management.getAll();
@@ -114,8 +118,7 @@ export async function loadInventory(
   } catch {
     return {
       status: 'error',
-      reason:
-        'Firefox could not provide the inventory. Access may have changed. Try the action again.',
+      reason: `${context.name} could not provide the inventory. Access may have changed. Try the action again.`,
     };
   }
 }
@@ -159,6 +162,7 @@ function isPageObservation(value: unknown): value is PageObservation {
 export async function inspectPage(
   api: InspectorBrowser,
   signal?: AbortSignal,
+  context: BrowserContext = firefoxContext,
 ): Promise<Result<PageObservation>> {
   try {
     // Bind the selection at the click, while starting consent in the same gesture.
@@ -182,7 +186,7 @@ export async function inspectPage(
     if (!api.scripting?.executeScript) {
       return {
         status: 'unavailable',
-        reason: 'Firefox scripting is unavailable.',
+        reason: `${context.name} scripting is unavailable.`,
       };
     }
     const results = await api.scripting.executeScript({
@@ -209,8 +213,7 @@ export async function inspectPage(
   } catch {
     return {
       status: 'error',
-      reason:
-        'Firefox refused the page probe. Protected pages, navigation, or a closed tab can cause this.',
+      reason: `${context.name} refused the page probe. Protected pages, navigation, or a closed tab can cause this.`,
     };
   }
 }

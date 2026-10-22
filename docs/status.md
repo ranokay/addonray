@@ -2,6 +2,8 @@
 
 ## Current state
 
+The user approved the [Chrome MV3 continuation](plans/chrome-mv3.md) on 2026-10-23 and kept the pinned Bun canary for native linting. Firefox MV3 remains the baseline; other browsers and MV2 are deferred. Implementation and local development probes are in progress. No comparison or longer session is approved.
+
 The first Phase 1 inventory slice is implemented in signed commit `a80125b` under [issue #1](https://github.com/ranokay/addonray/issues/1). The user selected layout A with a dark/black theme by default and the [documented acceptance criteria](plans/phase1-inventory.md). All 37 behavior tests passed. Packaged Firefox checks passed all 15 cases on each of three exact versions across macOS, Linux, and Windows. The actual rewritten popup was observed on macOS with Firefox 158.0.1. See [current inventory evidence](evidence/2026-10-23-phase1-inventory.md) for source identities, static review, CI links, and remaining gaps. The three-variant prototype remains on its separate branch.
 
 The approved Phase 0 scaffold is implemented and published on `main` in private [ranokay/addonray](https://github.com/ranokay/addonray). Signed migration commit `abca489` replaces pnpm, Prettier, and Vitest with a pinned Bun canary and adds hk and jactionlint. Its [Linux CI run](https://github.com/ranokay/addonray/actions/runs/39720670911) passed. All 26 behavior tests, native formatting/lint/types, build, manifest checks, and workflow checks pass locally.
@@ -53,9 +55,20 @@ Signed packaging commit `bdad8f9` adds validated unsigned XPI/source archives an
 
 The current workflow status is available in [GitHub Actions](https://github.com/ranokay/addonray/actions). Local evidence and remote CI are separate. Inspect the run associated with the current head before claiming that CI passed. The real-Firefox task records its own source commit and dirty status locally.
 
+## Chrome continuation checklist
+
+- [x] Confirm native Bun canary, Chrome first, and MV3-only scope.
+- [x] Add browser-context UI/adapters, conditional manifests, target-aware packages/source archives, and Chrome fixtures.
+- [x] Run the 11 Chrome checks during development on macOS arm64. This dirty run is not frozen evidence.
+- [ ] Complete shared gate, independent review, and signed implementation commit.
+- [ ] Verify clean source rebuilds and packaged Firefox/Chrome probes.
+- [ ] Record actual Chrome native consent and popup observations separately.
+- [ ] Inspect exact-head Linux/Windows CI reports and record qualification gaps.
+- [ ] Publish signed evidence/status and identify the next product decision.
+
 ## Next action
 
-Review the completed first inventory slice, then resolve the investigation lifetime before planning manual before/after comparisons. No comparison feature or longer-lived session is approved yet. The original prototype is captured in signed commit `36e4d24` outside `main` and remains runnable with `mise run prototype` from its checkout.
+Finish the approved Chrome continuation and its qualification record, then resolve the investigation lifetime before planning manual before/after comparisons. No comparison feature or longer-lived session is approved yet. The original prototype is captured in signed commit `36e4d24` outside `main` and remains runnable with `mise run prototype` from its checkout.
 
 The user approved planning for the private build with the remaining release gates open. Follow the [desktop QA handoff](desktop-popup-qa.md) when a visible Linux/Windows target becomes available, and complete signed-distribution checks at the release gate. Current hosted jobs provide headless API evidence.
 
@@ -69,4 +82,4 @@ For fresh revision-bound evidence, run `/Users/ranokay/.agents/tools/run gate_ru
 
 ## Unresolved future decisions
 
-License, public visibility, final AMO identity/publication, additional OS and packaged XPI qualification, longer investigation lifetime, diagnostic collectors and overhead budgets, report export/history rules, and a concrete optional companion capability. These do not block the narrow Phase 0 proposal.
+License, public visibility, final AMO identity/publication, remaining native OS and signed-distribution qualification, retail Chrome installation, longer investigation lifetime, diagnostic collectors and overhead budgets, report export/history rules, and a concrete optional companion capability. These do not block the narrow Phase 0 proposal.

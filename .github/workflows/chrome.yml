@@ -1,0 +1,44 @@
+name: Chrome qualification
+on:
+  push:
+    branches: [main]
+  pull_request:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  chrome:
+    name: ${{ matrix.os }} / Chrome for Testing 156 / MV3 ZIP
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    env:
+      CHROME_VERSION: '156.0.8078.47'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
+        with:
+          install_args: http:bun
+      - run: bun install --frozen-lockfile
+      - run: bun run check:toolchain
+      - run: bun run package:chrome
+      - run: bun scripts/check-source-build.mjs chrome
+      - run: bun scripts/chrome-probes.mjs
+      - name: Preserve qualification reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: chrome-${{ runner.os }}-156.0.8078.47
+          path: |
+            .scratch/chrome-evidence.json
+            .scratch/source-build-evidence-chrome.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

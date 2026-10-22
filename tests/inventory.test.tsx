@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { Inventory } from '../entrypoints/popup/Inventory';
 import type { ExtensionEntry } from '../lib/inspector';
 import { filterInventory, permissionExplanation } from '../lib/inventory';
+import { getBrowserContext } from '../lib/browser-target';
 
 const entries: ExtensionEntry[] = [
   {
@@ -111,4 +112,46 @@ it('renders supplied names, identifiers and host patterns as text', () => {
   expect(markup).not.toContain('<img');
   expect(markup).not.toContain('<a ');
   expect(markup).toContain('&lt;img src=x&gt;');
+});
+
+it('renders Chrome inventory explanations without Firefox claims', () => {
+  const context = getBrowserContext('chrome');
+  const markup = renderToStaticMarkup(
+    <Inventory entries={entries} context={context} />,
+  );
+  expect(markup).toContain(
+    'Unknown. Chrome did not supply API permission metadata.',
+  );
+  expect(markup).toContain(
+    'Unknown. Chrome did not supply host permission metadata.',
+  );
+  expect(markup).toContain('Use Chrome extension storage');
+  expect(markup).toContain('None reported.');
+  expect(markup).not.toContain('Firefox');
+  const empty = renderToStaticMarkup(
+    <Inventory entries={[]} context={context} />,
+  );
+  expect(empty).toContain('Chrome supplied an empty inventory.');
+});
+
+it('separates the Chrome management permission from AddonRay’s product policy', () => {
+  const context = getBrowserContext('chrome');
+  expect(permissionExplanation('management', context)).toContain(
+    'Chrome also permits extension state changes',
+  );
+  expect(permissionExplanation('management', context)).toContain(
+    'AddonRay only reads the inventory',
+  );
+  expect(permissionExplanation('scripting', context)).toContain(
+    'Chrome grants access',
+  );
+  expect(permissionExplanation('webRequest', context)).toContain(
+    'Chrome MV3 limits blocking',
+  );
+  expect(permissionExplanation('futurePermission', context)).toContain(
+    'No explanation is available',
+  );
+  expect(permissionExplanation('management')).toContain(
+    'does not authorize switching ordinary extensions',
+  );
 });

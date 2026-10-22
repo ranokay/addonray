@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { firefoxContext, type BrowserContext } from '../../lib/browser-target';
 import type { ExtensionEntry } from '../../lib/inspector';
 import {
   filterInventory,
@@ -6,7 +7,13 @@ import {
   type InventoryFilter,
 } from '../../lib/inventory';
 
-function PermissionDetails({ entry }: { entry: ExtensionEntry }) {
+function PermissionDetails({
+  entry,
+  context,
+}: {
+  entry: ExtensionEntry;
+  context: BrowserContext;
+}) {
   return (
     <div className="permission-details">
       <p className="metadata">
@@ -14,7 +21,7 @@ function PermissionDetails({ entry }: { entry: ExtensionEntry }) {
       </p>
       <h3>API permission metadata</h3>
       {entry.permissions === null ? (
-        <p>Unknown. Firefox did not supply API permission metadata.</p>
+        <p>Unknown. {context.name} did not supply API permission metadata.</p>
       ) : entry.permissions.length === 0 ? (
         <p>None reported.</p>
       ) : (
@@ -24,14 +31,14 @@ function PermissionDetails({ entry }: { entry: ExtensionEntry }) {
               <dt>
                 <code>{identifier}</code>
               </dt>
-              <dd>{permissionExplanation(identifier)}</dd>
+              <dd>{permissionExplanation(identifier, context)}</dd>
             </div>
           ))}
         </dl>
       )}
       <h3>Host permission metadata</h3>
       {entry.hostPermissions === null ? (
-        <p>Unknown. Firefox did not supply host permission metadata.</p>
+        <p>Unknown. {context.name} did not supply host permission metadata.</p>
       ) : entry.hostPermissions.length === 0 ? (
         <p>None reported.</p>
       ) : (
@@ -54,7 +61,13 @@ function PermissionDetails({ entry }: { entry: ExtensionEntry }) {
 }
 
 // Mounted only while a successful inventory exists. Removing it discards display state.
-export function Inventory({ entries }: { entries: ExtensionEntry[] }) {
+export function Inventory({
+  entries,
+  context = firefoxContext,
+}: {
+  entries: ExtensionEntry[];
+  context?: BrowserContext;
+}) {
   const [query, setQuery] = useState('');
   const [state, setState] = useState<InventoryFilter>('all');
   const visible = filterInventory(entries, query, state);
@@ -95,7 +108,7 @@ export function Inventory({ entries }: { entries: ExtensionEntry[] }) {
       </p>
       {entries.length === 0 ? (
         <p className="empty">
-          No extensions reported. Firefox supplied an empty inventory.
+          No extensions reported. {context.name} supplied an empty inventory.
         </p>
       ) : visible.length === 0 ? (
         <div className="empty">
@@ -130,7 +143,7 @@ export function Inventory({ entries }: { entries: ExtensionEntry[] }) {
                     </span>
                   </span>
                 </summary>
-                <PermissionDetails entry={entry} />
+                <PermissionDetails entry={entry} context={context} />
               </details>
             </li>
           ))}

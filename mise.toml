@@ -59,3 +59,19 @@ run = "bun run test:firefox:package"
 [tasks.test-firefox-popup-package]
 description = "Open the packaged XPI in a disposable visible Firefox"
 run = "bun run test:firefox-popup:package"
+
+[tasks.package-chrome]
+description = "Build and validate the Chrome MV3 ZIP and source archive"
+run = "bun run package:chrome"
+
+[tasks.test-source-build-chrome]
+description = "Rebuild Chrome sources and compare packaged files"
+run = "bun run test:source-build:chrome"
+
+[tasks.test-chrome]
+description = "Run bounded Chrome for Testing API and fixture checks"
+run = "bun run test:chrome"
+
+[tasks.test-chrome-popup]
+description = "Open the unmodified Chrome build for native consent checks"
+run = "bun run test:chrome-popup"

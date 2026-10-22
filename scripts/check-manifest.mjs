@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { packagePaths } from './package-paths.mjs';
 
-const root = '.output/firefox-mv3';
+const { browser, outputDirectory: root } = packagePaths(process.argv[2]);
 const manifest = JSON.parse(
   await readFile(join(root, 'manifest.json'), 'utf8'),
 );
@@ -17,16 +18,22 @@ assert.equal(manifest.host_permissions?.length ?? 0, 0);
 assert.equal(manifest.optional_host_permissions?.length ?? 0, 0);
 assert.equal(manifest.content_scripts?.length ?? 0, 0);
 assert.equal(manifest.background, undefined);
-assert.equal(
-  manifest.browser_specific_settings.gecko.strict_min_version,
-  '140.0',
-);
-assert.deepEqual(
-  manifest.browser_specific_settings.gecko.data_collection_permissions,
-  {
-    required: ['none'],
-  },
-);
+if (browser === 'firefox') {
+  assert.equal(
+    manifest.browser_specific_settings.gecko.strict_min_version,
+    '140.0',
+  );
+  assert.deepEqual(
+    manifest.browser_specific_settings.gecko.data_collection_permissions,
+    {
+      required: ['none'],
+    },
+  );
+  assert.equal(manifest.minimum_chrome_version, undefined);
+} else {
+  assert.equal(manifest.browser_specific_settings, undefined);
+  assert.equal(manifest.minimum_chrome_version, '156');
+}
 
 async function inspectFiles(directory) {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -43,4 +50,4 @@ async function inspectFiles(directory) {
   }
 }
 await inspectFiles(root);
-console.log('Firefox MV3 manifest and permission budget passed.');
+console.log(`${browser} MV3 manifest and permission budget passed.`);

@@ -2,7 +2,7 @@
 
 ## Initial shape
 
-Use WXT, TypeScript, and React in a single extension project. Configure Firefox Manifest V3 explicitly because WXT's Firefox default is MV2. Start with a popup, small browser adapters, a capability model, and tests. Add a background coordinator only when a later recording workflow requires one. Firefox MV3 uses background scripts/event pages rather than a Chrome-only service worker.
+Use WXT, TypeScript, and React in a single extension project. Configure Firefox and Chrome Manifest V3 explicitly because WXT's Firefox default is MV2. Reject other browser and manifest targets until separately approved. Start with a popup, small browser adapters, a capability model, and tests. Add a background coordinator only when a later recording workflow requires one. Firefox MV3 uses background scripts/event pages rather than a Chrome-only service worker.
 
 ```mermaid
 flowchart LR
@@ -10,8 +10,8 @@ flowchart LR
   UI --> Consent[Optional permission request]
   Consent --> Inventory[Inventory adapter]
   Consent --> Probe[Selected-page probe]
-  Inventory --> Management[Firefox management API]
-  Probe --> Scripting[Firefox scripting API]
+  Inventory --> Management[Browser management API]
+  Probe --> Scripting[Browser scripting API]
   Management --> Results[Session results with limits]
   Scripting --> Validation[Validate minimal response]
   Validation --> Results
@@ -34,7 +34,7 @@ The inventory is sensitive because extension choices can reveal user interests. 
 
 The page probe collects no identifiers or content. Validate document readiness against known values, performance type values as bounded strings, and response length before rendering. Render text through React. Do not insert HTML or execute returned strings.
 
-Keep permission grants distinct from data retention. Firefox can retain a grant after the popup closes. AddonRay retains no corresponding diagnostic history. In-flight operations must not repopulate cleared or revoked results.
+Keep permission grants distinct from data retention. The browser can retain a grant after the popup closes. AddonRay retains no corresponding diagnostic history. In-flight operations must not repopulate cleared or revoked results.
 
 ## Future diagnostics
 
@@ -50,7 +50,9 @@ Any proposal for browser control must identify a supported mechanism and obtain 
 
 ## Compatibility boundary
 
-Target Firefox desktop 140+ initially to simplify the built-in data consent boundary. The minimum version is a manifest constraint, not proof that every release, ESR, or OS has passed tests. Record actual qualification separately. Android and Chromium need separate proposals.
+The approved targets are Firefox desktop MV3 at minimum 140 and Chrome desktop MV3 at minimum 156. `lib/browser-target.ts` maps WXT's build-time browser value to a closed context passed through the session, adapters, and UI. Unknown targets fail; the product does not inspect user agents. Conditional manifests include Gecko settings and Firefox data consent only for Firefox, and `minimum_chrome_version` only for Chrome. No background process is needed for either build.
+
+The manifest minimum is a loading constraint, not proof of every release or OS. Exact distribution/version/OS evidence lives in dated reports. Edge, Safari, Android, and MV2 require separate decisions. The [test-authority ADR](adr/0002-test-authority-and-browser-qualification.md) distinguishes unmodified product consent from pre-granted Chrome UI fixtures.
 
 ## Sources
 

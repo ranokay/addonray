@@ -5,7 +5,7 @@ The language used to discuss extension troubleshooting and its evidence.
 ## Language
 
 **Inventory**:
-The extensions Firefox exposes to AddonRay, including their reported enabled state and available metadata.
+The extensions the selected browser exposes to AddonRay, including their reported enabled state and available metadata.
 _Avoid_: Complete browser audit, active-on-page list.
 
 **Capability**:
@@ -31,3 +31,7 @@ _Avoid_: Browsing history, retained report.
 **Companion**:
 An optional, separately installed local application whose capabilities require their own consent and evidence.
 _Avoid_: Privileged browser backdoor.
+
+**Qualification**:
+Recorded evidence for named behaviors on an exact browser distribution, version, and operating system. A build alone does not establish it.
+_Avoid_: Blanket browser support, feature detection as a passing result.

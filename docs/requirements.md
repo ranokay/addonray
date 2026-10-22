@@ -4,15 +4,15 @@ Status: Phase 0 scope approved on 2026-10-22 and scaffold implemented. The user 
 
 ## User stories
 
-1. As a Firefox user, I want to see which extensions Firefox exposes so I can start investigating a problem.
+1. As a Firefox or Chrome user, I want to see which extensions the selected browser exposes so I can start investigating a problem.
 2. As a privacy-conscious user, I want an explanation before granting inventory access so I can decline without breaking the rest of the tool.
 3. As a user, I want enabled state and missing permission metadata represented accurately so I do not mistake missing data for no access.
 4. As a user, I want to inspect the selected page only after a deliberate action so the tool does not monitor my browsing.
-5. As a user, I want to know when Firefox prevents inspection so a browser restriction is not presented as a broken extension.
+5. As a user, I want to know when the browser prevents inspection so a browser restriction is not presented as a broken extension.
 6. As a user, I want observations distinguished from suspicions so I do not blame an unrelated extension.
 7. As a user, I want to clear the visible session immediately so diagnostic details do not linger.
 8. As a contributor, I want repeatable probes and evidence records so I can verify browser support independently.
-9. In a later phase, as a user, I want a guided comparison while I change extension settings through Firefox so I can reproduce a difference.
+9. In a later phase, as a user, I want a guided comparison while I change extension settings through the browser so I can reproduce a difference.
 10. In a later phase, as a user, I want to review a minimized report before exporting it so sharing remains my choice.
 
 ## Phase 0 acceptance
@@ -30,13 +30,19 @@ Status: Phase 0 scope approved on 2026-10-22 and scaffold implemented. The user 
 | P0-09 | Tests exercise consent, partial inventory metadata, capability gating, invalid page responses, and permission revocation. Build checks enforce the intended permission budget.                                                               |
 | P0-10 | A disposable Firefox profile runs real probes. Evidence names the browser version, OS, probe, expected/observed behavior, and qualification gaps. Simulated tests never stand in for these results.                                          |
 
+## Approved browser continuation
+
+On 2026-10-23 the user approved [Chrome MV3 compatibility](plans/chrome-mv3.md) before comparison planning. Firefox MV3 remains the baseline. Chrome starts at major 156, with exact Chrome for Testing 156.0.8078.47 as the repeatable qualification target. Edge, Safari, mobile, and all MV2 builds remain deferred. Qualification records distinguish distribution, version, OS, test authority, and native usability.
+
+Chrome permits extension-management actions that ordinary Firefox extensions cannot perform. AddonRay still offers inspection only. The capability explanation must describe this as a product choice on Chrome. The Phase 0 table records the original Firefox contract; the Chrome continuation supplies the target-specific contract.
+
 ## Later product behavior
 
 The approved first Phase 1 slice adds inventory search/filtering, permission explanations, manual Firefox-controls guidance, and accessible empty/error states. Its acceptance criteria are [P1A-01 through P1A-09](plans/phase1-inventory.md). The popup remains the session boundary. Manual comparisons need a separate investigation-lifetime decision. Phase 2 considers bounded page diagnostics with separate consent and explicit feature support. Export requires preview and minimization rules. No later phase begins automatically because a capability appears possible.
 
 ## Out of scope for Phase 0
 
-Continuous recording, network collection, page-world instrumentation, console interception, automatic culprit ranking, automated extension state changes, theme management, report export, persistent history, mobile/Chromium support, accounts, sync, AMO publication, and a native companion implementation.
+Continuous recording, network collection, page-world instrumentation, console interception, automatic culprit ranking, automated extension state changes, theme management, report export, persistent history, mobile support, additional Chromium browsers, accounts, sync, AMO publication, and a native companion implementation.
 
 ## Important edge cases
 

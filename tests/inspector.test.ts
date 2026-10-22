@@ -3,6 +3,7 @@ import type { Browser } from 'wxt/browser';
 import { browser } from './browser';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { capabilityLimits, inspectPage, loadInventory } from '../lib/inspector';
+import { getBrowserContext } from '../lib/browser-target';
 
 type ExtensionInfo = Browser.management.ExtensionInfo;
 
@@ -232,7 +233,121 @@ describe('selected-page probes', () => {
 });
 
 it('keeps unsupported controls and attribution explicitly gated', () => {
-  for (const capability of capabilityLimits.slice(0, 4)) {
+  for (const capability of capabilityLimits().slice(0, 4)) {
     expect(capability.status).toBe('Unsupported');
   }
+});
+
+it('distinguishes the Chrome API from AddonRay’s inspection-only policy', () => {
+  const chrome = capabilityLimits(getBrowserContext('chrome'));
+  expect(chrome[0]).toMatchObject({ status: 'Not offered' });
+  expect(chrome[0].reason).toContain(
+    "Chrome's management API can enable or disable",
+  );
+  expect(chrome[0].reason).toContain('AddonRay is inspection-only');
+  expect(chrome[1].status).toBe('Unsupported');
+  expect(chrome[1].reason).toContain('Use Chrome');
+  expect(chrome[2].reason).toContain('Chrome does not expose');
+  expect(JSON.stringify(chrome)).not.toContain('Firefox');
+});
+
+describe('Chrome inventory boundary', () => {
+  const context = getBrowserContext('chrome');
+
+  it('preserves reported disabled metadata and never changes extensions', async () => {
+    vi.spyOn(browser.permissions, 'request').mockImplementation(
+      async () => true,
+    );
+    const unknown = extension({ id: 'unknown@test', enabled: false });
+    Reflect.deleteProperty(unknown, 'permissions');
+    Reflect.deleteProperty(unknown, 'hostPermissions');
+    const management = {
+      getAll: vi.fn(async () => [
+        extension({
+          id: 'disabled@test',
+          enabled: false,
+          permissions: ['storage'],
+        }),
+        extension({ id: 'empty@test' }),
+        unknown,
+      ]),
+      setEnabled: vi.fn(),
+      uninstall: vi.fn(),
+    };
+    const result = await loadInventory(
+      { ...browser, management },
+      undefined,
+      context,
+    );
+    expect(result.status).toBe('success');
+    if (result.status !== 'success') throw new Error('Expected inventory');
+    expect(
+      result.value.find((entry) => entry.id === 'disabled@test'),
+    ).toMatchObject({
+      enabled: false,
+      permissions: ['storage'],
+    });
+    expect(
+      result.value.find((entry) => entry.id === 'empty@test'),
+    ).toMatchObject({
+      permissions: [],
+      hostPermissions: [],
+    });
+    expect(
+      result.value.find((entry) => entry.id === 'unknown@test'),
+    ).toMatchObject({
+      permissions: null,
+      hostPermissions: null,
+    });
+    expect(management.setEnabled).not.toHaveBeenCalled();
+    expect(management.uninstall).not.toHaveBeenCalled();
+  });
+
+  it('does not read Chrome inventory after denied consent', async () => {
+    vi.spyOn(browser.permissions, 'request').mockImplementation(
+      async () => false,
+    );
+    const getAll = vi.spyOn(browser.management, 'getAll');
+    expect((await loadInventory(browser, undefined, context)).status).toBe(
+      'denied',
+    );
+    expect(getAll).not.toHaveBeenCalled();
+  });
+
+  it('names Chrome when inventory access is unavailable or fails', async () => {
+    vi.spyOn(browser.permissions, 'request').mockImplementation(
+      async () => true,
+    );
+    const { management: _management, ...withoutManagement } = browser;
+    expect(await loadInventory(withoutManagement, undefined, context)).toEqual({
+      status: 'unavailable',
+      reason: 'Chrome inventory access is unavailable.',
+    });
+    vi.spyOn(browser.management, 'getAll').mockRejectedValue(
+      new Error('private Chrome details'),
+    );
+    const failure = await loadInventory(browser, undefined, context);
+    expect(failure).toMatchObject({ status: 'error' });
+    expect(JSON.stringify(failure)).toContain('Chrome could not provide');
+    expect(JSON.stringify(failure)).not.toContain('private Chrome details');
+  });
+
+  it('names Chrome when scripting is unavailable or a protected page refuses access', async () => {
+    vi.spyOn(browser.permissions, 'request').mockImplementation(
+      async () => true,
+    );
+    vi.spyOn(browser.tabs, 'query').mockImplementation(async () => [{ id: 9 }]);
+    const { scripting: _scripting, ...withoutScripting } = browser;
+    expect(await inspectPage(withoutScripting, undefined, context)).toEqual({
+      status: 'unavailable',
+      reason: 'Chrome scripting is unavailable.',
+    });
+    vi.spyOn(browser.scripting, 'executeScript').mockRejectedValue(
+      new Error('chrome://settings private details'),
+    );
+    const failure = await inspectPage(browser, undefined, context);
+    expect(failure).toMatchObject({ status: 'error' });
+    expect(JSON.stringify(failure)).toContain('Chrome refused');
+    expect(JSON.stringify(failure)).not.toContain('private details');
+  });
 });

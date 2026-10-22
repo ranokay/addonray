@@ -1,6 +1,6 @@
 {
   "name": "addonray",
-  "description": "A privacy-first Firefox extension inspector with honest capability limits.",
+  "description": "A privacy-first Firefox and Chrome extension inspector with honest capability limits.",
   "version": "0.0.1",
   "private": true,
   "license": "UNLICENSED",
@@ -23,11 +23,17 @@
     "lint": "bun lint --no-script --max-warnings=0",
     "check:workflows": "jactionlint --strict-exit",
     "check:toolchain": "bun scripts/check-toolchain.ts",
-    "check": "bun run check:toolchain && bun run fmt:check && bun run lint && bun run typecheck && bun run test && bun run package && bun run check:workflows",
+    "check": "bun run check:toolchain && bun run fmt:check && bun run lint && bun run typecheck && bun run test && bun run package && bun run package:chrome && bun run check:workflows",
     "test:firefox": "bun run build && bun scripts/firefox-probes.mjs",
     "test:firefox:package": "bun run package && bun scripts/firefox-probes.mjs --package",
     "test:firefox-popup": "bun run build && bun scripts/firefox-popup.mjs",
-    "test:firefox-popup:package": "bun run package && bun scripts/firefox-popup.mjs --package"
+    "test:firefox-popup:package": "bun run package && bun scripts/firefox-popup.mjs --package",
+    "dev:chrome": "bun --bun run wxt --browser chrome --mv3",
+    "build:chrome": "bun --bun run wxt build --browser chrome --mv3",
+    "package:chrome": "bun --bun run wxt zip --browser chrome --mv3 && bun scripts/check-manifest.mjs chrome && bun scripts/check-package.mjs chrome",
+    "test:source-build:chrome": "bun run package:chrome && bun scripts/check-source-build.mjs chrome",
+    "test:chrome": "bun run package:chrome && bun scripts/chrome-probes.mjs",
+    "test:chrome-popup": "bun run package:chrome && bun scripts/chrome-popup.mjs"
   },
   "dependencies": {
     "react": "19.3.1",

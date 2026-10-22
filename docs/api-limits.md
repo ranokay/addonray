@@ -1,4 +1,4 @@
-# Firefox API limits
+# Browser API limits
 
 Research date: 2026-10-22. The table records documentation/source findings. [Firefox evidence](evidence/2026-10-22-firefox.md) and the [qualification continuation](evidence/2026-10-22-qualification.md) record observed minimum/release/ESR APIs and native-popup behavior on macOS arm64. Source on a moving main branch may differ from the installed release.
 
@@ -16,7 +16,7 @@ Research date: 2026-10-22. The table records documentation/source findings. [Fir
 | Can it inspect network failures?                    | `webRequest` needs relevant permissions and host access. Errors do not reliably identify a blocking extension.                                     | Defer collection and avoid culprit claims.                                                         |
 | Can a Rust companion bypass these limits?           | Native messaging supplies a local message channel.                                                                                                 | Qualify each additional mechanism separately.                                                      |
 
-## Restricted pages and world isolation
+## Firefox restricted pages and world isolation
 
 Expect injection to fail on browser UI, other extensions' pages, restricted Mozilla domains, reader view, and built-in PDF viewer contexts. Protocol checks can reject obvious cases, but Firefox's actual response is authoritative because restricted hosts and settings can vary.
 
@@ -35,7 +35,7 @@ Performance APIs differ by browser and version. Feature-detect supported entry t
 - Verify ordinary extension toggling rejection only against a disposable fixture in a disposable profile. Product code never attempts it.
 - Record untested cases explicitly rather than inferring them from mocks.
 
-## Inventory explanations
+## Firefox inventory explanations
 
 Reviewed on 2026-10-23 for the first Phase 1 slice. Explanations describe reported permission identifiers, not observed extension activity or a safety score. Unknown identifiers remain visible with an unavailable-explanation message. Missing metadata remains distinct from an empty list.
 
@@ -50,7 +50,25 @@ Reviewed on 2026-10-23 for the first Phase 1 slice. Explanations describe report
 
 Host patterns stay plain escaped text. They describe reported scope, not evidence of execution or a promise that Firefox allows every matching page. AddonRay does not visit these patterns or request their host access.
 
-## Primary references
+## Chrome MV3 continuation
+
+Approved on 2026-10-23. The exact automated baseline is Chrome for Testing 156.0.8078.47; retail installation and native usability on each OS remain separately qualified. [Acceptance criteria](plans/chrome-mv3.md) and the [test-authority ADR](adr/0002-test-authority-and-browser-qualification.md) define the boundary.
+
+| Question                      | Chrome contract and AddonRay behavior                                                                                                                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Inventory and consent         | Optional `management` gates `getAll()`. Native permission wording covers extension controls as well as reading. AddonRay explains that broader authority before consent and only reads inventory.          |
+| Global switching              | Chrome supports `management.setEnabled()` for ordinary extensions subject to its safeguards. AddonRay does not offer it. Only a separate disposable test controller exercises a controlled fixture.        |
+| Disabled metadata             | Preserve the fields Chrome returns. Do not convert available permission arrays to unknown merely because Firefox omitted them in its observed disabled fixture.                                            |
+| Selected page                 | Optional `scripting` plus a toolbar `activeTab` grant enables the minimal top-frame probe. No host grants enter the product manifest. Protected `chrome://` pages reject injection.                        |
+| Site controls and attribution | AddonRay provides manual Chrome-settings guidance. Inventory does not prove execution on a page; there is no implemented cross-extension console or reliable resource/conflict attribution.                |
+| Permission explanations       | Chrome `management` text distinguishes API authority from product policy. Chrome MV3 `webRequest` text distinguishes observation from blocking, which is generally limited to policy-installed extensions. |
+| Builds and manifests          | Only Firefox/Chrome MV3 are accepted. Chrome omits Gecko settings; Firefox retains its existing minimum and local data declaration.                                                                        |
+
+Chrome for Testing retains development extension loading used by the test driver. Retail Chrome removed the equivalent command-line loading switch starting at 137. Loading through a test-only DevTools command does not prove retail installation or store readiness. Safari lacks the inventory API needed by this design and would need a reduced-functionality proposal. Firefox MV2 is technically possible but deferred; Chrome MV2 is no longer a viable target. Edge requires its own qualification.
+
+Primary sources for this continuation are [Chrome management](https://developer.chrome.com/docs/extensions/reference/api/management), [permissions](https://developer.chrome.com/docs/extensions/reference/api/permissions), [activeTab](https://developer.chrome.com/docs/extensions/develop/concepts/activeTab), [scripting](https://developer.chrome.com/docs/extensions/reference/api/scripting), [webRequest](https://developer.chrome.com/docs/extensions/reference/api/webRequest), [Chrome's MV2 timeline](https://developer.chrome.com/docs/extensions/develop/migrate/mv2-deprecation-timeline), and [development-loading changes](https://groups.google.com/a/chromium.org/g/chromium-extensions/c/1-g8EFx2BBY/m/S0ET5wPjCAAJ).
+
+## Primary Firefox references
 
 - [management.getAll](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/management/getAll)
 - [management.setEnabled](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/management/setEnabled)

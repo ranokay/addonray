@@ -10,12 +10,13 @@ function Outcome({ result }: { result: Result<unknown> | null }) {
 
 export function App({ session }: { session: InspectorSession }) {
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot);
+  const { context } = session;
 
   return (
     <main>
       <header>
         <div>
-          <p className="eyebrow">Firefox extension inspector</p>
+          <p className="eyebrow">{context.name} extension inspector</p>
           <h1>AddonRay</h1>
         </div>
         <button className="quiet" onClick={session.clear}>
@@ -23,8 +24,8 @@ export function App({ session }: { session: InspectorSession }) {
         </button>
       </header>
       <p className="privacy">
-        Local only. Results disappear when you close this popup. Firefox may
-        remember permissions you grant.
+        Local only. Results disappear when you close this popup. {context.name}{' '}
+        may remember permissions you grant.
       </p>
 
       <section aria-labelledby="inventory-heading">
@@ -34,6 +35,12 @@ export function App({ session }: { session: InspectorSession }) {
           permission metadata. This does not tell us which extensions ran on a
           page.
         </p>
+        {context.target === 'chrome' && (
+          <p className="metadata">
+            Chrome groups inventory and extension controls under one permission.
+            AddonRay uses it only to read the inventory.
+          </p>
+        )}
         <button
           disabled={state.inventoryBusy}
           onClick={() => void session.loadInventory()}
@@ -44,17 +51,18 @@ export function App({ session }: { session: InspectorSession }) {
         </button>
         <Outcome result={state.inventory} />
         {state.inventory?.status === 'success' && (
-          <Inventory entries={state.inventory.value} />
+          <Inventory entries={state.inventory.value} context={context} />
         )}
         <details className="guidance">
-          <summary>Change an extension's settings in Firefox</summary>
+          <summary>Change an extension's settings in {context.name}</summary>
           <p>
-            Open Firefox's extension menu, choose Manage extensions, then select
-            the extension and use Firefox's controls.
+            Open {context.name}'s extension menu, choose Manage extensions, then
+            select the extension and use {context.name}'s controls.
           </p>
           <p>
-            Opening Firefox settings closes this popup and clears its results.
-            AddonRay cannot change another extension's state or site access.
+            Opening {context.name} settings closes this popup and clears its
+            results. AddonRay does not change another extension's state or site
+            access.
           </p>
         </details>
       </section>
@@ -63,8 +71,8 @@ export function App({ session }: { session: InspectorSession }) {
         <h2 id="page-heading">Selected-page access</h2>
         <p>
           Allow a one-time check of document readiness and available performance
-          entry types. We collect no page content or URL. Firefox protects some
-          pages.
+          entry types. We collect no page content or URL. {context.name}{' '}
+          protects some pages.
         </p>
         <button
           disabled={state.pageBusy}
@@ -96,7 +104,7 @@ export function App({ session }: { session: InspectorSession }) {
       <section aria-labelledby="limits-heading">
         <h2 id="limits-heading">Capability limits</h2>
         <ul className="limits">
-          {capabilityLimits.map((capability) => (
+          {capabilityLimits(context).map((capability) => (
             <li key={capability.name}>
               <strong>{capability.name}</strong>
               <span className="badge">{capability.status}</span>

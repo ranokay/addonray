@@ -6,6 +6,7 @@ import {
   type PageObservation,
   type Result,
 } from './inspector';
+import { firefoxContext, type BrowserContext } from './browser-target';
 
 interface Snapshot {
   inventory: Result<ExtensionEntry[]> | null;
@@ -18,7 +19,10 @@ function emptySnapshot(): Snapshot {
   return { inventory: null, page: null, inventoryBusy: false, pageBusy: false };
 }
 
-export function createSession(api: InspectorBrowser) {
+export function createSession(
+  api: InspectorBrowser,
+  context: BrowserContext = firefoxContext,
+) {
   let snapshot = emptySnapshot();
   let generation = 0;
   let controller = new AbortController();
@@ -46,6 +50,7 @@ export function createSession(api: InspectorBrowser) {
   };
 
   return {
+    context,
     getSnapshot: () => snapshot,
     clear,
     subscribe(subscriber: () => void) {
@@ -65,7 +70,7 @@ export function createSession(api: InspectorBrowser) {
       const started = generation;
       snapshot = { ...snapshot, inventory: null, inventoryBusy: true };
       notify();
-      const inventory = await loadInventory(api, controller.signal);
+      const inventory = await loadInventory(api, controller.signal, context);
       if (started !== generation) return;
       snapshot = { ...snapshot, inventory, inventoryBusy: false };
       notify();
@@ -75,7 +80,7 @@ export function createSession(api: InspectorBrowser) {
       const started = generation;
       snapshot = { ...snapshot, page: null, pageBusy: true };
       notify();
-      const page = await inspectPage(api, controller.signal);
+      const page = await inspectPage(api, controller.signal, context);
       if (started !== generation) return;
       snapshot = { ...snapshot, page, pageBusy: false };
       notify();
