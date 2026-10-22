@@ -13,3 +13,17 @@ Run `mise run check` before committing. Run `mise run test-firefox` for browser 
 The approved remote is private `ranokay/addonray`, integration branch `main`. Sign commits and stage authored paths explicitly. Preserve other work. Licensing, public visibility, AMO publication, and destructive operations need explicit user authorization. Current source has no license grant.
 
 Use the locally installed Matt Pocock grilling/domain-modeling skills for unresolved product decisions. Record answers in [docs/decisions.md](docs/decisions.md), product terms in the glossary, and durable trade-offs in ADRs. Use [docs/status.md](docs/status.md) as the local delivery checklist; do not create tracker issues or labels unless requested.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live in private `ranokay/addonray` on GitHub. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the five default triage roles and label names. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout with root `GLOSSARY.md` and `docs/adr/`. See `docs/agents/domain.md`.

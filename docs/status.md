@@ -25,6 +25,7 @@ Firefox 158.0.1 passed the 12 headless API checks and the observed native-popup 
 - [x] Migrate to the user-selected pinned Bun canary with native fmt/lint/check/tests and a frozen lockfile.
 - [x] Add check-only hk hooks and strict jactionlint checks in local gates and CI.
 - [x] Sign/push the migration and verify its Linux CI result.
+- [x] Configure Matt Pocock's engineering skills with the approved GitHub tracker, default triage labels, and existing single-context domain docs. See [agent configuration](agents/issue-tracker.md).
 - [x] Observe actual toolbar-popup consent, page inspection, Clear, close/reopen, retained grants, and renewed consent after Firefox UI revocation on Firefox 158.0.1/macOS arm64.
 - [x] Run the API protocol on exact ESR 153.5.1esr and record all 12 passing checks.
 - [ ] Resolve Firefox 140 extension-document loading and rerun the API/native-popup protocol.

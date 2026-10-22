@@ -40,3 +40,7 @@ The referenced ChatGPT conversation could be retrieved, but its assistant replie
 ## Toolchain continuation
 
 The user requested migration from pnpm and Prettier to Bun's ecosystem, including native formatting, linting, type checking, and tests, and explicitly requested hk and jactionlint. After reviewing stable versus canary availability, the user chose a pinned Bun canary with native fmt/lint. [Toolchain setup](toolchain.md) records the exact revision, installation, verification, and rollback. This changes development tooling within Phase 0; it does not authorize Phase 1 or alter product permissions and data retention.
+
+## Engineering skill configuration
+
+The user approved GitHub Issues in private `ranokay/addonray`, the five default triage labels, and the complete setup draft on 2026-10-22. [Tracker configuration](agents/issue-tracker.md), [label vocabulary](agents/triage-labels.md), and [domain rules](agents/domain.md) are the engineering skills' configuration. `docs/status.md` remains the delivery checklist. The existing root glossary and `docs/adr/` keep the single-context layout.
