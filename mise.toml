@@ -59,3 +59,7 @@ run = "bun run test:firefox:package"
 [tasks.test-firefox-popup-package]
 description = "Open the packaged XPI in a disposable visible Firefox"
 run = "bun run test:firefox-popup:package"
+
+[tasks.prototype]
+description = "Preview three throwaway inventory popup layouts with fixture data"
+run = "bun --bun run vite --host 127.0.0.1 --port 5188 --strictPort"
