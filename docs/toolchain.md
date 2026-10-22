@@ -19,14 +19,15 @@ mise run check
 
 Activate mise in the shell for direct Bun commands. Otherwise use `mise exec -- bun ...` so another installed Bun cannot take precedence.
 
-| Command                          | Purpose                                                  |
-| -------------------------------- | -------------------------------------------------------- |
-| `mise run fmt`                   | Format source and documentation with native Bun fmt.     |
-| `mise run lint`                  | Run native Bun lint with zero warnings allowed.          |
-| `mise exec -- bun run typecheck` | Run the native TypeScript checker.                       |
-| `mise exec -- bun test`          | Run the behavior tests with Bun's test runner.           |
-| `mise run check`                 | Run the shared hk quality gate.                          |
-| `mise run test-firefox`          | Build and run the disposable-profile Firefox API probes. |
+| Command                          | Purpose                                                   |
+| -------------------------------- | --------------------------------------------------------- |
+| `mise run fmt`                   | Format source and documentation with native Bun fmt.      |
+| `mise run lint`                  | Run native Bun lint with zero warnings allowed.           |
+| `mise exec -- bun run typecheck` | Run the native TypeScript checker.                        |
+| `mise exec -- bun test`          | Run the behavior tests with Bun's test runner.            |
+| `mise run check`                 | Run the shared hk quality gate.                           |
+| `mise run test-firefox`          | Build and run the disposable-profile Firefox API probes.  |
+| `mise run test-firefox-popup`    | Open a disposable visible Firefox for recorded UI checks. |
 
 The package scripts use `bun --check` for type checking and `--no-script` for native fmt/lint. These spellings avoid a same-named package script taking precedence. Use `bun run check` for the package's complete gate. TypeScript remains installed for WXT's peer dependency and editor support. WXT still prepares and builds the extension through Bun.
 

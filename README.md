@@ -6,7 +6,7 @@ Product name and private repository identity `ranokay/addonray` were approved on
 
 ## Current state
 
-Phase 0 is scaffolded. The requirements interview and scope review are complete. The extension includes explicit consent, inventory, a minimal selected-page probe, and capability explanations. [Firefox evidence](docs/evidence/2026-10-22-firefox.md) records observed APIs and remaining qualification gaps. This is a feasibility build, not an AMO release.
+Phase 0 is scaffolded. The requirements interview and scope review are complete. The extension includes explicit consent, inventory, a minimal selected-page probe, and capability explanations. [Qualification evidence](docs/evidence/2026-10-22-qualification.md) records current-release native-popup checks, release/ESR API checks, and the Firefox 140 loading blocker. This is a feasibility build, not an AMO release.
 
 ## Run locally
 

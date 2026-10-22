@@ -2,7 +2,9 @@
 
 ## Current state
 
-The approved Phase 0 scaffold is implemented and published on `main` in private [ranokay/addonray](https://github.com/ranokay/addonray). The initial implementation commit is `1c5165b`, and its SSH signature was verified locally. All 26 unit tests, formatting, type checks, build, and manifest checks pass. Real Firefox 158.0.1 on macOS arm64 passed 12 observed checks with [explicit qualification gaps](evidence/2026-10-22-firefox.md). Firefox was downloaded to Selenium's test cache; the ordinary application/profile was not used.
+The approved Phase 0 scaffold is implemented and published on `main` in private [ranokay/addonray](https://github.com/ranokay/addonray). Signed migration commit `abca489` replaces pnpm, Prettier, and Vitest with a pinned Bun canary and adds hk and jactionlint. Its [Linux CI run](https://github.com/ranokay/addonray/actions/runs/39720670911) passed. All 26 behavior tests, native formatting/lint/types, build, manifest checks, and workflow checks pass locally.
+
+Firefox 158.0.1 passed the 12 headless API checks and the observed native-popup protocol on macOS arm64. Firefox 153.5.1esr passed the 12 headless checks. Firefox 140 remains blocked at extension-document navigation, including a minimal static fixture. See [qualification evidence](evidence/2026-10-22-qualification.md) for the observed results, source boundaries, and remaining gaps. All test runs use disposable profiles.
 
 ## Checklist
 
@@ -20,14 +22,21 @@ The approved Phase 0 scaffold is implemented and published on `main` in private 
 - [x] Independently review product claims, permission/data boundaries, and probe evidence integrity. Fix the readiness validator, post-clear collection, reopen test, and cleanup findings.
 - [x] Initialize Git, make a signed initial commit, and create/push the approved private repository.
 - [x] Verify remote owner `ranokay`, private visibility, integration branch `main`, and the pushed implementation commit.
+- [x] Migrate to the user-selected pinned Bun canary with native fmt/lint/check/tests and a frozen lockfile.
+- [x] Add check-only hk hooks and strict jactionlint checks in local gates and CI.
+- [x] Sign/push the migration and verify its Linux CI result.
+- [x] Observe actual toolbar-popup consent, page inspection, Clear, close/reopen, retained grants, and renewed consent after Firefox UI revocation on Firefox 158.0.1/macOS arm64.
+- [x] Run the API protocol on exact ESR 153.5.1esr and record all 12 passing checks.
+- [ ] Resolve Firefox 140 extension-document loading and rerun the API/native-popup protocol.
+- [ ] Qualify native ESR popup behavior and intended additional operating systems.
 
 The current workflow status is available in [GitHub Actions](https://github.com/ranokay/addonray/actions). Local evidence and remote CI are separate. Inspect the run associated with the current head before claiming that CI passed. The real-Firefox task records its own source commit and dirty status locally.
 
 ## Next action
 
-The user requested a Bun migration before further qualification and chose a pinned canary with native fmt/lint. The migration now passes all 26 behavior tests and the existing 12 Firefox probes locally, with hk and jactionlint included in the shared gate. See [toolchain setup](toolchain.md) for pins, installation, and rollback. Independent migration review found no material issues. The signed migration commit and its Linux CI run are the immediate delivery checks.
+Investigate the [Firefox 140 loading blocker](evidence/2026-10-22-qualification.md#firefox-140-blocker). Compare an actual toolbar launch through `FIREFOX_VERSION=140.0 mise run test-firefox-popup` with direct-document WebDriver navigation before changing product code or the manifest minimum. Complete native ESR and OS qualification before advertising broader support. Keep Phase 1 implementation behind a new scope decision.
 
-Perform the [native-popup check](evidence/2026-10-22-firefox.md#native-popup-check-still-required) in a disposable visible Firefox profile before claiming complete Phase 0 qualification. Test the intended minimum/ESR versions and additional operating systems before advertising support for them. Keep Phase 1 implementation behind a new scope decision.
+See [toolchain setup](toolchain.md) for the canary pin, hk installation, jactionlint, and rollback. Independent migration and qualification-tool reviews found no material issues. The popup launcher has been checked for normal startup and Enter-triggered browser/server cleanup; it does not issue an automated UI verdict.
 
 ## Delivery evidence
 

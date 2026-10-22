@@ -10,6 +10,10 @@ import firefox from 'selenium-webdriver/firefox.js';
 
 // Selenium Manager's download telemetry is independent of the product. Disable it here too.
 process.env.SE_AVOID_STATS = 'true';
+const requestedVersion = process.env.FIREFOX_VERSION;
+if (requestedVersion) {
+  assert.match(requestedVersion, /^\d+\.\d+(?:\.\d+)?(?:esr)?$/);
+}
 await mkdir('.scratch', { recursive: true });
 const work = await mkdtemp(resolve('.scratch/firefox-'));
 const fixtureId = 'controlled-fixture@addonray.test';
@@ -21,11 +25,12 @@ const report = {
   sourceCommit: null,
   sourceDirty: true,
   browserVersion: null,
+  requestedVersion: requestedVersion ?? null,
   checks: [],
   gaps: [
-    'Toolbar-popup consent/lifetime and selected-page interaction need a manual check. Consent tests below open the actual popup document in a browser tab.',
-    'The local-page isolation probe uses a test-only harness with host access. The product activeTab grant is checked separately; interactive popup adapter/lifetime behavior is still unqualified.',
-    'Minimum Firefox 140, ESR, Linux, Windows, and enterprise policy behavior are not qualified by this run.',
+    'This headless run does not exercise native-popup consent/lifetime. Consult the separate native-popup evidence.',
+    'The local-page isolation probe uses a test-only harness with host access. The product activeTab grant is checked separately; native popup interaction has separate evidence.',
+    'This run covers only its recorded browser version and OS. Other versions, operating systems, and enterprise policy behavior remain outside its evidence.',
   ],
 };
 try {
@@ -87,18 +92,23 @@ function passed(name, details = {}) {
 }
 
 try {
+  const options = new firefox.Options().addArguments('-headless');
+  if (requestedVersion) options.setBrowserVersion(requestedVersion);
   driver = await new Builder()
     .forBrowser('firefox')
     // Only this disposable profile permits browser-UI automation for prompt buttons/fixtures.
     .setFirefoxService(
       new firefox.ServiceBuilder().addArguments('--allow-system-access'),
     )
-    .setFirefoxOptions(new firefox.Options().addArguments('-headless'))
+    .setFirefoxOptions(options)
     .build();
   await driver.manage().setTimeouts({ script: 15000, pageLoad: 30000 });
   report.browserVersion = (await driver.getCapabilities()).get(
     'browserVersion',
   );
+  if (requestedVersion) {
+    assert.equal(report.browserVersion, requestedVersion.replace(/esr$/, ''));
+  }
   for (const extension of [ordinary, harness, resolve('.output/firefox-mv3')]) {
     await driver.installWebExtension(extension, { permanent: false });
   }
@@ -137,13 +147,15 @@ try {
     await driver.wait(
       () =>
         driver.executeScript(
-          (element) => !element.shadowRoot.querySelector('button').disabled,
+          (element) =>
+            !(element.shadowRoot?.querySelector('button') ?? element).disabled,
           button,
         ),
       10000,
     );
     await driver.executeScript(
-      (element) => element.shadowRoot.querySelector('button').click(),
+      (element) =>
+        (element.shadowRoot?.querySelector('button') ?? element).click(),
       button,
     );
     await driver.setContext('content');
@@ -450,7 +462,9 @@ try {
     server.closeAllConnections();
     server.close(accept);
   });
-  const destination = resolve('.scratch/firefox-evidence.json');
+  const destination = resolve(
+    `.scratch/firefox-evidence${requestedVersion ? `-${requestedVersion}` : ''}.json`,
+  );
   await writeFile(destination, `${JSON.stringify(report, null, 2)}\n`);
   console.log(
     `Result: ${report.result}; ${report.checks.length} observed checks.`,

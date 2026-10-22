@@ -1,6 +1,6 @@
 # Firefox API limits
 
-Research date: 2026-10-22. The table records documentation/source findings; [Firefox evidence](evidence/2026-10-22-firefox.md) records the subset observed on Firefox 158.0.1 on macOS arm64. Source on a moving main branch may differ from the installed release.
+Research date: 2026-10-22. The table records documentation/source findings. [Firefox evidence](evidence/2026-10-22-firefox.md) and the [qualification continuation](evidence/2026-10-22-qualification.md) record observed release/ESR APIs and current-release native-popup behavior on macOS arm64, plus the Firefox 140 loading blocker. Source on a moving main branch may differ from the installed release.
 
 | Question                                            | Ordinary Firefox WebExtension capability                                                                                                           | Product consequence                                                                                |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |

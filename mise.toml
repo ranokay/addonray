@@ -35,3 +35,7 @@ run = "hk install --mise"
 [tasks.test-firefox]
 description = "Run API probes in a disposable Firefox profile"
 run = "bun run test:firefox"
+
+[tasks.test-firefox-popup]
+description = "Open a disposable Firefox profile for native popup checks"
+run = "bun run test:firefox-popup"
