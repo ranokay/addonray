@@ -40,12 +40,20 @@ Signed packaging commit `bdad8f9` adds validated unsigned XPI/source archives an
 - [x] Inspect all six Linux/Windows browser jobs and their reports, including source rebuild, version, artifact hash, dirty flag, and cleanup status.
 - [x] Observe the packaged native popup on Firefox 140.0/macOS, including actual consent, page inspection, clearing, close/reopen, retained grant, and launcher cleanup.
 - [ ] Complete native Linux/Windows usability and signed-distribution qualification before claiming release support.
+- [x] Review Phase 0 acceptance evidence and provide a native desktop QA handoff. See [readiness](evidence/2026-10-22-phase0-readiness.md) and [desktop checks](desktop-popup-qa.md).
+- [x] Confirm that Phase 1 planning may proceed for the private build while the native desktop/signing release gates stay open.
+- [ ] Confirm the first Phase 1 acceptance criteria and production layout before implementation. Investigation lifetime stays unchanged in this slice.
+- [x] Select inventory utility in the existing popup as the first slice and draft [acceptance criteria](plans/phase1-inventory.md).
+- [x] Capture three fixture-only layouts on the signed [prototype branch](https://github.com/ranokay/addonray/tree/prototype/inventory-popup) and link them from [issue #1](https://github.com/ranokay/addonray/issues/1).
+- [ ] Review the requested three-variant prototype and choose the production layout before implementation.
 
 The current workflow status is available in [GitHub Actions](https://github.com/ranokay/addonray/actions). Local evidence and remote CI are separate. Inspect the run associated with the current head before claiming that CI passed. The real-Firefox task records its own source commit and dirty status locally.
 
 ## Next action
 
-Run the native-popup protocol on visible disposable Linux and Windows profiles, recording the exact desktop environment and browser. Those environments are not available through this machine's native UI controls; the current hosted jobs provide headless API evidence. Complete signed-distribution checks at the release gate. Review Phase 0's evidence and remaining gaps before a new Phase 1 scope decision.
+Review the inventory prototype and select the production layout within the [first-slice scope](plans/phase1-inventory.md). [Issue #1](https://github.com/ranokay/addonray/issues/1) awaits this verdict. Run `mise run prototype` from the `prototype/inventory-popup` checkout to compare A, B, and C on the existing popup route. The prototype is captured in signed commit `36e4d24`; no Phase 1 production code has landed on `main`.
+
+The user approved planning for the private build with the remaining release gates open. Follow the [desktop QA handoff](desktop-popup-qa.md) when a visible Linux/Windows target becomes available, and complete signed-distribution checks at the release gate. Current hosted jobs provide headless API evidence.
 
 See [toolchain setup](toolchain.md) for the canary pin, hk installation, jactionlint, and rollback. Independent migration and qualification-tool reviews found no material issues. The popup launcher has been checked for normal startup and Enter-triggered browser/server cleanup; it does not issue an automated UI verdict.
 

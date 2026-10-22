@@ -45,3 +45,9 @@ The user requested migration from pnpm and Prettier to Bun's ecosystem, includin
 ## Engineering skill configuration
 
 The user approved GitHub Issues in private `ranokay/addonray`, the five default triage labels, and the complete setup draft on 2026-10-22. [Tracker configuration](agents/issue-tracker.md), [label vocabulary](agents/triage-labels.md), and [domain rules](agents/domain.md) are the engineering skills' configuration. `docs/status.md` remains the delivery checklist. The existing root glossary and `docs/adr/` keep the single-context layout.
+
+## Phase 1 planning continuation
+
+On 2026-10-22 the user chose to start Phase 1 planning for the private build while retaining native Linux/Windows popup usability and signing as open release gates. The [Phase 0 evidence map](evidence/2026-10-22-phase0-readiness.md) records the accepted evidence and its remaining limits. This decision authorizes planning; implementation needs a concrete agreed slice and acceptance criteria.
+
+The user then selected inventory search/filtering, plain-language permission explanations, and manual Firefox-settings guidance as the first slice, retaining the existing popup. Manual comparisons follow in a separate slice after an investigation-lifetime decision. The user explicitly invoked the prototype skill to explore the UI. The [slice plan](plans/phase1-inventory.md) records acceptance criteria and the pending visual decision.
