@@ -1,6 +1,6 @@
 # Phase 1 first slice: searchable, understandable inventory
 
-Status: the user selected this scope and requested a throwaway UI prototype on 2026-10-22. Visual selection and implementation approval remain pending. Native desktop and distribution gates remain open as recorded in [Phase 0 readiness](../evidence/2026-10-22-phase0-readiness.md).
+Status: the user approved A, Quick list, with a dark/black theme by default and these acceptance criteria on 2026-10-23. Production implementation is in progress. Native desktop and distribution gates remain open as recorded in [Phase 0 readiness](../evidence/2026-10-22-phase0-readiness.md).
 
 ## Problem and intended result
 
@@ -28,7 +28,7 @@ Start the explanation set with the permissions exposed by AddonRay and the contr
 
 Reuse the existing inventory adapter, consent flow, session controller, and React/plain CSS stack. Keep display filtering and explanation lookup separate from browser access. Let an inventory-scoped component own temporary display state so clearing or removing that inventory also removes its controls and state. Keep the page probe and capability explanations available.
 
-The requested [prototype skill](/Users/ranokay/.agents/skills/prototype/SKILL.md) produces fixture-only variations on the existing popup route. The full experiment is captured on [prototype/inventory-popup](https://github.com/ranokay/addonray/tree/prototype/inventory-popup) in signed commit [36e4d24](https://github.com/ranokay/addonray/commit/36e4d24b3febc304489887831289f31040ec3b55), outside `main`. [Implementation issue #1](https://github.com/ranokay/addonray/issues/1) holds the prototype pointer and pending verdict. Rewrite the chosen design under production constraints; do not promote prototype code unchanged.
+The requested [prototype skill](/Users/ranokay/.agents/skills/prototype/SKILL.md) produces fixture-only variations on the existing popup route. The full experiment is captured on [prototype/inventory-popup](https://github.com/ranokay/addonray/tree/prototype/inventory-popup) in signed commit [36e4d24](https://github.com/ranokay/addonray/commit/36e4d24b3febc304489887831289f31040ec3b55), outside `main`. [Implementation issue #1](https://github.com/ranokay/addonray/issues/1) holds the prototype pointer and selected verdict. Rewrite the chosen design under production constraints; do not promote prototype code unchanged.
 
 ## Prototype question
 
@@ -40,7 +40,7 @@ Which information hierarchy works best in a compact inventory popup?
 | B: Permission lens   | Choose a reported permission, then inspect matching extensions.   | Makes access questions easy to start but adds vertical space and another filter concept.     |
 | C: Focused inspector | Choose an extension from a compact list and read its detail pane. | Keeps one extension's facts together but leaves less width for long metadata.                |
 
-Recommendation: A as the first production baseline, with B and C available to inform later investigation views. The user may choose another variant or combine specific parts. No visual verdict has been assumed.
+Verdict: A is the production baseline, with a dark/black theme by default. The user selected it after the three-layout preview. Names and states remain easy to scan, with longer metadata revealed by expanding a row. B and C remain preserved as design sources for future investigation views. The original prototype keeps its light palette; the production rewrite applies the requested dark palette without adding a theme preference or persistence.
 
 The preview runs with `mise run prototype` from the prototype checkout. Open `http://127.0.0.1:5188/entrypoints/popup/index.html?variant=A`, then use the bottom switcher for B and C. All displayed inventory and page results are fictional fixtures.
 

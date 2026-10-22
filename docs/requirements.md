@@ -1,6 +1,6 @@
 # Product requirements
 
-Status: Phase 0 scope approved on 2026-10-22 and scaffold implemented. See [decisions](decisions.md) and [observed evidence and gaps](evidence/2026-10-22-firefox.md).
+Status: Phase 0 scope approved on 2026-10-22 and scaffold implemented. The user approved the [first Phase 1 slice](plans/phase1-inventory.md), layout A with a dark/black default theme, on 2026-10-23. See [decisions](decisions.md) and [observed evidence and gaps](evidence/2026-10-22-firefox.md).
 
 ## User stories
 
@@ -32,7 +32,7 @@ Status: Phase 0 scope approved on 2026-10-22 and scaffold implemented. See [deci
 
 ## Later product behavior
 
-Phase 1 adds inventory filtering, permission explanations, manual comparison guidance, and accessible empty/error states. Phase 2 considers bounded page diagnostics with separate consent and explicit feature support. Export requires preview and minimization rules. No later phase begins automatically because a capability appears possible.
+The approved first Phase 1 slice adds inventory search/filtering, permission explanations, manual Firefox-controls guidance, and accessible empty/error states. Its acceptance criteria are [P1A-01 through P1A-09](plans/phase1-inventory.md). The popup remains the session boundary. Manual comparisons need a separate investigation-lifetime decision. Phase 2 considers bounded page diagnostics with separate consent and explicit feature support. Export requires preview and minimization rules. No later phase begins automatically because a capability appears possible.
 
 ## Out of scope for Phase 0
 

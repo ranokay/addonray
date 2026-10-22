@@ -22,6 +22,9 @@ Keep these levels separate in reports. Record the tested commit after the initia
 - Page access uses the selected top frame and validates the response.
 - Missing tab IDs, protected pages, closed tabs, unavailable scripting, malformed payloads, and missing performance APIs yield bounded results.
 - Permission revocation and clear invalidate in-flight work.
+- Inventory search matches names, IDs, API tokens, and host patterns literally, combines with enabled-state filtering, and preserves ordering.
+- Rendered inventory distinguishes empty and unavailable metadata, retains unknown identifiers, and escapes supplied strings.
+- Production Firefox checks exercise search, filter combinations, refresh/reset, permission explanations, and disabled metadata in the dark interface.
 - Build output uses MV3, only the intended required/optional permissions, no broad hosts, no persistent data collection, and no remote script sources.
 
 ## Real Firefox protocol
@@ -52,7 +55,7 @@ To select an exact browser for headless API probes, run `FIREFOX_VERSION=140.0 m
 
 `mise run test-source-build` extracts the validated sources into a new ignored `.scratch/source-build-*` directory, installs from the frozen lockfile, rebuilds, and compares every output file with the XPI. `.scratch/source-build-evidence.json` records the commit, dirty flag, Bun revision, platform, archive hashes, and compared filenames. This compares extension contents; it does not promise identical archive timestamps or compression.
 
-Run `FIREFOX_VERSION=140.0 mise run test-firefox-package` to install the retained XPI and exercise the same 12 API cases. The report has an `-xpi.json` suffix and records the archive SHA-256, installation mode, and actual geckodriver version. `mise run test-firefox-popup-package` opens the XPI for the separate native-popup protocol. Do not repackage while a visible session is using that file.
+Run `FIREFOX_VERSION=140.0 mise run test-firefox-package` to install the retained XPI and exercise the API cases plus the first-slice inventory interface checks. The report has an `-xpi.json` suffix and records the archive SHA-256, installation mode, and actual geckodriver version. `mise run test-firefox-popup-package` opens the XPI for the separate native-popup protocol. Do not repackage while a visible session is using that file.
 
 The Linux/Windows qualification workflow runs source rebuilds and packaged API probes across all three exact browser versions. Inspect each job's report, source revision, installation mode, and actual browser/driver version. A green development gate does not replace this matrix. Passing headless jobs does not establish native-popup focus/lifetime behavior on those systems.
 

@@ -1,15 +1,18 @@
 :root {
   font-family: system-ui, sans-serif;
-  color: #1d2536;
-  background: #f5f6f8;
+  color: #f1f1f1;
+  background: #080808;
   font-size: 14px;
-  color-scheme: light;
+  color-scheme: dark;
 }
-
+* {
+  box-sizing: border-box;
+}
 body {
   margin: 0;
+  width: 440px;
+  max-width: 100vw;
   min-width: 380px;
-  max-width: 560px;
 }
 main {
   padding: 20px;
@@ -22,19 +25,16 @@ header {
 }
 h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 26px;
   letter-spacing: -0.04em;
 }
 h2 {
   font-size: 18px;
-  margin-top: 0;
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 h3 {
   font-size: 14px;
-}
-h3 span {
-  font-weight: 400;
-  font-size: 12px;
 }
 p {
   line-height: 1.5;
@@ -42,47 +42,94 @@ p {
 .eyebrow,
 .metadata {
   font-size: 12px;
-  color: #596476;
+  color: #b0b0b0;
   overflow-wrap: anywhere;
 }
 .eyebrow {
   margin: 0 0 4px;
 }
 .privacy {
-  border-left: 3px solid #276454;
-  padding-left: 12px;
-  color: #315448;
+  border-left: 3px solid #a5d9bf;
+  padding: 8px 12px;
+  background: #121a16;
+  color: #c7e4d4;
+  font-size: 12px;
 }
 section {
-  background: white;
-  border: 1px solid #dce0e7;
+  background: #121212;
+  border: 1px solid #303030;
   border-radius: 12px;
   padding: 16px;
   margin-top: 16px;
 }
-button {
+button,
+input,
+select {
   font: inherit;
-  font-weight: 600;
-  color: white;
-  background: #334a98;
-  border: 1px solid #334a98;
   border-radius: 7px;
+  border: 1px solid #707070;
   padding: 9px 12px;
+}
+button {
+  font-weight: 600;
+  color: #0c1711;
+  background: #b6e4ca;
+  border-color: #b6e4ca;
   cursor: pointer;
+}
+button:hover {
+  background: #c9eed9;
 }
 button:disabled {
   opacity: 0.65;
   cursor: progress;
 }
 button:focus-visible,
-summary:focus-visible {
-  outline: 3px solid #94701d;
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid #c4e1ff;
   outline-offset: 3px;
 }
 .quiet {
   background: transparent;
-  color: #334a98;
+  color: #c2e8d2;
+  border-color: #707070;
+}
+.quiet:hover {
+  background: #252525;
+}
+header .quiet {
   white-space: nowrap;
+}
+.search-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 106px;
+  gap: 8px;
+  margin-top: 18px;
+}
+.search-tools label {
+  color: #c5c5c5;
+  font-size: 12px;
+}
+input,
+select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin-top: 5px;
+  color: #f1f1f1;
+  background: #080808;
+  font-size: 13px;
+  padding: 9px 8px;
+}
+input::placeholder {
+  color: #999;
+}
+.result-count {
+  color: #b0b0b0;
+  font-size: 12px;
+  margin: 12px 0;
 }
 .inventory,
 .limits {
@@ -90,22 +137,119 @@ summary:focus-visible {
   padding: 0;
   margin-bottom: 0;
 }
-.inventory li,
-.limits li {
-  border-top: 1px solid #e4e7ed;
-  padding: 12px 0;
+.inventory {
+  margin-top: 0;
+}
+.inventory > li,
+.limits > li {
+  border-top: 1px solid #303030;
   overflow-wrap: anywhere;
 }
-.inventory h3,
+.inventory summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  list-style: none;
+}
+.inventory summary::after {
+  content: '+';
+  color: #c2e8d2;
+  margin-left: auto;
+}
+.inventory details[open] > summary::after {
+  content: '−';
+}
+.entry-initial {
+  flex: 0 0 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: #1b251f;
+  border: 1px solid #34453b;
+  color: #c2e8d2;
+  border-radius: 7px;
+  font-weight: 600;
+}
+.entry-label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.entry-label > span {
+  font-size: 12px;
+  color: #b0b0b0;
+}
+.permission-details {
+  padding-bottom: 12px;
+  overflow-wrap: anywhere;
+}
+.permission-details h3 {
+  margin: 16px 0 8px;
+  color: #c8e2d3;
+  font-size: 12px;
+}
+.permission-details p,
+dd {
+  font-size: 13px;
+  line-height: 1.5;
+}
+dl {
+  margin: 0;
+}
+dl > div {
+  margin-top: 12px;
+}
+dd {
+  margin: 4px 0 0;
+  color: #d0d0d0;
+}
+code {
+  font-size: 12px;
+  color: #d3e7dc;
+  overflow-wrap: anywhere;
+}
+.hosts {
+  padding-left: 18px;
+}
+.empty {
+  padding: 6px 0 12px;
+}
+.guidance {
+  border-top: 1px solid #303030;
+  padding-top: 14px;
+  margin-top: 14px;
+}
+.guidance summary {
+  font-size: 12px;
+  color: #c2e8d2;
+}
+.guidance p {
+  font-size: 13px;
+}
+.limits > li {
+  padding: 12px 0;
+}
 .limits p {
-  margin: 4px 0;
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #c5c5c5;
 }
 .badge {
   display: block;
-  color: #74551a;
+  color: #e2c88e;
   font-size: 12px;
   margin-top: 4px;
 }
 summary {
   cursor: pointer;
+}
+@media (forced-colors: active) {
+  button,
+  input,
+  select,
+  section,
+  .entry-initial {
+    border: 1px solid ButtonText;
+  }
 }

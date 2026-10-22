@@ -2,7 +2,7 @@
 
 Approved on 2026-10-22: no telemetry, no cloud service, session-only diagnostics, and explicit consent before inventory or selected-page inspection.
 
-## Phase 0 data lifecycle
+## Phase 0 and first Phase 1 slice data lifecycle
 
 | Data                                                                 | Trigger                                             | Retention                        | Destination                 |
 | -------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------- | --------------------------- |
@@ -14,6 +14,8 @@ Approved on 2026-10-22: no telemetry, no cloud service, session-only diagnostics
 No diagnostic data enters local storage, sync storage, logs, analytics, or a remote endpoint. The extension does not read page URLs or DOM content for the Phase 0 report. Clear removes results immediately. Closing the popup destroys its session. A retained browser permission does not imply retained diagnostic data.
 
 Revocation clears affected results. Clear and revocation invalidate in-flight actions so late responses cannot restore discarded data. Denial must leave the interface usable.
+
+The first inventory slice keeps search text, state filters, and expanded details in the same popup's memory. Display filtering makes no browser calls. Refreshing inventory discards these controls and their state before loading the new result. The default dark theme is static and adds no stored preference.
 
 ## Manifest budget
 

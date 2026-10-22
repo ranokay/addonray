@@ -6,7 +6,7 @@ Product name and private repository identity `ranokay/addonray` were approved on
 
 ## Current state
 
-Phase 0 is scaffolded. The requirements interview and scope review are complete. The extension includes explicit consent, inventory, a minimal selected-page probe, and capability explanations. [Qualification evidence](docs/evidence/2026-10-22-qualification.md) records minimum/release/ESR API and native-popup checks on macOS arm64. This is a feasibility build, not an AMO release.
+Phase 0 is scaffolded. The approved first Phase 1 slice adds local inventory search, enabled-state filtering, permission explanations, and manual Firefox-controls guidance in a dark popup. The extension retains explicit consent, a minimal selected-page probe, and capability explanations. [Current status](docs/status.md) tracks implementation and qualification. [Earlier evidence](docs/evidence/2026-10-22-qualification.md) records minimum/release/ESR API and native-popup checks on macOS arm64. This is a private feasibility build; AMO distribution remains a separate release gate.
 
 Desktop targets are macOS, Linux, and Windows. [Packaged-extension qualification](docs/evidence/2026-10-22-packaging.md) tracks unsigned XPI checks and the Linux/Windows API matrix separately from native-popup usability and signing. `mise run package` creates the XPI and source ZIP locally; it publishes nothing.
 

@@ -1,16 +1,11 @@
 import { useSyncExternalStore } from 'react';
 import { capabilityLimits, type Result } from '../../lib/inspector';
 import type { InspectorSession } from '../../lib/session';
+import { Inventory } from './Inventory';
 
 function Outcome({ result }: { result: Result<unknown> | null }) {
   if (!result || result.status === 'success') return null;
   return <p role="status">{result.reason}</p>;
-}
-
-function permissionSummary(permissions: string[] | null) {
-  if (permissions === null)
-    return 'Unknown. Firefox did not supply this metadata.';
-  return permissions.length ? permissions.join(', ') : 'None reported.';
 }
 
 export function App({ session }: { session: InspectorSession }) {
@@ -20,21 +15,20 @@ export function App({ session }: { session: InspectorSession }) {
     <main>
       <header>
         <div>
-          <p className="eyebrow">Firefox inspector · Phase 0</p>
+          <p className="eyebrow">Firefox extension inspector</p>
           <h1>AddonRay</h1>
         </div>
         <button className="quiet" onClick={session.clear}>
           Clear session
         </button>
       </header>
-      <p>Understand your extensions and what Firefox lets you inspect.</p>
       <p className="privacy">
         Local only. Results disappear when you close this popup. Firefox may
         remember permissions you grant.
       </p>
 
       <section aria-labelledby="inventory-heading">
-        <h2 id="inventory-heading">Extension inventory</h2>
+        <h2 id="inventory-heading">Your extensions</h2>
         <p>
           Allow access to extension names, enabled states, and available
           permission metadata. This does not tell us which extensions ran on a
@@ -50,33 +44,19 @@ export function App({ session }: { session: InspectorSession }) {
         </button>
         <Outcome result={state.inventory} />
         {state.inventory?.status === 'success' && (
-          <div aria-live="polite">
-            <p>{state.inventory.value.length} extensions exposed by Firefox.</p>
-            <ul className="inventory">
-              {state.inventory.value.map((entry) => (
-                <li key={entry.id}>
-                  <h3>
-                    {entry.name}{' '}
-                    <span>{entry.enabled ? 'Enabled' : 'Disabled'}</span>
-                  </h3>
-                  <p className="metadata">
-                    Version {entry.version} · {entry.id}
-                  </p>
-                  <details>
-                    <summary>Permission metadata</summary>
-                    <p>
-                      API permissions: {permissionSummary(entry.permissions)}
-                    </p>
-                    <p>
-                      Host permissions:{' '}
-                      {permissionSummary(entry.hostPermissions)}
-                    </p>
-                  </details>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <Inventory entries={state.inventory.value} />
         )}
+        <details className="guidance">
+          <summary>Change an extension's settings in Firefox</summary>
+          <p>
+            Open Firefox's extension menu, choose Manage extensions, then select
+            the extension and use Firefox's controls.
+          </p>
+          <p>
+            Opening Firefox settings closes this popup and clears its results.
+            AddonRay cannot change another extension's state or site access.
+          </p>
+        </details>
       </section>
 
       <section aria-labelledby="page-heading">

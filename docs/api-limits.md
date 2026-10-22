@@ -35,6 +35,21 @@ Performance APIs differ by browser and version. Feature-detect supported entry t
 - Verify ordinary extension toggling rejection only against a disposable fixture in a disposable profile. Product code never attempts it.
 - Record untested cases explicitly rather than inferring them from mocks.
 
+## Inventory explanations
+
+Reviewed on 2026-10-23 for the first Phase 1 slice. Explanations describe reported permission identifiers, not observed extension activity or a safety score. Unknown identifiers remain visible with an unavailable-explanation message. Missing metadata remains distinct from an empty list.
+
+| Identifier   | Explanation boundary                                                                              | Primary reference                                                                                                                                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `activeTab`  | Temporary access after an extension interaction, subject to browser restrictions.                 | [activeTab](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/permissions#activetab_permission)                                                                                         |
+| `management` | Access to exposed add-on information does not grant ordinary cross-extension switching.           | [management](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/management), [setEnabled limits](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/management/setEnabled) |
+| `scripting`  | Scripts/styles require access to the target page in addition to this permission.                  | [scripting](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/scripting)                                                                                                                          |
+| `storage`    | Extension storage access does not disclose the data stored.                                       | [storage](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage)                                                                                                                              |
+| `tabs`       | Additional tab metadata, including URLs and titles, does not establish which tabs were inspected. | [API permissions](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/permissions#api_permissions)                                                                                        |
+| `webRequest` | Request observation needs host access. Blocking/modification needs additional authority.          | [webRequest](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/webRequest)                                                                                                                        |
+
+Host patterns stay plain escaped text. They describe reported scope, not evidence of execution or a promise that Firefox allows every matching page. AddonRay does not visit these patterns or request their host access.
+
 ## Primary references
 
 - [management.getAll](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/management/getAll)

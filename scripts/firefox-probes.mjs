@@ -199,6 +199,68 @@ try {
   passed(
     'Actual optional management permission approval and production inventory',
   );
+
+  const searchInput = () => driver.findElement(By.id('inventory-search'));
+  const stateFilter = () => driver.findElement(By.id('inventory-state'));
+  const inventoryRows = () => driver.findElements(By.css('.inventory > li'));
+  async function searchInventory(value) {
+    await (await searchInput()).clear();
+    if (value) await (await searchInput()).sendKeys(value);
+  }
+  async function filterState(value) {
+    await driver
+      .findElement(By.css(`#inventory-state option[value="${value}"]`))
+      .click();
+  }
+  assert.equal(
+    await driver.executeScript(
+      () => getComputedStyle(document.documentElement).colorScheme,
+    ),
+    'dark',
+  );
+  await searchInventory('  CONTROLLED ordinary  ');
+  await driver.wait(async () => (await inventoryRows()).length === 1, 10000);
+  await filterState('disabled');
+  await driver.wait(until.elementLocated(By.css('.empty h3')), 10000);
+  assert.equal(
+    await driver.findElement(By.css('.empty h3')).getText(),
+    'No matching extensions',
+  );
+  await driver.findElement(By.xpath('//button[.="Reset filters"]')).click();
+  assert.equal(await (await searchInput()).getAttribute('value'), '');
+  assert.equal(await (await stateFilter()).getAttribute('value'), 'all');
+  await searchInventory(fixtureId);
+  assert.equal((await inventoryRows()).length, 1);
+  await driver.findElement(By.css('.inventory summary')).click();
+  const permissionText = await driver
+    .findElement(By.css('.permission-details'))
+    .getText();
+  assert(permissionText.includes('storage'));
+  assert(permissionText.includes('save and retrieve data'));
+  assert(permissionText.includes('https://example.invalid/*'));
+  assert.equal(
+    (await driver.findElements(By.css('.permission-details a'))).length,
+    0,
+  );
+  await searchInventory('example.invalid');
+  assert.equal((await inventoryRows()).length, 1);
+  await searchInventory('storage');
+  assert.equal((await inventoryRows()).length, 1);
+  passed(
+    'Production dark inventory search, state filtering and permission explanations',
+  );
+
+  await driver
+    .findElement(By.xpath('//button[contains(.,"Allow inventory")]'))
+    .click();
+  await driver.wait(until.elementLocated(By.id('inventory-search')), 10000);
+  assert.equal(await (await searchInput()).getAttribute('value'), '');
+  assert.equal(await (await stateFilter()).getAttribute('value'), 'all');
+  assert.equal(
+    (await driver.findElements(By.css('.inventory details[open]'))).length,
+    0,
+  );
+  passed('Inventory refresh discards search, filters and expanded details');
   await writeFile(
     resolve('.scratch/phase0-ui.png'),
     Buffer.from(await driver.takeScreenshot(), 'base64'),
@@ -206,19 +268,30 @@ try {
 
   await driver.findElement(By.css('header button')).click();
   assert.equal((await driver.findElements(By.css('.inventory li'))).length, 0);
+  assert.equal(
+    (await driver.findElements(By.id('inventory-search'))).length,
+    0,
+  );
   await driver
     .findElement(By.xpath('//button[contains(.,"Allow inventory")]'))
     .click();
   await driver.wait(until.elementLocated(By.css('.inventory li')), 10000);
+  assert.equal(await (await searchInput()).getAttribute('value'), '');
+  await searchInventory('Controlled');
   await driver.navigate().refresh();
   await driver.wait(until.elementLocated(By.css('h1')), 10000);
   assert.equal((await driver.findElements(By.css('.inventory li'))).length, 0);
+  assert.equal(
+    (await driver.findElements(By.id('inventory-search'))).length,
+    0,
+  );
   passed('Clear and document reopen discard production inventory');
 
   await driver
     .findElement(By.xpath('//button[contains(.,"Allow inventory")]'))
     .click();
   await driver.wait(until.elementLocated(By.css('.inventory li')), 10000);
+  await searchInventory('Controlled');
   const revoked = await driver.executeAsyncScript((done) =>
     browser.permissions.remove({ permissions: ['management'] }).then(done),
   );
@@ -229,6 +302,10 @@ try {
     10000,
   );
   passed('Real permission revocation clears the production inventory');
+  assert.equal(
+    (await driver.findElements(By.id('inventory-search'))).length,
+    0,
+  );
 
   await driver
     .findElement(By.xpath('//button[contains(.,"Allow page access")]'))
@@ -352,6 +429,31 @@ try {
   );
   assert.equal(stillDisabled, true);
   passed('Ordinary extension toggling rejected and fixture state unchanged');
+
+  await driver.get(productUrl);
+  await inventoryAction(true);
+  await driver.wait(until.elementLocated(By.id('inventory-search')), 10000);
+  await filterState('disabled');
+  await searchInventory(fixtureId);
+  assert.equal((await inventoryRows()).length, 1);
+  await driver.findElement(By.css('.inventory summary')).click();
+  const unavailable = await driver
+    .findElement(By.css('.permission-details'))
+    .getText();
+  assert(
+    unavailable.includes(
+      'Unknown. Firefox did not supply API permission metadata.',
+    ),
+  );
+  assert(
+    unavailable.includes(
+      'Unknown. Firefox did not supply host permission metadata.',
+    ),
+  );
+  await searchInventory('storage');
+  assert.equal((await inventoryRows()).length, 0);
+  passed('Production disabled inventory preserves unavailable metadata');
+  await driver.get(harnessUrl);
 
   const local = await driver.executeAsyncScript((url, done) => {
     browser.tabs.create({ url, active: false }).then(async (tab) => {
