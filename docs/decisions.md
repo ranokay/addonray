@@ -31,7 +31,7 @@ WXT, TypeScript, React; phased feasibility tests; honest inventory/capability ex
 
 All three rounds are answered. The user confirmed shared understanding and authorized Phase 0 implementation, tests, a signed initial commit, and a push to private `ranokay/addonray`. Technical details within those boundaries are delegated to the implementing agent. Further product phases and publication remain separate decisions.
 
-Independent review added two acceptance details: bind the selected tab before waiting for consent, and verify the actual popup lifetime around permission prompts. The first is implemented and tested. Follow-up [native-popup evidence](evidence/2026-10-22-qualification.md) covers the second on Firefox 158.0.1 on macOS arm64. Other browser/OS combinations remain unqualified.
+Independent review added two acceptance details: bind the selected tab before waiting for consent, and verify the actual popup lifetime around permission prompts. The first is implemented and tested. Follow-up [native-popup evidence](evidence/2026-10-22-qualification.md) covers the second on Firefox 140.0, 153.5.1esr, and 158.0.1 on macOS arm64. The tested prompts left the popup open. Other browser/OS combinations and closure while consent is pending remain unobserved.
 
 ## Earlier conversation limitation
 

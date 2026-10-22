@@ -4,7 +4,9 @@
 
 The approved Phase 0 scaffold is implemented and published on `main` in private [ranokay/addonray](https://github.com/ranokay/addonray). Signed migration commit `abca489` replaces pnpm, Prettier, and Vitest with a pinned Bun canary and adds hk and jactionlint. Its [Linux CI run](https://github.com/ranokay/addonray/actions/runs/39720670911) passed. All 26 behavior tests, native formatting/lint/types, build, manifest checks, and workflow checks pass locally.
 
-Firefox 158.0.1 passed the 12 headless API checks and the observed native-popup protocol on macOS arm64. Firefox 153.5.1esr and Firefox 140.0 passed the 12 headless checks. The minimum-version loading failure was a temporary fixture installation defect, resolved by retaining local directories. Native minimum/ESR popup checks remain. See [qualification evidence](evidence/2026-10-22-qualification.md) for the observed results, source boundaries, and remaining gaps. All test runs use disposable profiles.
+Firefox 140.0, Firefox 153.5.1esr, and Firefox 158.0.1 passed all 12 headless API checks and the observed native-popup protocol on macOS arm64. The three headless reruns and native minimum/ESR sessions used clean signed commit `664996d`; current-release native evidence comes from `abca489`. The minimum-version loading failure was a temporary fixture installation defect, resolved by retaining local directories. The installer's [Linux CI run](https://github.com/ranokay/addonray/actions/runs/39729414963) passed. See [qualification evidence](evidence/2026-10-22-qualification.md) for source boundaries and remaining gaps. All test runs use disposable profiles.
+
+Matt Pocock's engineering skills now use the approved GitHub tracker, default triage labels, and domain documentation layout. Signed setup commit `7d1b588` is pushed and its [CI run](https://github.com/ranokay/addonray/actions/runs/39727979489) passed. Edit [agent configuration](agents/issue-tracker.md) and its sibling documents to change those settings later.
 
 ## Checklist
 
@@ -29,13 +31,14 @@ Firefox 158.0.1 passed the 12 headless API checks and the observed native-popup 
 - [x] Observe actual toolbar-popup consent, page inspection, Clear, close/reopen, retained grants, and renewed consent after Firefox UI revocation on Firefox 158.0.1/macOS arm64.
 - [x] Run the API protocol on exact ESR 153.5.1esr and record all 12 passing checks.
 - [x] Resolve Firefox 140 fixture loading and rerun all 12 API checks without changing product code or its minimum.
-- [ ] Qualify native minimum/ESR popup behavior and intended additional operating systems.
+- [x] Observe the native-popup protocol on Firefox 140.0 and ESR 153.5.1esr from clean commit `664996d`, including Enter-triggered browser/server cleanup.
+- [ ] Qualify intended additional operating systems and packaged XPI distribution.
 
 The current workflow status is available in [GitHub Actions](https://github.com/ranokay/addonray/actions). Local evidence and remote CI are separate. Inspect the run associated with the current head before claiming that CI passed. The real-Firefox task records its own source commit and dirty status locally.
 
 ## Next action
 
-Run the native-popup protocol on Firefox 140.0 and ESR 153.5.1esr using the corrected local installer. Complete OS and packaging qualification before advertising broader support. Keep Phase 1 implementation behind a new scope decision.
+Choose the intended release operating systems and complete packaging qualification before advertising broader support. Linux CI checks the development toolchain, not Firefox runtime behavior. Keep Phase 1 implementation behind a new scope decision.
 
 See [toolchain setup](toolchain.md) for the canary pin, hk installation, jactionlint, and rollback. Independent migration and qualification-tool reviews found no material issues. The popup launcher has been checked for normal startup and Enter-triggered browser/server cleanup; it does not issue an automated UI verdict.
 
@@ -47,4 +50,4 @@ For fresh revision-bound evidence, run `/Users/ranokay/.agents/tools/run gate_ru
 
 ## Unresolved future decisions
 
-License, public visibility, final AMO identity/publication, release/ESR and OS qualification, longer investigation lifetime, diagnostic collectors and overhead budgets, report export/history rules, and a concrete optional companion capability. These do not block the narrow Phase 0 proposal.
+License, public visibility, final AMO identity/publication, additional OS and packaged XPI qualification, longer investigation lifetime, diagnostic collectors and overhead budgets, report export/history rules, and a concrete optional companion capability. These do not block the narrow Phase 0 proposal.
