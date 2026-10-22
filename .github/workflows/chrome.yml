@@ -26,12 +26,18 @@ jobs:
       - uses: jdx/mise-action@5228313ee0372e111a38da051671ca30fc5a96db # v3
         with:
           install_args: http:bun
-      - name: Use the installed Chrome sandbox helper
+      - name: Allow the exact testing binary to create its sandbox
         if: runner.os == 'Linux'
         run: |
-          test -u /opt/google/chrome/chrome-sandbox
-          test "$(stat -c '%u' /opt/google/chrome/chrome-sandbox)" = 0
-          echo "CHROME_DEVEL_SANDBOX=/opt/google/chrome/chrome-sandbox" >> "$GITHUB_ENV"
+          chrome_test_binary="$HOME/.cache/selenium/chrome/linux64/$CHROME_VERSION/chrome"
+          sudo tee /etc/apparmor.d/addonray-chrome-test > /dev/null <<EOF
+          abi <abi/4.0>,
+          include <tunables/global>
+          profile addonray-chrome-test "$chrome_test_binary" flags=(unconfined) {
+            userns,
+          }
+          EOF
+          sudo apparmor_parser -r /etc/apparmor.d/addonray-chrome-test
       - run: bun install --frozen-lockfile
       - run: bun run check:toolchain
       - run: bun run package:chrome
