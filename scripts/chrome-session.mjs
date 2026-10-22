@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { Builder } from 'selenium-webdriver';
 import chrome from 'selenium-webdriver/chrome.js';
 import { checkPackage } from './check-package.mjs';
@@ -84,9 +84,14 @@ export async function launchChrome({ headless = true } = {}) {
     .setBrowserVersion(version)
     .addArguments('--no-first-run', '--no-default-browser-check');
   if (headless) options.addArguments('--headless=new');
+  await mkdir('.scratch', { recursive: true });
+  const service = new chrome.ServiceBuilder()
+    .loggingTo(resolve('.scratch/chromedriver.log'))
+    .enableVerboseLogging();
   const driver = await new Builder()
     .forBrowser('chrome')
     .setChromeOptions(options)
+    .setChromeService(service)
     .build();
   try {
     const capabilities = await driver.getCapabilities();

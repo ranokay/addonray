@@ -39,6 +39,7 @@ jobs:
           path: |
             .scratch/chrome-evidence.json
             .scratch/source-build-evidence-chrome.json
+            .scratch/chromedriver.log
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
