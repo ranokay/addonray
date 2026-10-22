@@ -2,15 +2,24 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { platform, arch } from 'node:os';
 import { Builder, By, until } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
 import { installTemporaryExtension } from './firefox-install.mjs';
+import { extensionArchive } from './package-paths.mjs';
+import { sha256 } from './check-package.mjs';
 
 // Selenium Manager's download telemetry is independent of the product. Disable it here too.
 process.env.SE_AVOID_STATS = 'true';
+process.env.SE_DRIVER_VERSION = '0.37.1';
+process.env.SE_SKIP_DRIVER_IN_PATH = 'true';
+process.env.SE_SKIP_BROWSER_IN_PATH = 'true';
+const usePackage = process.argv.includes('--package');
+const productArtifact = usePackage
+  ? extensionArchive
+  : resolve('.output/firefox-mv3');
 const requestedVersion = process.env.FIREFOX_VERSION;
 if (requestedVersion) {
   assert.match(requestedVersion, /^\d+\.\d+(?:\.\d+)?(?:esr)?$/);
@@ -26,7 +35,12 @@ const report = {
   sourceCommit: null,
   sourceDirty: true,
   browserVersion: null,
+  geckodriverVersion: null,
   requestedVersion: requestedVersion ?? null,
+  installation: {
+    mode: usePackage ? 'temporary-unsigned-xpi' : 'temporary-directory',
+    artifactSha256: usePackage ? sha256(await readFile(productArtifact)) : null,
+  },
   checks: [],
   gaps: [
     'This headless run does not exercise native-popup consent/lifetime. Consult the separate native-popup evidence.',
@@ -110,7 +124,11 @@ try {
   if (requestedVersion) {
     assert.equal(report.browserVersion, requestedVersion.replace(/esr$/, ''));
   }
-  for (const extension of [ordinary, harness, resolve('.output/firefox-mv3')]) {
+  report.geckodriverVersion = (await driver.getCapabilities()).get(
+    'moz:geckodriverVersion',
+  );
+  assert.equal(report.geckodriverVersion, '0.37.1');
+  for (const extension of [ordinary, harness, productArtifact]) {
     await installTemporaryExtension(driver, extension);
   }
 
@@ -464,7 +482,7 @@ try {
     server.close(accept);
   });
   const destination = resolve(
-    `.scratch/firefox-evidence${requestedVersion ? `-${requestedVersion}` : ''}.json`,
+    `.scratch/firefox-evidence${requestedVersion ? `-${requestedVersion}` : ''}${usePackage ? '-xpi' : ''}.json`,
   );
   await writeFile(destination, `${JSON.stringify(report, null, 2)}\n`);
   console.log(

@@ -40,16 +40,26 @@ Use a temporary profile, never the user's normal profile. Install controlled ord
 
 Automation may establish API results while leaving real prompt usability untested. Mark that gap. Local macOS testing does not qualify Linux, Windows, or the minimum supported release.
 
-The local driver installs unpacked build and fixture directories through Firefox's classic `path` endpoint and keeps them available until browser teardown. This avoids the older Base64 installer's premature archive deletion, documented in [Mozilla bug 2045054](https://bugzilla.mozilla.org/show_bug.cgi?id=2045054). The browser and driver must share the local filesystem. These tasks do not qualify remote Grid installation or packaged XPI distribution.
+The local driver installs retained directories or an unsigned XPI through Firefox's classic `path` endpoint and keeps them available until browser teardown. This avoids the older Base64 installer's premature archive deletion, documented in [Mozilla bug 2045054](https://bugzilla.mozilla.org/show_bug.cgi?id=2045054). The browser and driver must share the local filesystem. The default tasks test unpacked installation. Packaged tasks test temporary unsigned installation, not signed distribution or a remote Grid.
 
 `mise run test-firefox-popup` opens a visible disposable profile with the production extension, one controlled fixture, and a local page. Use an interactive terminal, perform the protocol above through Firefox's actual toolbar popup, record the results, and press Enter to clean up. The launcher performs setup only. [Native-popup evidence](evidence/2026-10-22-qualification.md) records the observed releases and limits. Run browser sessions sequentially and do not rebuild `.output/` while a visible session uses its retained directory.
 
 To select an exact browser for headless API probes, run `FIREFOX_VERSION=140.0 mise run test-firefox` or supply an exact ESR version such as `153.5.1esr`. The task asserts the actual browser version and writes a separate version-named evidence file. Browser labels such as `latest` or `esr` are rejected so a named qualification run cannot silently move to another release.
 
+## Packaging checks
+
+`mise run package` builds `.output/addonray-0.0.1-firefox.xpi` and the corresponding source ZIP. The extension archive must contain the same names and bytes as the validated production directory, including a root-level manifest. The source archive must contain exactly the reviewed build inputs and rebuild instructions. Archive checks verify CRCs and reject rewritten or unsafe file paths. Source allowlisting excludes fixtures, local evidence, environment files, and unrelated documentation.
+
+`mise run test-source-build` extracts the validated sources into a new ignored `.scratch/source-build-*` directory, installs from the frozen lockfile, rebuilds, and compares every output file with the XPI. `.scratch/source-build-evidence.json` records the commit, dirty flag, Bun revision, platform, archive hashes, and compared filenames. This compares extension contents; it does not promise identical archive timestamps or compression.
+
+Run `FIREFOX_VERSION=140.0 mise run test-firefox-package` to install the retained XPI and exercise the same 12 API cases. The report has an `-xpi.json` suffix and records the archive SHA-256, installation mode, and actual geckodriver version. `mise run test-firefox-popup-package` opens the XPI for the separate native-popup protocol. Do not repackage while a visible session is using that file.
+
+The Linux/Windows qualification workflow runs source rebuilds and packaged API probes across all three exact browser versions. Inspect each job's report, source revision, installation mode, and actual browser/driver version. A green development gate does not replace this matrix. Passing headless jobs does not establish native-popup focus/lifetime behavior on those systems.
+
 ## Repeatable developer checks
 
-`mise run check` runs the shared hk gate with native Bun formatting, linting, type checking and behavior tests, followed by build, manifest validation, and jactionlint workflow checks. `mise run test-firefox` rebuilds and runs the real-browser probes. See [toolchain setup](toolchain.md) for the pinned canary and lockfile. Browser downloads stay in Selenium's cache, while raw local evidence stays in ignored `.scratch/`.
+`mise run check` runs the shared hk gate with native Bun formatting, linting, type checking and behavior tests, followed by packaging, manifest/archive validation, and jactionlint workflow checks. `mise run test-firefox` rebuilds and runs the real-browser probes. See [toolchain setup](toolchain.md) for the pinned canary and lockfile. Browser downloads stay in Selenium's cache, while raw local evidence stays in ignored `.scratch/`.
 
-CI initially runs deterministic checks. Browser probes must fail visibly or report an explicit skip when no browser is available. They must not silently pass on mocks.
+CI runs the deterministic gate and a separate Linux/Windows browser matrix. Browser probes must fail visibly or report an explicit skip when no browser is available. They must not silently pass on mocks.
 
 The browser task reports `passed-with-qualification-gaps` when its observed checks pass but broader qualification remains. That is not a completed Phase 0 release gate. See [the dated evidence](evidence/2026-10-22-firefox.md) and [status](status.md) before deciding readiness.

@@ -6,7 +6,7 @@ On 2026-10-22 the user chose a pinned Bun canary with native formatting and lint
 
 The official distribution package is `1.4.3-canary.20261021.1`. Its CLI reports `1.4.4-canary.1`, and its full source revision is `963452075e9d7e2a47a482f297143af5ed4f76c0`. The gate checks that revision rather than relying on the differing version labels.
 
-`mise.toml` downloads the official native package through mise's HTTP backend with a fixed URL and SHA-512 checksum. The initial platforms are macOS arm64 and Linux x64. Other development platforms need their own verified archive entry. The project does not follow the moving `canary` tag or require Node to bootstrap Bun. Archive availability still depends on the upstream registry.
+`mise.toml` downloads the official native package through mise's HTTP backend with a fixed URL and SHA-512 checksum. Archive entries cover macOS arm64, Linux x64, and Windows x64. The Windows checksum comes from the same exact npm release's integrity metadata, and its executable is `package/bin/bun.exe` before extraction. Other development architectures need their own verified archive entry. The project does not follow the moving `canary` tag or require Node to bootstrap Bun. Archive availability still depends on the upstream registry.
 
 ## Install and run
 
@@ -19,15 +19,19 @@ mise run check
 
 Activate mise in the shell for direct Bun commands. Otherwise use `mise exec -- bun ...` so another installed Bun cannot take precedence.
 
-| Command                          | Purpose                                                   |
-| -------------------------------- | --------------------------------------------------------- |
-| `mise run fmt`                   | Format source and documentation with native Bun fmt.      |
-| `mise run lint`                  | Run native Bun lint with zero warnings allowed.           |
-| `mise exec -- bun run typecheck` | Run the native TypeScript checker.                        |
-| `mise exec -- bun test`          | Run the behavior tests with Bun's test runner.            |
-| `mise run check`                 | Run the shared hk quality gate.                           |
-| `mise run test-firefox`          | Build and run the disposable-profile Firefox API probes.  |
-| `mise run test-firefox-popup`    | Open a disposable visible Firefox for recorded UI checks. |
+| Command                               | Purpose                                                       |
+| ------------------------------------- | ------------------------------------------------------------- |
+| `mise run fmt`                        | Format source and documentation with native Bun fmt.          |
+| `mise run lint`                       | Run native Bun lint with zero warnings allowed.               |
+| `mise exec -- bun run typecheck`      | Run the native TypeScript checker.                            |
+| `mise exec -- bun test`               | Run the behavior tests with Bun's test runner.                |
+| `mise run check`                      | Run the shared hk quality gate.                               |
+| `mise run test-firefox`               | Build and run the disposable-profile Firefox API probes.      |
+| `mise run test-firefox-popup`         | Open a disposable visible Firefox for recorded UI checks.     |
+| `mise run package`                    | Build and validate the unsigned XPI and source ZIP.           |
+| `mise run test-source-build`          | Rebuild the extracted sources and compare the packaged files. |
+| `mise run test-firefox-package`       | Run browser API probes against the unsigned XPI.              |
+| `mise run test-firefox-popup-package` | Open the unsigned XPI for native-popup observations.          |
 
 The package scripts use `bun --check` for type checking and `--no-script` for native fmt/lint. These spellings avoid a same-named package script taking precedence. Use `bun run check` for the package's complete gate. TypeScript remains installed for WXT's peer dependency and editor support. WXT still prepares and builds the extension through Bun.
 
@@ -37,7 +41,11 @@ The package scripts use `bun --check` for type checking and `--no-script` for na
 
 hk 2.8.0 reads `hk.pkl` and bundles its Pkl evaluator. `mise run hooks-install` installs a repository-local pre-commit hook through mise. The hook checks the whole working tree. It does not fix, stage, or stash files, so a passing hook does not certify that a partial staged snapshot contains every checked change. CI checks the committed snapshot independently.
 
-Both `mise run check` and the hook run the same package gate. It verifies the Bun revision, formatting, lint, types, behavior tests, build, manifest, and GitHub workflows. jactionlint 2.2.0 runs with `--strict-exit`; ShellCheck 0.11.0 supplies its shell analysis. The workflow has bounded runtime and concurrency, read-only repository access, and runs for pull requests and pushes to `main`.
+Both `mise run check` and the hook run the same package gate. It verifies the Bun revision, formatting, lint, types, behavior tests, build, manifest, archive contents, source allowlist, and GitHub workflows. jactionlint 2.2.0 runs with `--strict-exit`; ShellCheck 0.11.0 supplies its shell analysis. The workflow has bounded runtime and concurrency, read-only repository access, and runs for pull requests and pushes to `main`.
+
+The separate Firefox qualification workflow runs the unsigned XPI on Ubuntu 24.04 x64 and Windows Server 2025 x64 with exact Firefox versions `140.0`, `153.5.1esr`, and `158.0.1`. Those jobs install only the pinned Bun, not the full development gate toolset. They validate packaging, rebuild the source ZIP, and run the 12 browser probes. Seven-day artifacts retain their controlled-fixture JSON reports. Linux jobs install `libdbus-glib-1-2` for managed Firefox. Results qualify only the recorded cases and environments, not native-popup usability or every desktop distribution.
+
+The API probe pins Selenium Manager's geckodriver selection to `0.37.1`, ignores browser/driver binaries on `PATH`, and asserts the returned driver and requested browser versions. It disables Selenium Manager statistics. The package checker uses JSZip 3.10.2 as a direct development dependency; Selenium already resolved that version. It is not part of the extension bundle.
 
 ## Migration and rollback
 

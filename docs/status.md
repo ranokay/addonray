@@ -32,13 +32,16 @@ Matt Pocock's engineering skills now use the approved GitHub tracker, default tr
 - [x] Run the API protocol on exact ESR 153.5.1esr and record all 12 passing checks.
 - [x] Resolve Firefox 140 fixture loading and rerun all 12 API checks without changing product code or its minimum.
 - [x] Observe the native-popup protocol on Firefox 140.0 and ESR 153.5.1esr from clean commit `664996d`, including Enter-triggered browser/server cleanup.
-- [ ] Qualify intended additional operating systems and packaged XPI distribution.
+- [x] Confirm macOS, Linux, and Windows as intended desktop targets, with qualification tracked separately.
+- [x] Add unsigned XPI/source packaging, exact contents validation, source rebuild checks, and package-mode API probes. Development trials pass on all three local Firefox versions.
+- [ ] Run clean committed package probes, inspect the Linux/Windows matrix, and record packaged native-popup observations.
+- [ ] Complete native Linux/Windows usability and signed-distribution qualification before claiming release support.
 
 The current workflow status is available in [GitHub Actions](https://github.com/ranokay/addonray/actions). Local evidence and remote CI are separate. Inspect the run associated with the current head before claiming that CI passed. The real-Firefox task records its own source commit and dirty status locally.
 
 ## Next action
 
-Choose the intended release operating systems and complete packaging qualification before advertising broader support. Linux CI checks the development toolchain, not Firefox runtime behavior. Keep Phase 1 implementation behind a new scope decision.
+Commit the packaging and desktop-qualification tools, rerun the local package checks from that clean revision, inspect all Linux/Windows browser jobs, and record exact results in [packaging evidence](evidence/2026-10-22-packaging.md). Keep native-popup usability separate from automated API coverage. Phase 1 implementation still needs a new scope decision.
 
 See [toolchain setup](toolchain.md) for the canary pin, hk installation, jactionlint, and rollback. Independent migration and qualification-tool reviews found no material issues. The popup launcher has been checked for normal startup and Enter-triggered browser/server cleanup; it does not issue an automated UI verdict.
 

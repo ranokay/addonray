@@ -16,6 +16,10 @@ checksum = "sha512:712f1567bb0db819d0a90e377bb10777b5a1121cfcbbb30bb1ab528835b54
 url = "https://registry.npmjs.org/@oven/bun-linux-x64/-/bun-linux-x64-1.4.3-canary.20261021.1.tgz"
 checksum = "sha512:bb27c8fea049aadc7151cc3480e2681d76d076842b075010eafea78d88f561d09bf72a86d188defc47b002d8627d96e64da9cfd791c62737c347256ab216934c"
 
+[tools."http:bun".platforms.windows-x64]
+url = "https://registry.npmjs.org/@oven/bun-windows-x64/-/bun-windows-x64-1.4.3-canary.20261021.1.tgz"
+checksum = "sha512:f7d53136a934bdac5552d9284b9fa4a2381f6f046f8f3e0116a98a8841098eaad952fdd5530f9fa95b407fe140ff3ef1a6bc70fde66acb04c9fb7c6606c28f4a"
+
 [tasks.check]
 description = "Run the shared hk quality gate"
 run = "hk check --all"
@@ -39,3 +43,19 @@ run = "bun run test:firefox"
 [tasks.test-firefox-popup]
 description = "Open a disposable Firefox profile for native popup checks"
 run = "bun run test:firefox-popup"
+
+[tasks.package]
+description = "Build and validate the unsigned XPI and source archive"
+run = "bun run package"
+
+[tasks.test-source-build]
+description = "Rebuild the source archive and compare packaged files"
+run = "bun run test:source-build"
+
+[tasks.test-firefox-package]
+description = "Run API probes against the packaged unsigned XPI"
+run = "bun run test:firefox:package"
+
+[tasks.test-firefox-popup-package]
+description = "Open the packaged XPI in a disposable visible Firefox"
+run = "bun run test:firefox-popup:package"

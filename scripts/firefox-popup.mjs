@@ -6,6 +6,7 @@ import { createInterface } from 'node:readline/promises';
 import { Builder } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
 import { installTemporaryExtension } from './firefox-install.mjs';
+import { extensionArchive } from './package-paths.mjs';
 
 // This opens a disposable test profile and records no automatic UI verdict.
 process.env.SE_AVOID_STATS = 'true';
@@ -47,7 +48,12 @@ try {
   const actualVersion = (await driver.getCapabilities()).get('browserVersion');
   assert.equal(actualVersion, requestedVersion.replace(/esr$/, ''));
   await installTemporaryExtension(driver, fixture);
-  await installTemporaryExtension(driver, resolve('.output/firefox-mv3'));
+  await installTemporaryExtension(
+    driver,
+    process.argv.includes('--package')
+      ? extensionArchive
+      : resolve('.output/firefox-mv3'),
+  );
   await driver.get(`http://127.0.0.1:${server.address().port}/`);
   console.log(`Disposable Firefox ${actualVersion} is ready.`);
   console.log(

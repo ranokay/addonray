@@ -7,6 +7,7 @@ Date: 2026-10-22, Europe/Bucharest.
 | Decision            | Answer                                                                                                                                                                     |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Product audience    | Firefox desktop power users, guided troubleshooting first. Developer profiling later.                                                                                      |
+| Desktop targets     | macOS, Linux, and Windows, each qualified separately. Automated API checks and native-popup usability have separate evidence.                                              |
 | Privacy             | No telemetry or cloud service. Diagnostics stay in the current session. Inventory/page inspection require explicit consent. Saved/exported reports need a separate action. |
 | Product name        | AddonRay.                                                                                                                                                                  |
 | Repository identity | `ranokay/addonray`, under the authenticated user account.                                                                                                                  |

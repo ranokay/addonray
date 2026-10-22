@@ -8,6 +8,8 @@ Product name and private repository identity `ranokay/addonray` were approved on
 
 Phase 0 is scaffolded. The requirements interview and scope review are complete. The extension includes explicit consent, inventory, a minimal selected-page probe, and capability explanations. [Qualification evidence](docs/evidence/2026-10-22-qualification.md) records minimum/release/ESR API and native-popup checks on macOS arm64. This is a feasibility build, not an AMO release.
 
+Desktop targets are macOS, Linux, and Windows. [Packaged-extension qualification](docs/evidence/2026-10-22-packaging.md) tracks unsigned XPI checks and the Linux/Windows API matrix separately from native-popup usability and signing. `mise run package` creates the XPI and source ZIP locally; it publishes nothing.
+
 ## Run locally
 
 ```sh
