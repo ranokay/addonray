@@ -8,6 +8,8 @@ Firefox 140.0, Firefox 153.5.1esr, and Firefox 158.0.1 passed all 12 headless AP
 
 Matt Pocock's engineering skills now use the approved GitHub tracker, default triage labels, and domain documentation layout. Signed setup commit `7d1b588` is pushed and its [CI run](https://github.com/ranokay/addonray/actions/runs/39727979489) passed. Edit [agent configuration](agents/issue-tracker.md) and its sibling documents to change those settings later.
 
+Signed packaging commit `bdad8f9` adds validated unsigned XPI/source archives and reproducible source builds. Clean packaged API checks passed on Firefox 140.0, 153.5.1esr, and 158.0.1 across macOS arm64, Ubuntu 24.04 x64, and Windows Server 2025 x64. The [six-job browser run](https://github.com/ranokay/addonray/actions/runs/39731719710) and development gate passed. The actual packaged popup was also observed on Firefox 140.0/macOS. [Packaging evidence](evidence/2026-10-22-packaging.md) records artifact hashes, source revisions, and remaining native UI/distribution gaps.
+
 ## Checklist
 
 - [x] Retrieve available prior-conversation context and record its limitation.
@@ -34,14 +36,16 @@ Matt Pocock's engineering skills now use the approved GitHub tracker, default tr
 - [x] Observe the native-popup protocol on Firefox 140.0 and ESR 153.5.1esr from clean commit `664996d`, including Enter-triggered browser/server cleanup.
 - [x] Confirm macOS, Linux, and Windows as intended desktop targets, with qualification tracked separately.
 - [x] Add unsigned XPI/source packaging, exact contents validation, source rebuild checks, and package-mode API probes. Development trials pass on all three local Firefox versions.
-- [ ] Run clean committed package probes, inspect the Linux/Windows matrix, and record packaged native-popup observations.
+- [x] Run clean committed package probes on all three macOS browser versions and verify a source archive rebuild.
+- [x] Inspect all six Linux/Windows browser jobs and their reports, including source rebuild, version, artifact hash, dirty flag, and cleanup status.
+- [x] Observe the packaged native popup on Firefox 140.0/macOS, including actual consent, page inspection, clearing, close/reopen, retained grant, and launcher cleanup.
 - [ ] Complete native Linux/Windows usability and signed-distribution qualification before claiming release support.
 
 The current workflow status is available in [GitHub Actions](https://github.com/ranokay/addonray/actions). Local evidence and remote CI are separate. Inspect the run associated with the current head before claiming that CI passed. The real-Firefox task records its own source commit and dirty status locally.
 
 ## Next action
 
-Commit the packaging and desktop-qualification tools, rerun the local package checks from that clean revision, inspect all Linux/Windows browser jobs, and record exact results in [packaging evidence](evidence/2026-10-22-packaging.md). Keep native-popup usability separate from automated API coverage. Phase 1 implementation still needs a new scope decision.
+Run the native-popup protocol on visible disposable Linux and Windows profiles, recording the exact desktop environment and browser. Those environments are not available through this machine's native UI controls; the current hosted jobs provide headless API evidence. Complete signed-distribution checks at the release gate. Review Phase 0's evidence and remaining gaps before a new Phase 1 scope decision.
 
 See [toolchain setup](toolchain.md) for the canary pin, hk installation, jactionlint, and rollback. Independent migration and qualification-tool reviews found no material issues. The popup launcher has been checked for normal startup and Enter-triggered browser/server cleanup; it does not issue an automated UI verdict.
 

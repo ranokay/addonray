@@ -71,6 +71,6 @@ Both inventory consent prompts left the popup open. Neither session exercised cl
 
 ## Scope and repeatability
 
-These results cover the named minimum, ESR, and current releases on macOS arm64. They do not establish Linux, Windows, enterprise-policy behavior, or packaged XPI distribution. Phase 1, AMO publication, and licensing remain separate decisions.
+These unpacked results cover the named minimum, ESR, and current releases on macOS arm64. They do not establish Linux, Windows, enterprise-policy behavior, or packaged XPI distribution. The later [packaging continuation](2026-10-22-packaging.md) records unsigned XPI and Linux/Windows headless checks separately. Phase 1, AMO publication, and licensing remain separate decisions.
 
 Run `mise run test-firefox-popup` in an interactive terminal to create another disposable visible profile. It defaults to the tested release, `158.0.1`; `FIREFOX_VERSION` can select another exact release. Follow the native-popup protocol in [testing](../testing.md), record observations, then press Enter in that terminal to close the owned browser and local server. The launcher does not produce a passing UI verdict automatically.
