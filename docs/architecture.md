@@ -1,0 +1,59 @@
+# Architecture
+
+## Initial shape
+
+Use WXT, TypeScript, and React in a single extension project. Configure Firefox Manifest V3 explicitly because WXT's Firefox default is MV2. Start with a popup, small browser adapters, a capability model, and tests. Add a background coordinator only when a later recording workflow requires one. Firefox MV3 uses background scripts/event pages rather than a Chrome-only service worker.
+
+```mermaid
+flowchart LR
+  User[User action] --> UI[React popup]
+  UI --> Consent[Optional permission request]
+  Consent --> Inventory[Inventory adapter]
+  Consent --> Probe[Selected-page probe]
+  Inventory --> Management[Firefox management API]
+  Probe --> Scripting[Firefox scripting API]
+  Management --> Results[Session results with limits]
+  Scripting --> Validation[Validate minimal response]
+  Validation --> Results
+  Results --> UI
+```
+
+The interface owns the temporary session. The inventory adapter accepts the browser API boundary and produces normalized entries. The probe adapter selects the active tab, injects a self-contained function into the default isolated world, validates its small response, and returns a typed outcome. A shared capability model describes supported, permission-dependent, unsupported, unavailable, and untested behavior without confusing those states.
+
+## Permission boundary
+
+Require only `activeTab` in the initial manifest. Declare `management` and `scripting` as optional. Request the relevant permission directly in the action handler, before unrelated asynchronous work can lose the user gesture. API access occurs only after the request succeeds. Requesting an already granted optional permission still follows an explicit click.
+
+Do not declare broad host permissions, `tabs`, `webRequest`, `storage`, or `nativeMessaging` in Phase 0. A missing browser API is an unavailable outcome, not an excuse to request broader access.
+
+## Data and trust boundaries
+
+The inventory is sensitive because extension choices can reveal user interests. Keep it in the visible interface's memory. Normalize only fields the product displays. Do not load remote icons or contact extension homepages.
+
+The page probe collects no identifiers or content. Validate document readiness against known values, performance type values as bounded strings, and response length before rendering. Render text through React. Do not insert HTML or execute returned strings.
+
+Keep permission grants distinct from data retention. Firefox can retain a grant after the popup closes. AddonRay retains no corresponding diagnostic history. In-flight operations must not repopulate cleared or revoked results.
+
+## Future diagnostics
+
+Introduce a background coordinator only when the approved workflow requires a longer session. Define the session lifetime, navigation behavior, event bounds, stop/clear behavior, and revocation handling before building a collector. Event pages can be suspended, so durable session behavior needs deliberate design and a privacy review.
+
+Page errors, timing, mutation counts, and request failures are observations. Each event needs an observation source, time, frame scope, collection method, and uncertainty. Other extensions' private worlds and internal consoles are outside ordinary visibility. A page-world bridge, if approved, must validate messages, resist spoofing, and explain its interference risk.
+
+## Optional Rust companion
+
+This is a later feasibility project. Native messaging connects the extension to a separately installed local process with an explicit extension allowlist. It does not confer Firefox internal control. Define a versioned, bounded protocol and allowlisted read-only operations first. Require explicit installation and invocation, timeouts, cancellation, and safe handling of process failure.
+
+Any proposal for browser control must identify a supported mechanism and obtain its own authorization. Profile database edits, hidden policy changes, and claims that native messaging bypasses browser permissions are outside the agreed design.
+
+## Compatibility boundary
+
+Target Firefox desktop 140+ initially to simplify the built-in data consent boundary. The minimum version is a manifest constraint, not proof that every release, ESR, or OS has passed tests. Record actual qualification separately. Android and Chromium need separate proposals.
+
+## Sources
+
+- [WXT browser targets](https://wxt.dev/guide/essentials/target-different-browsers)
+- [WXT unit testing](https://wxt.dev/guide/essentials/unit-testing)
+- [Firefox background manifest support](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/background)
+- [Optional permissions](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/optional_permissions)
+- [Native messaging](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging)

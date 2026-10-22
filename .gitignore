@@ -1,0 +1,9 @@
+node_modules/
+.wxt/
+.output/
+.scratch/
+coverage/
+.DS_Store
+*.log
+.env
+.env.*

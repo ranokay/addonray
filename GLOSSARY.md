@@ -1,0 +1,33 @@
+# AddonRay
+
+The language used to discuss extension troubleshooting and its evidence.
+
+## Language
+
+**Inventory**:
+The extensions Firefox exposes to AddonRay, including their reported enabled state and available metadata.
+_Avoid_: Complete browser audit, active-on-page list.
+
+**Capability**:
+An action AddonRay can explain as available, permission-dependent, unavailable, or unsupported in the current environment.
+_Avoid_: Feature detection as proof of authority.
+
+**Probe**:
+A bounded, user-requested check of one browser capability or one page observation.
+_Avoid_: Continuous monitoring.
+
+**Observation**:
+A measured or reported fact with its source and limitations attached.
+_Avoid_: Culprit, proof of a conflict.
+
+**Comparison**:
+Two or more observations taken under conditions the user records, such as a manually changed extension state.
+_Avoid_: Automatic isolation, causal proof.
+
+**Session**:
+The lifetime of the visible investigation and its temporary diagnostic data.
+_Avoid_: Browsing history, retained report.
+
+**Companion**:
+An optional, separately installed local application whose capabilities require their own consent and evidence.
+_Avoid_: Privileged browser backdoor.

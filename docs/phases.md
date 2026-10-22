@@ -1,0 +1,37 @@
+# Delivery phases
+
+Each phase ends with its own acceptance evidence. A later phase needs an explicit scope decision.
+
+## Phase 0: prove the API boundary
+
+Deliver the WXT/TypeScript/React Firefox MV3 project, explicit optional permission flow, inventory adapter, minimal isolated page probe, capability explanations, automated tests, manifest checks, and a disposable-profile Firefox probe record.
+
+Exit when P0-01 through P0-10 in [requirements](requirements.md) have evidence or a clearly recorded qualification blocker. A blocker is an incomplete exit gate, not a pass. Stop before continuous diagnostics or a native implementation.
+
+## Phase 1: useful guided troubleshooting
+
+Add inventory search and permission explanations, instructions for changing settings through Firefox, and user-recorded before/after comparisons. Design the investigation lifetime before moving beyond the popup. Distinguish the user's stated conditions from browser-observed metadata.
+
+Exit when a user can reproduce a comparison, recover from denied access, and understand why AddonRay does not present an automatic culprit verdict. Test keyboard use and screen-reader labels. Recheck privacy and release/ESR support.
+
+## Phase 2: bounded diagnostics
+
+Propose collectors separately. Candidates include page error observations, supported performance entries, and aggregate mutation counts. Every collector needs permission justification, sampling bounds, overhead measurements, stop/clear behavior, navigation semantics, and an uncertainty explanation. Network observation and page-world instrumentation require additional review.
+
+Exit when tests prove the collector lifecycle, spoofed data is handled, caps hold, and measured overhead meets an agreed budget. No extension attribution claim without an independently validated mechanism.
+
+## Phase 3: user-controlled reports and better comparisons
+
+Add previewed, minimized export and reproducible comparison records. Decide what may persist and for how long before introducing history. Explore comparison guidance without automatic changes to other extensions.
+
+Exit when export tests cover sensitive fields and a user can inspect exactly what leaves the session. Update the Firefox data declaration if the behavior requires it.
+
+## Phase 4: optional Rust companion feasibility
+
+Select a concrete capability ordinary WebExtensions cannot provide. Research supported OS/browser mechanisms and obtain approval for the additional access. Define protocol, extension allowlist, installer ownership, updates, failure modes, and uninstall behavior.
+
+Exit feasibility only with real OS/browser evidence and a narrow capability proposal. A working native message round trip alone does not qualify browser control.
+
+## Distribution gate
+
+AMO publication is separate from pushing source to the private repository. It requires a license decision, final extension identity, privacy review, current Mozilla policy checks, release/ESR qualification, packaging evidence, and approval to publish.

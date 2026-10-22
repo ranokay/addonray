@@ -1,0 +1,11 @@
+[tools]
+node = "26.12.0"
+pnpm = "12.11.2"
+
+[tasks.check]
+description = "Check formatting, types, behavior, build, and manifest"
+run = "pnpm check"
+
+[tasks.test-firefox]
+description = "Run API probes in a disposable Firefox profile"
+run = "pnpm test:firefox"

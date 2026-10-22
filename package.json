@@ -1,0 +1,40 @@
+{
+  "name": "addonray",
+  "description": "A privacy-first Firefox extension inspector with honest capability limits.",
+  "version": "0.0.1",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "scripts": {
+    "dev": "wxt --browser firefox --mv3",
+    "prepare": "wxt prepare",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "wxt build --browser firefox --mv3",
+    "check:manifest": "node scripts/check-manifest.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm format:check && pnpm typecheck && pnpm test && pnpm build && pnpm check:manifest",
+    "test:firefox": "pnpm build && node scripts/firefox-probes.mjs"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@wxt-dev/module-react": "1.2.2",
+    "prettier": "3.9.10",
+    "selenium-webdriver": "4.51.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.5",
+    "wxt": "0.21.4"
+  }
+}
