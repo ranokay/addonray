@@ -1,5 +1,6 @@
-import { beforeEach, expect, it, vi } from 'vitest';
-import { browser, type Browser } from 'wxt/browser';
+import { beforeEach, expect, it, vi } from 'bun:test';
+import type { Browser } from 'wxt/browser';
+import { browser } from './browser';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { createSession } from '../lib/session';
 
@@ -104,12 +105,17 @@ it('does not start injection when consent arrives after clear', async () => {
 it('drops an inventory response already in flight when cleared', async () => {
   vi.spyOn(browser.permissions, 'request').mockImplementation(async () => true);
   const entries = Promise.withResolvers<Browser.management.ExtensionInfo[]>();
+  const started = Promise.withResolvers<void>();
   const getAll = vi
     .spyOn(browser.management, 'getAll')
-    .mockImplementation(() => entries.promise);
+    .mockImplementation(() => {
+      started.resolve();
+      return entries.promise;
+    });
   const session = createSession(browser);
   const pending = session.loadInventory();
-  await vi.waitFor(() => expect(getAll).toHaveBeenCalledOnce());
+  await started.promise;
+  expect(getAll).toHaveBeenCalledTimes(1);
   session.clear();
   entries.resolve([]);
   await pending;
@@ -124,7 +130,7 @@ it('ignores repeated inventory clicks while consent is pending', async () => {
   const session = createSession(browser);
   const first = session.loadInventory();
   await session.loadInventory();
-  expect(request).toHaveBeenCalledOnce();
+  expect(request).toHaveBeenCalledTimes(1);
   grant.resolve(false);
   await first;
   expect(session.getSnapshot().inventory?.status).toBe('denied');

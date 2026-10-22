@@ -1,13 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { browser, type Browser } from 'wxt/browser';
+import { beforeEach, describe, expect, it, vi } from 'bun:test';
+import type { Browser } from 'wxt/browser';
+import { browser } from './browser';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { capabilityLimits, inspectPage, loadInventory } from '../lib/inspector';
 
 type ExtensionInfo = Browser.management.ExtensionInfo;
 
-export function extension(
-  overrides: Partial<ExtensionInfo> = {},
-): ExtensionInfo {
+function extension(overrides: Partial<ExtensionInfo> = {}): ExtensionInfo {
   return {
     id: 'fixture@example.test',
     name: 'Fixture',
@@ -46,7 +45,7 @@ describe('inventory consent and metadata', () => {
     expect(getAll).not.toHaveBeenCalled();
     grant.resolve(true);
     await expect(result).resolves.toEqual({ status: 'success', value: [] });
-    expect(getAll).toHaveBeenCalledOnce();
+    expect(getAll).toHaveBeenCalledTimes(1);
   });
 
   it('makes no inventory call after denial', async () => {
@@ -128,7 +127,7 @@ describe('selected-page probes', () => {
 
   it('captures the selected tab before consent settles and targets only its top frame', async () => {
     const grant = Promise.withResolvers<boolean>();
-    vi.mocked(browser.permissions.request).mockImplementation(
+    vi.spyOn(browser.permissions, 'request').mockImplementation(
       () => grant.promise,
     );
     const execute = vi
@@ -143,12 +142,12 @@ describe('selected-page probes', () => {
         },
       ]);
     const result = inspectPage(browser);
-    expect(browser.tabs.query).toHaveBeenCalledOnce();
+    expect(browser.tabs.query).toHaveBeenCalledTimes(1);
     expect(browser.permissions.request).toHaveBeenCalledWith({
       permissions: ['scripting'],
     });
     expect(execute).not.toHaveBeenCalled();
-    vi.mocked(browser.tabs.query).mockImplementation(async () => [
+    vi.spyOn(browser.tabs, 'query').mockImplementation(async () => [
       {
         id: 99,
         index: 0,
@@ -163,11 +162,11 @@ describe('selected-page probes', () => {
     expect(execute).toHaveBeenCalledWith(
       expect.objectContaining({ target: { tabId: 7, frameIds: [0] } }),
     );
-    expect(browser.tabs.query).toHaveBeenCalledOnce();
+    expect(browser.tabs.query).toHaveBeenCalledTimes(1);
   });
 
   it('does not inject after denied consent', async () => {
-    vi.mocked(browser.permissions.request).mockImplementation(
+    vi.spyOn(browser.permissions, 'request').mockImplementation(
       async () => false,
     );
     const execute = vi.spyOn(browser.scripting, 'executeScript');
@@ -176,7 +175,7 @@ describe('selected-page probes', () => {
   });
 
   it('explains an absent selected tab', async () => {
-    vi.mocked(browser.tabs.query).mockImplementation(async () => []);
+    vi.spyOn(browser.tabs, 'query').mockImplementation(async () => []);
     expect((await inspectPage(browser)).status).toBe('unavailable');
   });
 

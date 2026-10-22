@@ -25,6 +25,8 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 
 ## Next action
 
+The user requested a Bun migration before further qualification and chose a pinned canary with native fmt/lint. The migration now passes all 26 behavior tests and the existing 12 Firefox probes locally, with hk and jactionlint included in the shared gate. See [toolchain setup](toolchain.md) for pins, installation, and rollback. Independent migration review found no material issues. The signed migration commit and its Linux CI run are the immediate delivery checks.
+
 Perform the [native-popup check](evidence/2026-10-22-firefox.md#native-popup-check-still-required) in a disposable visible Firefox profile before claiming complete Phase 0 qualification. Test the intended minimum/ESR versions and additional operating systems before advertising support for them. Keep Phase 1 implementation behind a new scope decision.
 
 ## Delivery evidence

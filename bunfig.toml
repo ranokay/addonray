@@ -1,0 +1,7 @@
+[fmt]
+singleQuote = true
+trailingComma = "all"
+
+[test]
+root = "./tests"
+clearMocks = true

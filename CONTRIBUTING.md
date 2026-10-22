@@ -6,7 +6,7 @@ Start with [status](docs/status.md), [requirements](docs/requirements.md), and t
 
 Implement one approved phase at a time. Keep browser adapters small and tests focused on observable behavior. Validate data at browser/page/native boundaries. Missing metadata stays unknown. A permission string, API method, mock result, or source reading must not become a claim of observed authority.
 
-Use the pinned tools and committed lockfile once the scaffold is present. Run the project check task before committing and the real-Firefox task for API behavior changes. Record skipped cases explicitly. Use disposable profiles and fixture extensions, and keep personal browsing data out of tests, issues, logs, and commits.
+Follow [toolchain setup](docs/toolchain.md) for the pinned Bun canary, `bun.lock`, hk hooks, and jactionlint. Run `mise run check` before committing and `mise run test-firefox` for API behavior changes. Record skipped cases explicitly. Use disposable profiles and fixture extensions, and keep personal browsing data out of tests, issues, logs, and commits.
 
 Commits should be signed and scoped to the change. Preserve work by others. Repository visibility, licensing, AMO publication, destructive Git actions, and changes to the user's ordinary browser profile require explicit authorization.
 

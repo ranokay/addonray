@@ -1,10 +1,24 @@
-import { browser } from 'wxt/browser';
+import type { browser, Browser } from 'wxt/browser';
 
 export interface InspectorBrowser {
-  permissions: Pick<typeof browser.permissions, 'request' | 'onRemoved'>;
-  tabs: Pick<typeof browser.tabs, 'query'>;
-  management?: Pick<typeof browser.management, 'getAll'>;
-  scripting?: Pick<typeof browser.scripting, 'executeScript'>;
+  permissions: {
+    request: (permissions: Browser.permissions.Permissions) => Promise<boolean>;
+    onRemoved: typeof browser.permissions.onRemoved;
+  };
+  tabs: {
+    query: (
+      query: Browser.tabs.QueryInfo,
+    ) => Promise<Array<Pick<Browser.tabs.Tab, 'id'>>>;
+  };
+  management?: {
+    getAll: () => Promise<Browser.management.ExtensionInfo[]>;
+  };
+  scripting?: {
+    executeScript: (injection: {
+      target: Browser.scripting.InjectionTarget;
+      func: () => unknown;
+    }) => Promise<Array<{ result?: unknown }>>;
+  };
 }
 
 export type Result<T> =

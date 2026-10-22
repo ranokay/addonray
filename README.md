@@ -11,13 +11,16 @@ Phase 0 is scaffolded. The requirements interview and scope review are complete.
 ## Run locally
 
 ```sh
-mise install
-pnpm install --frozen-lockfile
+mise install http:bun hk jactionlint shellcheck
+mise exec -- bun install --frozen-lockfile
+mise run hooks-install
 mise run check
-pnpm dev
+mise exec -- bun run dev
 ```
 
-`pnpm dev` starts the Firefox development build. Alternatively, run `pnpm build`, open `about:debugging#/runtime/this-firefox`, choose Load Temporary Add-on, and select `.output/firefox-mv3/manifest.json`.
+The project uses a checksum-pinned Bun canary for native formatting, linting, type checking, and tests. `mise run fmt` formats files; `mise run lint` checks source. See [toolchain setup and rollback](docs/toolchain.md) for the exact pin and hk hook behavior.
+
+The development task starts Firefox. Alternatively, run `mise exec -- bun run build`, open `about:debugging#/runtime/this-firefox`, choose Load Temporary Add-on, and select `.output/firefox-mv3/manifest.json`.
 
 ```sh
 mise run test-firefox
@@ -34,6 +37,7 @@ The real-browser task builds the extension, then uses Selenium Manager to locate
 - [Privacy](docs/privacy.md) defines permission requests and data retention.
 - [Phases](docs/phases.md) provides delivery gates and explicit stop conditions.
 - [Testing](docs/testing.md) distinguishes simulated tests from Firefox evidence.
+- [Toolchain](docs/toolchain.md) covers Bun, hk, jactionlint, setup, and rollback.
 - [Decisions](docs/decisions.md) records answers and open questions.
 - [Naming research](docs/naming.md) records the shortlist and collision checks.
 - [Checklist and handoff](docs/status.md) is the resumption entry point.

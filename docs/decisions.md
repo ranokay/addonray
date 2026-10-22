@@ -36,3 +36,7 @@ Independent review added two acceptance details: bind the selected tab before wa
 ## Earlier conversation limitation
 
 The referenced ChatGPT conversation could be retrieved, but its assistant replies contain reference markers rather than architecture text. This plan uses the user's explicit restatement and current interview answers. No unseen detail is treated as agreed.
+
+## Toolchain continuation
+
+The user requested migration from pnpm and Prettier to Bun's ecosystem, including native formatting, linting, type checking, and tests, and explicitly requested hk and jactionlint. After reviewing stable versus canary availability, the user chose a pinned Bun canary with native fmt/lint. [Toolchain setup](toolchain.md) records the exact revision, installation, verification, and rollback. This changes development tooling within Phase 0; it does not authorize Phase 1 or alter product permissions and data retention.

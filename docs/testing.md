@@ -5,7 +5,7 @@
 | Evidence                       | What it proves                                                    | What it does not prove                      |
 | ------------------------------ | ----------------------------------------------------------------- | ------------------------------------------- |
 | Documentation/source research  | A documented contract or source behavior at the cited revision    | Installed Firefox behavior                  |
-| Unit tests with browser fakes  | AddonRay's handling of success, denial, partial data, and failure | Browser permission prompts or API authority |
+| Bun tests with browser fakes   | AddonRay's handling of success, denial, partial data, and failure | Browser permission prompts or API authority |
 | Type checking and build        | Type consistency and an extension artifact                        | Runtime support                             |
 | Manifest/package checks        | Permission budget, MV3 target, local packaging constraints        | Usability or actual consent                 |
 | Disposable-profile Firefox run | Observed cases on the named browser/OS                            | Every Firefox release, ESR, or OS           |
@@ -42,7 +42,7 @@ Automation may establish API results while leaving real prompt usability unteste
 
 ## Repeatable developer checks
 
-`mise run check` runs formatting, type checking, unit tests, build, and manifest validation. `mise run test-firefox` rebuilds and runs the real-browser probes. Tools and direct dependencies are pinned and the lockfile is committed. Browser downloads stay in Selenium's cache, while raw local evidence stays in ignored `.scratch/`.
+`mise run check` runs the shared hk gate with native Bun formatting, linting, type checking and behavior tests, followed by build, manifest validation, and jactionlint workflow checks. `mise run test-firefox` rebuilds and runs the real-browser probes. See [toolchain setup](toolchain.md) for the pinned canary and lockfile. Browser downloads stay in Selenium's cache, while raw local evidence stays in ignored `.scratch/`.
 
 CI initially runs deterministic checks. Browser probes must fail visibly or report an explicit skip when no browser is available. They must not silently pass on mocks.
 

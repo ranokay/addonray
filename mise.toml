@@ -1,11 +1,37 @@
 [tools]
-node = "26.12.0"
-pnpm = "12.11.2"
+hk = "2.8.0"
+jactionlint = "2.2.0"
+shellcheck = "0.11.0"
+
+[tools."http:bun"]
+version = "1.4.3-canary.20261021.1"
+strip_components = 1
+bin_path = "bin"
+
+[tools."http:bun".platforms.macos-arm64]
+url = "https://registry.npmjs.org/@oven/bun-darwin-aarch64/-/bun-darwin-aarch64-1.4.3-canary.20261021.1.tgz"
+checksum = "sha512:712f1567bb0db819d0a90e377bb10777b5a1121cfcbbb30bb1ab528835b54f4c0fff57b30ef0ab3d459c1cd5590b425050b0245d2a3020fd8363195f5d0fc8ae"
+
+[tools."http:bun".platforms.linux-x64]
+url = "https://registry.npmjs.org/@oven/bun-linux-x64/-/bun-linux-x64-1.4.3-canary.20261021.1.tgz"
+checksum = "sha512:bb27c8fea049aadc7151cc3480e2681d76d076842b075010eafea78d88f561d09bf72a86d188defc47b002d8627d96e64da9cfd791c62737c347256ab216934c"
 
 [tasks.check]
-description = "Check formatting, types, behavior, build, and manifest"
-run = "pnpm check"
+description = "Run the shared hk quality gate"
+run = "hk check --all"
+
+[tasks.fmt]
+description = "Format source and documentation with Bun"
+run = "bun run fmt"
+
+[tasks.lint]
+description = "Lint source with Bun"
+run = "bun run lint"
+
+[tasks.hooks-install]
+description = "Install repository-local hk hooks using mise tools"
+run = "hk install --mise"
 
 [tasks.test-firefox]
 description = "Run API probes in a disposable Firefox profile"
-run = "pnpm test:firefox"
+run = "bun run test:firefox"
