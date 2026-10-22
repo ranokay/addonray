@@ -51,6 +51,8 @@ The API probe pins Selenium Manager's geckodriver selection to `0.37.1`, ignores
 
 The Chrome qualification workflow separately pins Chrome for Testing and ChromeDriver to `156.0.8078.47` on Ubuntu 24.04 x64 and Windows Server 2025 x64. It validates the Chrome package, rebuilds its source archive, and records 11 checks with explicit fixture/native-consent limits. `mise run test-chrome`, `mise run test-chrome-popup`, `mise run package-chrome`, and `mise run test-source-build-chrome` are the corresponding local tasks. The shared gate validates both Firefox and Chrome artifacts. See [testing](testing.md) for authority boundaries and report paths.
 
+The Ubuntu Chrome job uses the runner's existing root-owned setuid sandbox helper at `/opt/google/chrome/chrome-sandbox` through `CHROME_DEVEL_SANDBOX`. It checks the helper's ownership and setuid bit first. This follows [Chromium's sandbox guidance](https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md) for downloaded builds blocked by Ubuntu's user-namespace policy. The job leaves that policy enabled and uses no `--no-sandbox` flag. Driver diagnostics remain in ignored scratch space and seven-day CI artifacts.
+
 ## Migration and rollback
 
 The migration imported the prior pnpm lock before changing development tools. Retained package resolutions did not change. All 26 behavior test cases remain, including the explicit synchronization that tests clearing an in-flight request. Browser types now describe only the Promise-based methods and response fields consumed by the inspector. The generated production JavaScript and manifest matched the previous build byte for byte during migration verification.
