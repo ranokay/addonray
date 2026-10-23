@@ -10,6 +10,7 @@ import firefox from 'selenium-webdriver/firefox.js';
 import { installTemporaryExtension } from './firefox-install.mjs';
 import { extensionArchive } from './package-paths.mjs';
 import { sha256 } from './check-package.mjs';
+import { checkInvestigation } from './investigation-checks.mjs';
 
 // Selenium Manager's download telemetry is independent of the product. Disable it here too.
 process.env.SE_AVOID_STATS = 'true';
@@ -44,6 +45,7 @@ const report = {
   checks: [],
   gaps: [
     'This headless run does not exercise native-popup consent/lifetime. Consult the separate native-popup evidence.',
+    'Investigation route checks use the unmodified product with an actually approved optional management grant. Their popup launcher is rendered in a browser tab; native toolbar-popup launch and full-tab consent/usability need separate evidence.',
     'The local-page isolation probe uses a test-only harness with host access. The product activeTab grant is checked separately; native popup interaction has separate evidence.',
     'This run covers only its recorded browser version and OS. Other versions, operating systems, and enterprise policy behavior remain outside its evidence.',
   ],
@@ -144,6 +146,7 @@ try {
     return url;
   }
   const productUrl = await extensionUrl(productId, 'popup.html');
+  const investigationUrl = await extensionUrl(productId, 'investigation.html');
   const harnessUrl = await extensionUrl(harnessId, 'probe.html');
   await driver.get(productUrl);
   await driver.wait(until.elementLocated(By.css('h1')), 10000);
@@ -453,6 +456,47 @@ try {
   await searchInventory('storage');
   assert.equal((await inventoryRows()).length, 0);
   passed('Production disabled inventory preserves unavailable metadata');
+  await checkInvestigation({
+    driver,
+    popupUrl: productUrl,
+    investigationUrl,
+    localUrl,
+    settingsUrl: 'about:addons',
+    fixtureId,
+    fixtureName: 'Controlled ordinary extension',
+    fixtureInitiallyEnabled: false,
+    setFixtureEnabled: async (enabled) => {
+      await driver.setContext('chrome');
+      const changed = await driver.executeAsyncScript(
+        async (id, target, done) => {
+          const { AddonManager } = ChromeUtils.importESModule(
+            'resource://gre/modules/AddonManager.sys.mjs',
+          );
+          try {
+            const addon = await AddonManager.getAddonByID(id);
+            await (target ? addon.enable() : addon.disable());
+            done(addon.userDisabled === !target);
+          } catch {
+            done(false);
+          }
+        },
+        fixtureId,
+        enabled,
+      );
+      await driver.setContext('content');
+      assert.equal(
+        changed,
+        true,
+        'Browser test authority must change only its controlled fixture',
+      );
+    },
+    revokeManagement: () =>
+      driver.executeAsyncScript((done) =>
+        browser.permissions.remove({ permissions: ['management'] }).then(done),
+      ),
+    authority: 'Unmodified Firefox product with approved optional management',
+    passed,
+  });
   await driver.get(harnessUrl);
 
   const local = await driver.executeAsyncScript((url, done) => {

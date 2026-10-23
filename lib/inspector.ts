@@ -22,6 +22,11 @@ export interface InspectorBrowser {
   };
 }
 
+export type InventoryBrowser = Pick<
+  InspectorBrowser,
+  'permissions' | 'management'
+>;
+
 export type Result<T> =
   | { status: 'success'; value: T }
   | {
@@ -79,7 +84,7 @@ export function capabilityLimits(context: BrowserContext = firefoxContext) {
 }
 
 export async function loadInventory(
-  api: InspectorBrowser,
+  api: InventoryBrowser,
   signal?: AbortSignal,
   context: BrowserContext = firefoxContext,
 ): Promise<Result<ExtensionEntry[]>> {

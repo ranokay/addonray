@@ -31,6 +31,14 @@ Chrome's `management` permission includes API authority to change other extensio
 
 Both builds retain the same required/optional permission budget, explicit actions, popup-only memory, and minimal page result. Chrome omits the Firefox-only data declaration. Test controllers with extra permissions and the pre-granted UI copy are disposable fixtures outside both product archives. They do not establish that a user approved an optional permission.
 
+## Manual comparison data lifecycle
+
+The user approved the one-pair manual comparison on 2026-10-23. A deliberate New investigation action opens a fresh independent tab without reading inventory or page data. Each capture requests optional management access from its own click. The comparison retains only extension ID, name, version, and enabled state from the resulting inventory; permission/host metadata is discarded before it enters the comparison state.
+
+Before/After snapshots and the explicit Better/Unchanged/Worse/Uncertain assessment live only in that investigation document's memory. Switching to settings or the page does not end a loaded document. Start over, relevant management revocation, close, reload, browser unloading/restart, or an extension/process reload removes its data. Pending work cannot restore it. There is no recovery or saved comparison history.
+
+The popup remains separate. Clear popup results affects only popup data; Start over affects only its investigation. A browser-wide permission revocation can clear every affected view through each view's own listener. No results transfer between views. No background process, messaging handoff, storage, page identifier, free text, automatic page access, or new manifest permission is added. The page assessment records the user's judgment and makes no browser call.
+
 ## Reports and companion
 
 Export is a later feature. Before implementation, define redaction, preview, explicit save, retention, and treatment of URLs, query strings, DOM snippets, cookies, tokens, and extension IDs. A report must never be sent automatically.

@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { capabilityLimits, type Result } from '../../lib/inspector';
 import type { InspectorSession } from '../../lib/session';
 import { Inventory } from './Inventory';
@@ -8,9 +8,32 @@ function Outcome({ result }: { result: Result<unknown> | null }) {
   return <p role="status">{result.reason}</p>;
 }
 
-export function App({ session }: { session: InspectorSession }) {
+export function App({
+  session,
+  onNewInvestigation,
+}: {
+  session: InspectorSession;
+  onNewInvestigation: () => Promise<void>;
+}) {
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const { context } = session;
+  const [launching, setLaunching] = useState(false);
+  const [launchError, setLaunchError] = useState<string | null>(null);
+
+  async function launchInvestigation() {
+    if (launching) return;
+    setLaunching(true);
+    setLaunchError(null);
+    try {
+      await onNewInvestigation();
+    } catch {
+      setLaunchError(
+        'The investigation tab could not open. Try New investigation again.',
+      );
+    } finally {
+      setLaunching(false);
+    }
+  }
 
   return (
     <main>
@@ -20,13 +43,33 @@ export function App({ session }: { session: InspectorSession }) {
           <h1>AddonRay</h1>
         </div>
         <button className="quiet" onClick={session.clear}>
-          Clear session
+          Clear popup results
         </button>
       </header>
       <p className="privacy">
-        Local only. Results disappear when you close this popup. {context.name}{' '}
-        may remember permissions you grant.
+        Local only. Popup results disappear when you close this popup.{' '}
+        {context.name} may remember permissions you grant.
       </p>
+
+      <section aria-labelledby="investigation-heading">
+        <h2 id="investigation-heading">Compare a manual change</h2>
+        <p>
+          Keep a Before/After inventory pair in a separate tab while you change
+          settings and test a page manually.
+        </p>
+        <button
+          id="new-investigation"
+          disabled={launching}
+          onClick={() => void launchInvestigation()}
+        >
+          {launching ? 'Opening investigation…' : 'New investigation'}
+        </button>
+        {launchError && <p role="status">{launchError}</p>}
+        <p className="metadata">
+          Each investigation starts empty. Popup results are not transferred,
+          and Clear popup results does not clear investigation tabs.
+        </p>
+      </section>
 
       <section aria-labelledby="inventory-heading">
         <h2 id="inventory-heading">Your extensions</h2>

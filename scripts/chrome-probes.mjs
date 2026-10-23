@@ -11,6 +11,7 @@ import {
   extractChromePackage,
   installChromeExtension,
 } from './chrome-session.mjs';
+import { checkInvestigation } from './investigation-checks.mjs';
 
 await mkdir('.scratch', { recursive: true });
 // Chrome reads only controlled files in the system temp directory, not the user's Documents folder.
@@ -86,6 +87,7 @@ const report = {
   checks: [],
   gaps: [
     'Inventory interface checks use a separately named fixture with management/scripting pre-granted as required permissions. They do not exercise production optional-management consent.',
+    'Comparison capture checks use that same explicitly named pre-granted UI fixture and unchanged production investigation assets. Its required management permission cannot be revoked; actual optional-management revocation with populated comparisons requires separate unmodified-product native evidence.',
     'Headless action/keyboard automation does not establish native desktop popup usability. Native denial/approval is recorded separately.',
     'This exact Chrome for Testing build is not retail Chrome installation, Chrome Web Store publication, or qualification of other releases or operating systems.',
   ],
@@ -106,6 +108,8 @@ try {
   const uiId = await installChromeExtension(cdp, uiDirectory);
   const productUrl = `chrome-extension://${productId}/popup.html`;
   const uiUrl = `chrome-extension://${uiId}/popup.html`;
+  const productInvestigationUrl = `chrome-extension://${productId}/investigation.html`;
+  const uiInvestigationUrl = `chrome-extension://${uiId}/investigation.html`;
   const controllerUrl = `chrome-extension://${controllerId}/probe.html`;
   await driver.get(productUrl);
   await driver.wait(until.elementLocated(By.css('h1')), 10000);
@@ -264,6 +268,43 @@ try {
   passed(
     'Pre-granted UI fixture preserves Chrome disabled metadata without assuming Firefox omissions',
   );
+  await checkInvestigation({
+    driver,
+    popupUrl: uiUrl,
+    investigationUrl: uiInvestigationUrl,
+    localUrl,
+    settingsUrl: 'chrome://extensions/',
+    fixtureId,
+    fixtureName: 'Controlled ordinary fixture',
+    fixtureInitiallyEnabled: false,
+    setFixtureEnabled: async (enabled) => {
+      const investigationWindow = await driver.getWindowHandle();
+      await driver.switchTo().newWindow('tab');
+      await driver.get(controllerUrl);
+      const changed = await driver.executeAsyncScript(
+        async (id, target, done) => {
+          try {
+            await chrome.management.setEnabled(id, target);
+            const entry = await chrome.management.get(id);
+            done(entry.enabled === target);
+          } catch {
+            done(false);
+          }
+        },
+        fixtureId,
+        enabled,
+      );
+      await driver.close();
+      await driver.switchTo().window(investigationWindow);
+      assert.equal(
+        changed,
+        true,
+        'Only the separate disposable controller changes its fixture',
+      );
+    },
+    authority: 'Chrome pre-granted UI fixture with unchanged production assets',
+    passed,
+  });
 
   await driver.get(localUrl);
   const tabs = await cdp.send('Target.getTargets', {
@@ -337,7 +378,74 @@ try {
   passed(
     'Unmodified production popup clears its result on actual optional scripting revocation',
   );
-  await cdp.send('Target.closeTarget', { targetId: popup.targetId });
+  const beforeLaunchTargets = new Set(
+    (await cdp.send('Target.getTargets')).targetInfos.map(
+      (target) => target.targetId,
+    ),
+  );
+  try {
+    await popupValue(
+      'document.querySelector("#new-investigation").click()',
+      true,
+    );
+  } catch {
+    // Opening the new foreground tab can destroy the popup before CDP returns its result.
+    // The independently observed target and its state below establish whether launch succeeded.
+  }
+  const investigation = await driver.wait(async () => {
+    const targets = await cdp.send('Target.getTargets');
+    return targets.targetInfos.find(
+      (target) =>
+        !beforeLaunchTargets.has(target.targetId) &&
+        target.type === 'page' &&
+        target.url === productInvestigationUrl,
+    );
+  }, 10000);
+  const investigationSession = await cdp.send('Target.attachToTarget', {
+    targetId: investigation.targetId,
+    flatten: true,
+  });
+  await driver.wait(async () => {
+    const result = await cdp.send(
+      'Runtime.evaluate',
+      {
+        expression:
+          'document.readyState === "complete" && Boolean(document.querySelector("#capture-before"))',
+        returnByValue: true,
+      },
+      investigationSession.sessionId,
+    );
+    return result.result.value === true;
+  }, 10000);
+  const launchedState = await cdp.send(
+    'Runtime.evaluate',
+    {
+      expression: `(async () => ({
+        snapshots: document.querySelectorAll('[data-testid="before-snapshot"], [data-testid="after-snapshot"]').length,
+        afterDisabled: document.querySelector('#capture-after').disabled,
+        grants: await chrome.permissions.getAll(),
+      }))()`,
+      returnByValue: true,
+      awaitPromise: true,
+    },
+    investigationSession.sessionId,
+  );
+  assert.equal(launchedState.exceptionDetails, undefined);
+  assert.equal(launchedState.result.value.snapshots, 0);
+  assert.equal(launchedState.result.value.afterDisabled, true);
+  assert(!launchedState.result.value.grants.permissions.includes('management'));
+  assert.deepEqual(launchedState.result.value.grants.origins ?? [], []);
+  passed(
+    'Unmodified product toolbar action launches a fresh investigation without optional management or host access',
+  );
+  await cdp.send('Target.closeTarget', { targetId: investigation.targetId });
+  if (
+    (await cdp.send('Target.getTargets')).targetInfos.some(
+      (target) => target.targetId === popup.targetId,
+    )
+  ) {
+    await cdp.send('Target.closeTarget', { targetId: popup.targetId });
+  }
   await driver.get(productUrl);
   await driver.wait(until.elementLocated(By.css('h1')), 10000);
   assert(

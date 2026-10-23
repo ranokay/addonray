@@ -17,6 +17,7 @@ assert.deepEqual([...manifest.optional_permissions].sort(), [
 assert.equal(manifest.host_permissions?.length ?? 0, 0);
 assert.equal(manifest.optional_host_permissions?.length ?? 0, 0);
 assert.equal(manifest.content_scripts?.length ?? 0, 0);
+assert.equal(manifest.web_accessible_resources?.length ?? 0, 0);
 assert.equal(manifest.background, undefined);
 if (browser === 'firefox') {
   assert.equal(

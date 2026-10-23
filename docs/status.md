@@ -66,9 +66,20 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Inspect exact-head Linux/Windows CI reports and record qualification gaps.
 - [x] Record qualification evidence and identify the next product decision for signed private delivery.
 
+## Manual comparison checklist
+
+- [x] Resolve lifetime, comparison scope, fresh independent tabs, and one-pair reset behavior.
+- [x] Confirm shared understanding and implementation/private-delivery authorization.
+- [x] Implement the investigation controller, exact-ID differences, dark full-tab UI, and popup launch action.
+- [x] Pass 102 behavior tests and the shared development gate; independently review product/UI/probe boundaries.
+- [x] Run development packaged probes: Firefox 21 checks and Chrome 17 checks pass. These dirty runs are iteration evidence.
+- [ ] Make a signed implementation commit and run clean source rebuilds and packaged browser qualification.
+- [ ] Observe native full-tab inventory consent, keyboard operation, captures and lifetime on macOS Firefox/Chrome for Testing.
+- [ ] Inspect final-head Linux/Windows reports, record source/artifact identities and remaining gaps, and push signed evidence/status.
+
 ## Next action
 
-Resolve the investigation lifetime before planning manual before/after comparisons. The Chrome continuation is complete for the recorded private-build environments. No comparison feature or longer-lived session is approved yet. The original prototype is captured in signed commit `36e4d24` outside `main` and remains runnable with `mise run prototype` from its checkout.
+The user answered the manual-comparison interview on 2026-10-23. Each fresh investigation tab will retain one Before/After inventory pair and the user's page assessment while its document remains loaded. Close, reload, or unloading discards its memory. The user confirmed shared understanding and authorized the [comparison acceptance criteria](plans/phase1-comparison.md), implementation, tests, review, and signed private delivery. The implementation passes its development checks and static review. Complete the clean committed browser/native qualification next. The Chrome continuation is complete for its recorded private-build environments. The original prototype is captured in signed commit `36e4d24` outside `main` and remains runnable with `mise run prototype` from its checkout.
 
 The user approved planning for the private build with the remaining release gates open. Follow the [desktop QA handoff](desktop-popup-qa.md) when a visible Linux/Windows target becomes available, and complete signed-distribution checks at the release gate. Current hosted jobs provide headless API evidence.
 

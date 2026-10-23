@@ -59,3 +59,13 @@ On 2026-10-23 the user chose A, Quick list, with a dark/black theme by default a
 On 2026-10-23 the user asked about Bun 1.4.4 and additional browser/manifest targets. The official stable binary now has native formatting and type checking, but no native lint command. After reviewing this distinction, the user chose to retain the pinned native-tool canary.
 
 The user approved Chrome MV3 first, qualified against the current desktop release, with Firefox MV3 retained. Edge is a later target; Safari and MV2 are deferred. The [Chrome slice contract](plans/chrome-mv3.md) records the scope and evidence requirements. Current private visibility, deferred licensing/publication, inspection-only behavior, and popup-memory rules continue. No tracker issue was requested for this slice; this checklist and plan remain its local work record.
+
+## Manual comparison interview
+
+On 2026-10-23 the user chose an investigation that survives switching between the page and browser settings, while losing all results when its investigation view closes or reloads. Data stays in memory, with no saved history or restoration after browser restart. The existing popup behavior remains the implemented baseline until the new slice is agreed and built.
+
+The user selected two deliberate inventory snapshots around a manually performed change. The comparison shows extensions added, removed, enabled, or disabled, and records the user's assessment of the page as better, unchanged, worse, or uncertain. Measured page performance and automatic culprit identification are outside this proposed slice.
+
+The user then chose a fresh independent browser tab for each New investigation action. Existing investigations remain reachable through the browser's tabs. The popup keeps its existing quick inspection tools; no popup results transfer into an investigation. Each investigation holds one Before/After pair. Start over discards both snapshots and the page assessment. Closing, reloading, or the browser unloading the investigation loses its memory.
+
+The [manual comparison plan](plans/phase1-comparison.md) captures the proposed acceptance criteria and technical findings. The user confirmed shared understanding and authorized implementation, testing, independent review, and a signed private push of this slice on 2026-10-23. No additional browser target, measured-performance collector, persisted data, issue-tracker write, or publication was requested.

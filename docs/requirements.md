@@ -38,7 +38,11 @@ Chrome permits extension-management actions that ordinary Firefox extensions can
 
 ## Later product behavior
 
-The approved first Phase 1 slice adds inventory search/filtering, permission explanations, manual Firefox-controls guidance, and accessible empty/error states. Its acceptance criteria are [P1A-01 through P1A-09](plans/phase1-inventory.md). The popup remains the session boundary. Manual comparisons need a separate investigation-lifetime decision. Phase 2 considers bounded page diagnostics with separate consent and explicit feature support. Export requires preview and minimization rules. No later phase begins automatically because a capability appears possible.
+The approved first Phase 1 slice adds inventory search/filtering, permission explanations, manual Firefox-controls guidance, and accessible empty/error states. Its acceptance criteria are [P1A-01 through P1A-09](plans/phase1-inventory.md). The popup remains the quick-inspection session boundary. The separately approved investigation tab supplies the manual comparison lifetime described below. Phase 2 considers bounded page diagnostics with separate consent and explicit feature support. Export requires preview and minimization rules. No later phase begins automatically because a capability appears possible.
+
+## Approved manual comparison slice
+
+On 2026-10-23 the user approved [P1B-01 through P1B-13](plans/phase1-comparison.md). Each fresh investigation tab holds one fixed Before/After inventory pair and a user-selected page assessment. Explicit captures report added, removed, enabled, and disabled extensions; no automatic state changes or measured page diagnostics are introduced. The independent document retains memory only while loaded and loses it on Start over, relevant revocation, close, reload, or unloading. The existing popup remains separate. This approval includes implementation, tests, independent review, and signed delivery to the existing private repository.
 
 ## Out of scope for Phase 0
 

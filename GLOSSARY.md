@@ -24,6 +24,18 @@ _Avoid_: Culprit, proof of a conflict.
 Two or more observations taken under conditions the user records, such as a manually changed extension state.
 _Avoid_: Automatic isolation, causal proof.
 
+**Inventory snapshot**:
+The inventory reported by the browser at one deliberate capture, used as a before or after observation in a comparison.
+_Avoid_: Extensions active on the page, complete browser state.
+
+**Investigation**:
+A temporary, user-directed examination of a page problem using a comparison of observations.
+_Avoid_: Automatic diagnosis, saved report.
+
+**Page assessment**:
+The user's judgment that the page is better, unchanged, worse, or uncertain after a manual change. It does not establish the cause of that result.
+_Avoid_: Measured improvement, culprit verdict.
+
 **Session**:
 The lifetime of the visible investigation and its temporary diagnostic data.
 _Avoid_: Browsing history, retained report.

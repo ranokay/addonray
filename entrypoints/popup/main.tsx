@@ -11,8 +11,14 @@ if (!root) throw new Error('Missing popup root');
 const context = getBrowserContext(import.meta.env.BROWSER);
 const session = createSession(browser, context);
 
+async function newInvestigation() {
+  await browser.tabs.create({
+    url: browser.runtime.getURL('/investigation.html'),
+  });
+}
+
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
-    <App session={session} />
+    <App session={session} onNewInvestigation={newInvestigation} />
   </React.StrictMode>,
 );

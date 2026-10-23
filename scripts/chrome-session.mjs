@@ -80,7 +80,10 @@ export async function launchChrome({ headless = true } = {}) {
   process.env.SE_SKIP_DRIVER_IN_PATH = 'true';
   process.env.SE_SKIP_BROWSER_IN_PATH = 'true';
   process.env.SE_DRIVER_VERSION = version;
-  const options = new chrome.Options()
+  // ChromeDriver otherwise hides extension-created tabs from its window handles.
+  const options = new chrome.Options({
+    'goog:chromeOptions': { enableExtensionTargets: true },
+  })
     .setBrowserVersion(version)
     .addArguments('--no-first-run', '--no-default-browser-check');
   if (headless) options.addArguments('--headless=new');

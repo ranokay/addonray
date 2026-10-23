@@ -68,7 +68,7 @@ try {
     `Disposable Chrome for Testing ${session.version}, driver ${session.driverVersion}, is ready.`,
   );
   console.log(
-    'Record real native inventory denial/approval, page inspection, keyboard, Clear and close/reopen. Retain the inventory grant for the post-consent checks.',
+    'Record the popup and New investigation flow, actual full-tab inventory denial/approval, Before/After, keyboard assessment, Start over, independence and reload. Retain the inventory grant for the post-consent checks.',
   );
   input = createInterface({ input: process.stdin, output: process.stdout });
   await input.question(
@@ -101,6 +101,32 @@ try {
     name: 'Unmodified production document starts empty and reads controlled inventory only after an action with a retained native grant',
     status: 'passed',
   });
+  const popupHandle = await driver.getWindowHandle();
+  await driver.switchTo().newWindow('tab');
+  await driver.get(`chrome-extension://${productId}/investigation.html`);
+  await driver.wait(until.elementLocated(By.id('capture-before')), 10000);
+  assert.equal(
+    (await driver.findElements(By.css('[data-testid="before-snapshot"]')))
+      .length,
+    0,
+  );
+  await driver.findElement(By.id('capture-before')).click();
+  await driver.wait(
+    until.elementLocated(By.css('[data-testid="before-snapshot"]')),
+    10000,
+  );
+  await driver.findElement(By.id('capture-after')).click();
+  await driver.wait(
+    until.elementLocated(By.css('[data-testid="after-snapshot"]')),
+    10000,
+  );
+  await driver
+    .findElement(By.css('input[name="page-assessment"][value="uncertain"]'))
+    .click();
+  report.checks.push({
+    name: 'Unmodified investigation starts empty and captures a fixed pair and explicit assessment after native optional approval',
+    status: 'passed',
+  });
   assert.equal(
     await driver.executeAsyncScript((done) =>
       chrome.permissions.remove({ permissions: ['management'] }).then(done),
@@ -109,11 +135,27 @@ try {
   );
   await driver.wait(
     async () =>
+      (
+        await driver.findElements(
+          By.css(
+            '[data-testid="before-snapshot"], [data-testid="after-snapshot"], input[name="page-assessment"]',
+          ),
+        )
+      ).length === 0,
+    10000,
+  );
+  report.checks.push({
+    name: 'Actual optional management revocation clears both investigation snapshots and the assessment',
+    status: 'passed',
+  });
+  await driver.switchTo().window(popupHandle);
+  await driver.wait(
+    async () =>
       (await driver.findElements(By.id('inventory-search'))).length === 0,
     10000,
   );
   report.checks.push({
-    name: 'Actual optional management revocation clears the production inventory and display controls',
+    name: 'The same actual optional revocation also clears the independently loaded production popup document',
     status: 'passed',
   });
   report.result = 'passed-with-qualification-gaps';
