@@ -1,6 +1,6 @@
 # Phase 2 optional timing comparisons
 
-Status: approved for implementation, tests, independent review, and signed private delivery on 2026-10-23. The user confirmed this concrete plan after answering all six product questions in the [interview](../decisions.md#timing-comparison-interview). Production qualification remains incomplete until the checks below have observed evidence.
+Status: implemented and privately pushed in signed `efa6bcb`, with test corrections in `3e83d2a`. The user approved implementation, tests, independent review, and signed private delivery on 2026-10-23 after the [interview](../decisions.md#timing-comparison-interview). [Qualification evidence](../evidence/2026-10-24-phase2-timing-comparison.md) records passing local/hosted checks, actual macOS native workflows, and remaining release/qualification gates.
 
 Independent planning review found no material issue in scope, ownership, selection, cancellation, or the scratch-evidence claims. It requested explicit context-guard tests and accurate Bun retry wording, now included below. The reviewer read the plan, source, and raw reports without executing tests or browsers.
 
@@ -64,7 +64,7 @@ A real toolbar invocation granted source access in all four targets without host
 
 The scratch orchestration used Node 26.12.1 after the pinned Bun process stalled before module evaluation. Node's built-in TypeScript stripping loaded the existing collector; the project toolchain was unchanged. A subsequent diagnosis could not reproduce the stall: eight bounded trials passed revision checks, JavaScript evaluation in repository/empty directories, the toolchain guard, and real native formatting. The cause remains unknown. The retried shared gate passed with the existing pin, including all 134 baseline tests and 384 assertions. Its dirty planning receipt is `20261023T191728Z-bbcfd15430c6.json`; it does not qualify the unimplemented comparison. No collector overhead was requalified by the scratch research.
 
-Generation/reset races, current permission checks at acceptance, the approved sequencing/source binding, production packaging, and native human use still need implementation evidence. Private/incognito contexts are not qualified by these fixtures and must not be advertised as supported. Native Linux/Windows UI, native minimum/ESR timing flows, full accessibility/screen-reader review, retail Chrome, signed distribution, store submission, other browsers/manifests, and broader hostile-code analysis remain open.
+At planning time, generation/reset races, permission rechecks, sequencing/source binding, packaging, native human use, and context exclusion still needed implementation evidence. The [completed evidence](../evidence/2026-10-24-phase2-timing-comparison.md) now records those results and their authority limits. Private/incognito attachment support remains excluded. Native Linux/Windows UI, native minimum/ESR timing flows, full accessibility/screen-reader review, retail Chrome, signed distribution, store submission, browser-observed private-receiver/unknown-context guards, other browsers/manifests, and broader hostile-code analysis remain open.
 
 ## Qualification and delivery sequence
 
