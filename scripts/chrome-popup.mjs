@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { tmpdir, platform, arch } from 'node:os';
 import { createInterface } from 'node:readline/promises';
 import { By, until } from 'selenium-webdriver';
+import { checkTimingHandoff } from './timing-handoff-checks.mjs';
 import {
   launchChrome,
   extractChromePackage,
@@ -68,11 +69,11 @@ try {
     `Disposable Chrome for Testing ${session.version}, driver ${session.driverVersion}, is ready.`,
   );
   console.log(
-    'Record the popup and New investigation flow, actual full-tab inventory denial/approval, Before/After, keyboard assessment, Start over, independence and reload. Retain the inventory grant for the post-consent checks.',
+    'Record the popup and New investigation flow, actual inventory/page approval, timing attachment selection, Before/After, keyboard assessment, Start over, independence and reload. Retain both optional grants for the post-consent checks.',
   );
   input = createInterface({ input: process.stdin, output: process.stdout });
   await input.question(
-    'Press Enter after observations to verify retained inventory access/revocation and close the test browser. ',
+    'Press Enter after observations to verify retained access, timing handoff and optional-permission revocation, then close the test browser. ',
   );
   const { driver } = session;
   await driver.get(`chrome-extension://${productId}/popup.html`);
@@ -127,6 +128,57 @@ try {
     name: 'Unmodified investigation starts empty and captures a fixed pair and explicit assessment after native optional approval',
     status: 'passed',
   });
+  const comparisonHandle = await driver.getWindowHandle();
+  const popupUrl = `chrome-extension://${productId}/popup.html`;
+  await checkTimingHandoff({
+    driver,
+    cdp: session.cdp,
+    browser: 'chrome',
+    productId,
+    popupUrl,
+    investigationUrl: `chrome-extension://${productId}/investigation.html`,
+    localUrl: `http://127.0.0.1:${server.address().port}/`,
+    grantPermissions: async () => {
+      assert.equal(
+        await driver.executeAsyncScript((done) =>
+          chrome.permissions
+            .contains({ permissions: ['management', 'scripting'] })
+            .then(done),
+        ),
+        true,
+        'Complete native page and inventory approval before continuing.',
+      );
+    },
+    revokeScripting: () =>
+      driver.executeAsyncScript((done) =>
+        chrome.permissions.remove({ permissions: ['scripting'] }).then(done),
+      ),
+    authority:
+      'Unmodified Chrome product with retained native optional management/scripting approval',
+    report,
+    passed: (name) => report.checks.push({ name, status: 'passed' }),
+  });
+  // Refill the existing views after scripting revocation so management revocation
+  // independently proves clearing populated inventories and assessment as well.
+  await driver.switchTo().window(popupHandle);
+  await driver
+    .findElement(By.xpath('//button[contains(.,"Allow inventory")]'))
+    .click();
+  await driver.wait(until.elementLocated(By.id('inventory-search')), 10000);
+  await driver.switchTo().window(comparisonHandle);
+  await driver.findElement(By.id('capture-before')).click();
+  await driver.wait(
+    until.elementLocated(By.css('[data-testid="before-snapshot"]')),
+    10000,
+  );
+  await driver.findElement(By.id('capture-after')).click();
+  await driver.wait(
+    until.elementLocated(By.css('[data-testid="after-snapshot"]')),
+    10000,
+  );
+  await driver
+    .findElement(By.css('input[name="page-assessment"][value="uncertain"]'))
+    .click();
   assert.equal(
     await driver.executeAsyncScript((done) =>
       chrome.permissions.remove({ permissions: ['management'] }).then(done),

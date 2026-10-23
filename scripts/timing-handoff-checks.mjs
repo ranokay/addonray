@@ -22,6 +22,18 @@ async function popupCommand(driver, popupUrl, command, value = null) {
               return false;
             }
           });
+        if ((!view || !view.document?.body) && action === 'read')
+          return done({
+            pending: true,
+            body: '',
+            status: '',
+            destination: null,
+            side: null,
+            options: [],
+            sides: [],
+            confirmDisabled: true,
+            discoveryDisabled: true,
+          });
         if (!view) return done({ unavailable: true });
         const doc = view.document;
         if (action === 'click' || action === 'focus') {
@@ -373,20 +385,34 @@ export async function checkTimingHandoff({
     await captureInventory(first, 'before');
     await captureInventory(second, 'before');
     await driver.switchTo().window(control);
-    const nonPopup = await driver.executeAsyncScript(async (url, done) => {
-      const api = globalThis.browser ?? globalThis.chrome;
-      const views = api.extension
-        .getViews({ type: 'tab' })
-        .filter((view) => view.location.href === url);
-      const outcomes = [];
-      for (const view of views) {
-        outcomes.push({
-          metadata: await view.addonrayTimingInvestigation.metadata(window),
-          received: await view.addonrayTimingInvestigation.receive({}, window),
-        });
-      }
-      done(outcomes);
-    }, investigationUrl);
+    const nonPopup = await driver.executeAsyncScript(
+      async (url, labels, done) => {
+        const api = globalThis.browser ?? globalThis.chrome;
+        const views = api.extension
+          .getViews({ type: 'tab' })
+          .filter(
+            (view) =>
+              view.location.href === url &&
+              labels.includes(
+                view.document.querySelector('#investigation-label')
+                  ?.textContent,
+              ),
+          );
+        const outcomes = [];
+        for (const view of views) {
+          outcomes.push({
+            metadata: await view.addonrayTimingInvestigation.metadata(window),
+            received: await view.addonrayTimingInvestigation.receive(
+              {},
+              window,
+            ),
+          });
+        }
+        done(outcomes);
+      },
+      investigationUrl,
+      [firstLabel, secondLabel],
+    );
     assert.equal(nonPopup.length, 2);
     for (const outcome of nonPopup) {
       assert.equal(outcome.metadata, null);
@@ -400,13 +426,14 @@ export async function checkTimingHandoff({
     await openPopup(`${localUrl}timing-comparison-source`);
     await pageCapture();
     const listed = await discover(firstLabel, 'before');
-    assert.deepEqual(
-      listed.options
-        .filter((item) => item.value)
-        .map((item) => item.label)
-        .sort(),
-      [firstLabel, secondLabel].sort(),
-    );
+    const eligibleLabels = listed.options
+      .filter((item) => item.value)
+      .map((item) => item.label);
+    assert(eligibleLabels.includes(firstLabel));
+    assert(eligibleLabels.includes(secondLabel));
+    evidence.otherEligibleInvestigations = eligibleLabels.filter(
+      (item) => ![firstLabel, secondLabel].includes(item),
+    ).length;
     evidence.normalWindowVerified = true;
     passed(
       `${authority}: actual toolbar capture discovers two normal investigations with explicit empty selections`,
@@ -564,10 +591,10 @@ export async function checkTimingHandoff({
       await pageCapture();
       await discover(firstLabel, 'after');
       assert.equal(await revokeScripting(), true);
-      await driver.wait(
-        async () => (await command('read')).destination === null,
-        10000,
-      );
+      await driver.wait(async () => {
+        const state = await command('read');
+        return !state.pending && state.destination === null;
+      }, 10000);
       await closePopup();
       await driver.switchTo().window(first);
       assert.equal((await driver.findElements(By.css(before))).length, 0);
