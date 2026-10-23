@@ -2,7 +2,7 @@
 
 ## Current state
 
-The user approved the [Chrome MV3 continuation](plans/chrome-mv3.md) on 2026-10-23 and kept the pinned Bun canary for native linting. Firefox MV3 remains the baseline; other browsers and MV2 are deferred. Implementation and local development probes are in progress. No comparison or longer session is approved.
+The user approved the [Chrome MV3 continuation](plans/chrome-mv3.md) on 2026-10-23 and kept the pinned Bun canary for native linting. Firefox MV3 remains the baseline; other browsers and MV2 are deferred. Signed implementation `824dda6` is pushed, followed by bounded Chrome launch/CI fixes. All 62 behavior tests and both source rebuilds passed. Clean macOS packaged Firefox checks passed all 15 cases on three versions; Chrome passed all 11 checks. The actual Chrome for Testing 156.0.8078.47 popup was observed on macOS, including native inventory denial/approval and keyboard operation. [Chrome evidence](evidence/2026-10-23-chrome-mv3.md) separates unmodified product behavior, pre-granted fixtures, hosted qualification, and remaining gates. The two-job Chrome and six-job Firefox workflows passed at signed `e77fd7d`; their downloaded reports confirm clean source, exact versions, package identities, source rebuilds, and cleanup. The shared CI gate passed at the same source. No comparison or longer session is approved.
 
 The first Phase 1 inventory slice is implemented in signed commit `a80125b` under [issue #1](https://github.com/ranokay/addonray/issues/1). The user selected layout A with a dark/black theme by default and the [documented acceptance criteria](plans/phase1-inventory.md). All 37 behavior tests passed. Packaged Firefox checks passed all 15 cases on each of three exact versions across macOS, Linux, and Windows. The actual rewritten popup was observed on macOS with Firefox 158.0.1. See [current inventory evidence](evidence/2026-10-23-phase1-inventory.md) for source identities, static review, CI links, and remaining gaps. The three-variant prototype remains on its separate branch.
 
@@ -60,15 +60,15 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Confirm native Bun canary, Chrome first, and MV3-only scope.
 - [x] Add browser-context UI/adapters, conditional manifests, target-aware packages/source archives, and Chrome fixtures.
 - [x] Run the 11 Chrome checks during development on macOS arm64. This dirty run is not frozen evidence.
-- [ ] Complete shared gate, independent review, and signed implementation commit.
-- [ ] Verify clean source rebuilds and packaged Firefox/Chrome probes.
-- [ ] Record actual Chrome native consent and popup observations separately.
-- [ ] Inspect exact-head Linux/Windows CI reports and record qualification gaps.
-- [ ] Publish signed evidence/status and identify the next product decision.
+- [x] Complete shared gate, independent review, and signed implementation commit.
+- [x] Verify clean source rebuilds and packaged Firefox/Chrome probes.
+- [x] Record actual Chrome native consent and popup observations separately.
+- [x] Inspect exact-head Linux/Windows CI reports and record qualification gaps.
+- [x] Record qualification evidence and identify the next product decision for signed private delivery.
 
 ## Next action
 
-Finish the approved Chrome continuation and its qualification record, then resolve the investigation lifetime before planning manual before/after comparisons. No comparison feature or longer-lived session is approved yet. The original prototype is captured in signed commit `36e4d24` outside `main` and remains runnable with `mise run prototype` from its checkout.
+Resolve the investigation lifetime before planning manual before/after comparisons. The Chrome continuation is complete for the recorded private-build environments. No comparison feature or longer-lived session is approved yet. The original prototype is captured in signed commit `36e4d24` outside `main` and remains runnable with `mise run prototype` from its checkout.
 
 The user approved planning for the private build with the remaining release gates open. Follow the [desktop QA handoff](desktop-popup-qa.md) when a visible Linux/Windows target becomes available, and complete signed-distribution checks at the release gate. Current hosted jobs provide headless API evidence.
 
@@ -82,4 +82,4 @@ For fresh revision-bound evidence, run `/Users/ranokay/.agents/tools/run gate_ru
 
 ## Unresolved future decisions
 
-License, public visibility, final AMO identity/publication, remaining native OS and signed-distribution qualification, retail Chrome installation, longer investigation lifetime, diagnostic collectors and overhead budgets, report export/history rules, and a concrete optional companion capability. These do not block the narrow Phase 0 proposal.
+License, public visibility, final AMO identity/publication, remaining native OS and signed-distribution qualification, retail Chrome installation, longer investigation lifetime, diagnostic collectors and overhead budgets, report export/history rules, and a concrete optional companion capability. These remain separate from the completed inspection slices.

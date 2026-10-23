@@ -10,9 +10,11 @@ Exit when P0-01 through P0-10 in [requirements](requirements.md) have evidence o
 
 ## Phase 1: useful guided troubleshooting
 
-Add inventory search and permission explanations, instructions for changing settings through Firefox, and user-recorded before/after comparisons. Design the investigation lifetime before moving beyond the popup. Distinguish the user's stated conditions from browser-observed metadata.
+Add inventory search and permission explanations, instructions for changing settings through the browser, and user-recorded before/after comparisons. Design the investigation lifetime before moving beyond the popup. Distinguish the user's stated conditions from browser-observed metadata.
 
 Exit when a user can reproduce a comparison, recover from denied access, and understand why AddonRay does not present an automatic culprit verdict. Test keyboard use and screen-reader labels. Recheck privacy and release/ESR support.
+
+The approved [Chrome MV3 continuation](plans/chrome-mv3.md) fits within the inventory slice. It retains Firefox MV3 and adds Chrome-specific builds, capability explanations, and qualification before comparison planning. All MV2 builds and other browser targets remain deferred.
 
 ## Phase 2: bounded diagnostics
 
@@ -34,4 +36,4 @@ Exit feasibility only with real OS/browser evidence and a narrow capability prop
 
 ## Distribution gate
 
-AMO publication is separate from pushing source to the private repository. It requires a license decision, final extension identity, privacy review, current Mozilla policy checks, release/ESR qualification, packaging evidence, and approval to publish.
+AMO and Chrome Web Store publication are separate from pushing source to the private repository. It requires a license decision, final extension identity, privacy review, current store policy checks for each target, browser/distribution qualification, packaging evidence, and approval to publish.
