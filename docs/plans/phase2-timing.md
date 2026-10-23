@@ -1,6 +1,6 @@
 # Phase 2 page-timing snapshot
 
-Status: approved for implementation, testing, independent review, and signed private delivery on 2026-10-23. The user chose page timings first, the existing popup action/lifetime, current-document load observations without reloading or recording, the three milestones below, and original-tab targeting at collection time. [The interview](../decisions.md#phase-2-timing-interview) records those choices and final shared-understanding confirmation.
+Status: implemented in signed `8b8c968`, privately pushed and qualified on 2026-10-23. [Dated evidence](../evidence/2026-10-23-phase2-timing.md) records tests, clean browser/source rebuilds, native macOS observations, hosted reports, and remaining release gates. The user approved implementation, testing, independent review, and signed private delivery. They chose page timings first, the existing popup action/lifetime, current-document load observations without reloading or recording, the three milestones below, and original-tab targeting at collection time. [The interview](../decisions.md#phase-2-timing-interview) records those choices and final shared-understanding confirmation.
 
 Independent planning review found no material issue in the scope, data boundary, zero/missing semantics, current lifecycle, feasibility sequence, or overhead proposal. Subsequent production-code and probe reviews found no actionable issue. Those reviews did not run tests or browsers; observed qualification remains separate.
 
