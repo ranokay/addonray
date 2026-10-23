@@ -1,8 +1,10 @@
 import { useState, useSyncExternalStore } from 'react';
 import { capabilityLimits, type Result } from '../../lib/inspector';
 import type { InspectorSession } from '../../lib/session';
+import type { PopupTimingHandoff } from '../../lib/timing-handoff';
 import { Inventory } from './Inventory';
 import { PageTimings } from './PageTimings';
+import { TimingAttachment } from './TimingAttachment';
 
 function Outcome({ result }: { result: Result<unknown> | null }) {
   if (!result || result.status === 'success') return null;
@@ -12,11 +14,14 @@ function Outcome({ result }: { result: Result<unknown> | null }) {
 export function App({
   session,
   onNewInvestigation,
+  handoff,
 }: {
   session: InspectorSession;
   onNewInvestigation: () => Promise<void>;
+  handoff?: PopupTimingHandoff;
 }) {
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot);
+  const capture = session.getTimingCapture();
   const { context } = session;
   const [launching, setLaunching] = useState(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
@@ -67,8 +72,9 @@ export function App({
         </button>
         {launchError && <p role="status">{launchError}</p>}
         <p className="metadata">
-          Each investigation starts empty. Popup results are not transferred,
-          and Clear popup results does not clear investigation tabs.
+          Each investigation starts empty. Timings transfer only when you
+          explicitly attach them. Clear popup results does not clear
+          investigation tabs.
         </p>
       </section>
 
@@ -137,6 +143,14 @@ export function App({
               The entry-type list describes browser support.
             </p>
             <PageTimings timings={state.page.value.timings} />
+            {handoff && capture && (
+              <TimingAttachment
+                key={capture.id}
+                captureId={capture.id}
+                session={session}
+                handoff={handoff}
+              />
+            )}
           </div>
         )}
         <p className="metadata">

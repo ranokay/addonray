@@ -78,6 +78,14 @@ Dirty feasibility probes on Firefox 140.0, 153.5.1esr, 158.0.1 and Chrome for Te
 
 Primary references are [navigation timing](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming), [paint timing](https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming), [current timeline reads](https://developer.mozilla.org/en-US/docs/Web/API/Performance/getEntriesByType), [scripting target compatibility](https://github.com/mdn/browser-compat-data/blob/main/webextensions/api/scripting.json), and [back/forward-cache measurement](https://web.dev/articles/bfcache#performance_measurement).
 
+## Optional timing handoff
+
+Approved on 2026-10-23. [The comparison plan](plans/phase2-timing-comparison.md) uses [Firefox getViews](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/extension/getViews) and [Chrome getViews](https://developer.chrome.com/docs/extensions/reference/api/extension#getViews) for own packaged documents. It does not require sensitive tab-metadata permission or a background service. Discovery returns metadata only, then the explicit transfer targets one live document/generation. Firefox cross-view references can become dead objects after owner closure; make retained copies in each receiving realm and bound stale access failures.
+
+Scratch fixtures passed 11 checks on each pinned macOS browser with the product permission budget and an actual toolbar grant. They observed that a same-origin new-document reload removed access on Firefox 140.0, 153.5.1esr, and 158.0.1, while Chrome for Testing 156.0.8078.47 retained it. A fresh toolbar invocation restored access in each case. A retained source-tab ID cannot renew Firefox access. See [documented access lifetimes](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/activeTab_permission#when_access_is_revoked).
+
+These candidate fixtures establish API feasibility, not production capture/select/confirm usability or private-window support. Attachments exclude private/incognito and unclassifiable contexts. `inIncognitoContext` alone does not classify every spanning-process extension view; the selected source tab and destination's own tab provide the needed flags. No page identity is inferred from their numeric tab IDs. Production integration, context exclusion, actual native use, and exact-head hosted evidence remain separate qualification gates.
+
 ## Primary Firefox references
 
 - [management.getAll](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/management/getAll)

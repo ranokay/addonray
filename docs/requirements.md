@@ -50,6 +50,14 @@ On 2026-10-23 the user approved [P2A-01 through P2A-13](plans/phase2-timing.md),
 
 This is a one-shot popup snapshot with the existing permission and memory budget. It never reloads, observes subsequent events, records interaction responsiveness, transfers results to investigations, or attributes a delay to an extension. The new timing block is bounded to 1 KiB. Qualification requires isolated-world feasibility and a measured 5 ms p95 synchronous collector budget on controlled fixtures, separately from browser injection latency and with clock precision recorded.
 
+## Approved optional timing comparison
+
+On 2026-10-23 the user approved [P2B-01 through P2B-16](plans/phase2-timing-comparison.md), including implementation, tests, independent review, and signed private delivery. A deliberate popup page capture may be explicitly attached to one chosen investigation and side. Inventory captures stay separate and optional timings never imply synchronized conditions.
+
+Before timing must be attached before starting the After inventory capture. Both timing slots stay fixed until Start over; After timing requires the same numeric browser-tab ID. Its URL/title are never collected, and a tab match does not verify the page or document. Display Before, After, and signed millisecond differences only for measured pairs. Either optional-permission revocation resets the whole investigation. Successfully attached values belong to that investigation, independently of popup clearing/closure.
+
+Attachments are limited to verified normal-window views. Private/incognito and unclassifiable contexts fail closed without disabling existing local inspection. No permission, host grant, background process, storage, automatic reload, page monitor, percentage score, or culprit verdict is added. The earlier popup-only and inventory-only tables describe their original slice contracts; this approved extension supplies the deliberate transfer boundary.
+
 ## Out of scope for Phase 0
 
 Continuous recording, network collection, page-world instrumentation, console interception, automatic culprit ranking, automated extension state changes, theme management, report export, persistent history, mobile support, additional Chromium browsers, accounts, sync, AMO publication, and a native companion implementation.

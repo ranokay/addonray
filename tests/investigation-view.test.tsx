@@ -39,12 +39,16 @@ function view(
     after: null,
     busy: null,
     assessment: null,
+    timingBefore: null,
+    timingAfter: null,
+    afterStarted: false,
     ...update,
   };
   const markup = renderToStaticMarkup(
     <InvestigationView
       state={state}
       context={getBrowserContext(target)}
+      label="Investigation AB12"
       {...actions}
     />,
   );
@@ -214,4 +218,32 @@ it('explains independent lifetime and the Chrome consent boundary', () => {
   );
   expect(markup).toContain('No collection runs between captures.');
   expect(markup).not.toContain('Firefox');
+});
+
+it('shows a synthetic investigation label and optional timing guidance independently of the inventory pair', () => {
+  const { markup } = view();
+  expect(markup).toContain('id="investigation-label"');
+  expect(markup).toContain('Investigation AB12');
+  expect(markup).toContain('Optional loading timings');
+  expect(markup).toContain('Capture the Before inventory first');
+  expect(markup).toContain('inventory-only comparisons still work');
+  expect(markup).not.toContain('Your page assessment');
+});
+
+it('retains a fixed Before timing and its retry guidance after an After inventory failure', () => {
+  const { markup } = view({
+    before: { status: 'success', value: before },
+    after: { status: 'error', reason: 'Retry capture after.' },
+    afterStarted: true,
+    timingBefore: {
+      domContentLoaded: { status: 'measured', milliseconds: 12.34 },
+      loadEvent: { status: 'unrecorded' },
+      firstContentfulPaint: { status: 'unavailable' },
+    },
+  });
+  expect(markup).toContain('12.34 ms');
+  expect(markup).toContain('Before timing attached');
+  expect(markup).toContain('capture the After inventory here');
+  expect(button(markup, 'capture-after')).not.toContain('disabled');
+  expect(markup).not.toContain('Your page assessment');
 });

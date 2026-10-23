@@ -9,7 +9,12 @@ export interface InspectorBrowser {
   tabs: {
     query: (
       query: Browser.tabs.QueryInfo,
-    ) => Promise<Array<Pick<Browser.tabs.Tab, 'id'>>>;
+    ) => Promise<
+      Array<
+        Pick<Browser.tabs.Tab, 'id'> &
+          Partial<Pick<Browser.tabs.Tab, 'incognito'>>
+      >
+    >;
   };
   management?: {
     getAll: () => Promise<Browser.management.ExtensionInfo[]>;
@@ -58,6 +63,12 @@ export interface PageObservation {
   readyState: 'loading' | 'interactive' | 'complete';
   performanceEntryTypes: string[] | null;
   timings: TimingSnapshot;
+}
+
+export interface PageCapture {
+  observation: PageObservation;
+  sourceTabId: number;
+  incognito: boolean | null;
 }
 
 export function capabilityLimits(context: BrowserContext = firefoxContext) {
@@ -231,6 +242,20 @@ function copyTimingMeasurement(value: TimingMeasurement): TimingMeasurement {
     : { status: value.status };
 }
 
+export function copyTimingSnapshot(value: unknown): TimingSnapshot | null {
+  try {
+    if (!isTimingSnapshot(value)) return null;
+    const copy: TimingSnapshot = {
+      domContentLoaded: copyTimingMeasurement(value.domContentLoaded),
+      loadEvent: copyTimingMeasurement(value.loadEvent),
+      firstContentfulPaint: copyTimingMeasurement(value.firstContentfulPaint),
+    };
+    return isTimingSnapshot(copy) ? copy : null;
+  } catch {
+    return null;
+  }
+}
+
 function isPageObservation(value: unknown): value is PageObservation {
   if (typeof value !== 'object' || value === null) return false;
   if (!('readyState' in value) || !('performanceEntryTypes' in value))
@@ -262,6 +287,17 @@ export async function inspectPage(
   signal?: AbortSignal,
   context: BrowserContext = firefoxContext,
 ): Promise<Result<PageObservation>> {
+  const capture = await capturePage(api, signal, context);
+  return capture.status === 'success'
+    ? { status: 'success', value: capture.value.observation }
+    : capture;
+}
+
+export async function capturePage(
+  api: InspectorBrowser,
+  signal?: AbortSignal,
+  context: BrowserContext = firefoxContext,
+): Promise<Result<PageCapture>> {
   try {
     // Bind the selection at the click, while starting consent in the same gesture.
     const selectedTab = api.tabs.query({ active: true, currentWindow: true });
@@ -302,18 +338,23 @@ export async function inspectPage(
     return {
       status: 'success',
       value: {
-        readyState: response.readyState,
-        performanceEntryTypes: response.performanceEntryTypes
-          ? [...response.performanceEntryTypes]
-          : null,
-        timings: {
-          domContentLoaded: copyTimingMeasurement(
-            response.timings.domContentLoaded,
-          ),
-          loadEvent: copyTimingMeasurement(response.timings.loadEvent),
-          firstContentfulPaint: copyTimingMeasurement(
-            response.timings.firstContentfulPaint,
-          ),
+        sourceTabId: tabId,
+        incognito:
+          typeof tabs[0]?.incognito === 'boolean' ? tabs[0].incognito : null,
+        observation: {
+          readyState: response.readyState,
+          performanceEntryTypes: response.performanceEntryTypes
+            ? [...response.performanceEntryTypes]
+            : null,
+          timings: {
+            domContentLoaded: copyTimingMeasurement(
+              response.timings.domContentLoaded,
+            ),
+            loadEvent: copyTimingMeasurement(response.timings.loadEvent),
+            firstContentfulPaint: copyTimingMeasurement(
+              response.timings.firstContentfulPaint,
+            ),
+          },
         },
       },
     };

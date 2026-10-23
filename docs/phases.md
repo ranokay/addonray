@@ -24,6 +24,8 @@ Propose collectors separately. Candidates include page error observations, suppo
 
 Exit when tests prove the collector lifecycle, spoofed data is handled, caps hold, and measured overhead meets an agreed budget. No extension attribution claim without an independently validated mechanism.
 
+The approved [optional timing comparison](plans/phase2-timing-comparison.md) extends the Phase 2 popup snapshot into the existing investigation through a deliberate handoff. It adds no history or export. Its own qualification distinguishes candidate/source fixtures, packaged integration, native UI, and remaining context/platform gates.
+
 ## Phase 3: user-controlled reports and better comparisons
 
 Add previewed, minimized export and reproducible comparison records. Decide what may persist and for how long before introducing history. Explore comparison guidance without automatic changes to other extensions.

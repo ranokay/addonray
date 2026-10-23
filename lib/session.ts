@@ -1,9 +1,10 @@
 import {
-  inspectPage,
+  capturePage,
   loadInventory,
   type ExtensionEntry,
   type InspectorBrowser,
   type PageObservation,
+  type TimingSnapshot,
   type Result,
 } from './inspector';
 import { firefoxContext, type BrowserContext } from './browser-target';
@@ -27,12 +28,22 @@ export function createSession(
   let generation = 0;
   let controller = new AbortController();
   const subscribers = new Set<() => void>();
+  let captureId = 0;
+  let capture: {
+    id: number;
+    sourceTabId: number;
+    incognito: boolean | null;
+    timings: TimingSnapshot;
+  } | null = null;
+  let consumed = false;
   const notify = () => subscribers.forEach((subscriber) => subscriber());
 
   const clear = () => {
     controller.abort();
     controller = new AbortController();
     generation += 1;
+    capture = null;
+    consumed = false;
     snapshot = emptySnapshot();
     notify();
   };
@@ -52,6 +63,23 @@ export function createSession(
   return {
     context,
     getSnapshot: () => snapshot,
+    getTimingCapture: () => capture,
+    isTimingCaptureCurrent: (id: number) =>
+      capture?.id === id && !consumed && !snapshot.pageBusy,
+    consumeTimingCapture(id: number, sourceTabId: number) {
+      if (
+        capture?.id !== id ||
+        capture.sourceTabId !== sourceTabId ||
+        capture.incognito !== false ||
+        consumed ||
+        snapshot.pageBusy
+      )
+        return false;
+      consumed = true;
+      snapshot = { ...snapshot };
+      notify();
+      return true;
+    },
     clear,
     subscribe(subscriber: () => void) {
       if (subscribers.size === 0)
@@ -78,10 +106,25 @@ export function createSession(
     async inspectPage() {
       if (snapshot.pageBusy) return;
       const started = generation;
+      capture = null;
+      consumed = false;
+      const id = ++captureId;
       snapshot = { ...snapshot, page: null, pageBusy: true };
       notify();
-      const page = await inspectPage(api, controller.signal, context);
+      const result = await capturePage(api, controller.signal, context);
       if (started !== generation) return;
+      const page: Result<PageObservation> =
+        result.status === 'success'
+          ? { status: 'success', value: result.value.observation }
+          : result;
+      if (result.status === 'success') {
+        capture = {
+          id,
+          sourceTabId: result.value.sourceTabId,
+          incognito: result.value.incognito,
+          timings: result.value.observation.timings,
+        };
+      }
       snapshot = { ...snapshot, page, pageBusy: false };
       notify();
     },

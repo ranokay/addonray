@@ -8,6 +8,7 @@ import {
 } from '../../lib/comparison';
 import type { Result } from '../../lib/inspector';
 import type { Investigation } from '../../lib/investigation';
+import { TimingComparison } from './TimingComparison';
 
 type InvestigationState = ReturnType<Investigation['getSnapshot']>;
 
@@ -84,6 +85,7 @@ function SnapshotResult({
 export function InvestigationView({
   state,
   context,
+  label,
   onCaptureBefore,
   onCaptureAfter,
   onStartOver,
@@ -91,6 +93,7 @@ export function InvestigationView({
 }: {
   state: InvestigationState;
   context: BrowserContext;
+  label: string;
   onCaptureBefore: () => Promise<void>;
   onCaptureAfter: () => Promise<void>;
   onStartOver: () => void;
@@ -109,6 +112,9 @@ export function InvestigationView({
         <div>
           <p className="eyebrow">AddonRay · {context.name}</p>
           <h1>Manual comparison</h1>
+          <p id="investigation-label" className="investigation-label">
+            {label}
+          </p>
           <p>
             Compare two extension inventories while you test the same page
             manually.
@@ -179,7 +185,8 @@ export function InvestigationView({
             </li>
           </ol>
           <p className="metadata">
-            AddonRay does not change extensions, reload or inspect the page, or
+            AddonRay does not change extensions or reload the page. Timings
+            require a separate deliberate popup capture. This tab does not
             verify which page you tested. No collection runs between captures.
           </p>
         </section>
@@ -203,6 +210,14 @@ export function InvestigationView({
           <SnapshotResult result={state.after} label="after" />
         </section>
       </div>
+
+      <TimingComparison
+        before={state.timingBefore}
+        after={state.timingAfter}
+        hasBeforeInventory={before !== null}
+        hasAfterInventory={after !== null}
+        afterStarted={state.afterStarted}
+      />
 
       {changes !== null && (
         <section aria-labelledby="changes-heading">
@@ -287,6 +302,7 @@ export function App({ investigation }: { investigation: Investigation }) {
     <InvestigationView
       state={state}
       context={investigation.context}
+      label={investigation.label}
       onCaptureBefore={investigation.captureBefore}
       onCaptureAfter={investigation.captureAfter}
       onStartOver={investigation.startOver}

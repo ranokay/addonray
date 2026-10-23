@@ -40,6 +40,10 @@ _Avoid_: Measured improvement, culprit verdict.
 A small set of loading milestones for the current document, reported at one deliberate capture. It records available observations, not a speed rating or proof of extension impact.
 _Avoid_: Performance score, extension overhead measurement.
 
+**Timing attachment**:
+A timing snapshot deliberately added to one side of an investigation. It is a separate observation from that side's inventory snapshot.
+_Avoid_: Synchronized capture, automatic measurement.
+
 **Session**:
 The lifetime of the visible investigation and its temporary diagnostic data.
 _Avoid_: Browsing history, retained report.

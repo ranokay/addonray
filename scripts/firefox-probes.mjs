@@ -11,6 +11,9 @@ import { installTemporaryExtension } from './firefox-install.mjs';
 import { extensionArchive } from './package-paths.mjs';
 import { sha256 } from './check-package.mjs';
 import { checkInvestigation } from './investigation-checks.mjs';
+import { checkTimingHandoff } from './timing-handoff-checks.mjs';
+import { prepareHandoffFixture } from './timing-handoff-fixture.mjs';
+import { checkFirefoxPrivateHandoff } from './timing-private-checks.mjs';
 import {
   checkTimings,
   prepareTimingModule,
@@ -99,6 +102,8 @@ const harness = await fixture('AddonRay API harness', harnessId, {
   host_permissions: ['<all_urls>'],
 });
 await prepareTimingModule(harness);
+const handoffDirectory = join(work, 'timing-source-fixture');
+report.timingHandoffFixture = await prepareHandoffFixture(handoffDirectory);
 const timing = timingFixtures();
 const server = createServer((request, response) => {
   if (timing.handle(request, response)) return;
@@ -138,7 +143,12 @@ try {
     'moz:geckodriverVersion',
   );
   assert.equal(report.geckodriverVersion, '0.37.1');
-  for (const extension of [ordinary, harness, productArtifact]) {
+  for (const extension of [
+    ordinary,
+    harness,
+    productArtifact,
+    handoffDirectory,
+  ]) {
     await installTemporaryExtension(driver, extension);
   }
 
@@ -615,6 +625,79 @@ try {
     report,
     passed,
   });
+  const driverHandoffPopupUrl = await extensionUrl(
+    report.timingHandoffFixture.id,
+    'popup.html',
+  );
+  const driverHandoffInvestigationUrl = await extensionUrl(
+    report.timingHandoffFixture.id,
+    'investigation.html',
+  );
+  await checkTimingHandoff({
+    driver,
+    browser: 'firefox',
+    productId: report.timingHandoffFixture.id,
+    popupUrl: driverHandoffPopupUrl,
+    investigationUrl: driverHandoffInvestigationUrl,
+    localUrl,
+    grantPermissions: async () => {
+      await driver.findElement(By.id('grant-research')).click();
+      await driver.setContext('chrome');
+      const allow = await driver.wait(
+        until.elementLocated(
+          By.css(
+            '#addon-webext-permissions-notification .popup-notification-primary-button',
+          ),
+        ),
+        10000,
+      );
+      await driver.wait(until.elementIsVisible(allow), 10000);
+      await driver.wait(
+        () =>
+          driver.executeScript(
+            (element) =>
+              !(element.shadowRoot?.querySelector('button') ?? element)
+                .disabled,
+            allow,
+          ),
+        10000,
+      );
+      await driver.executeScript(
+        (element) =>
+          (element.shadowRoot?.querySelector('button') ?? element).click(),
+        allow,
+      );
+      await driver.setContext('content');
+      const grants = await driver.executeAsyncScript((done) =>
+        browser.permissions.getAll().then(done),
+      );
+      assert(grants.permissions.includes('management'));
+      assert(grants.permissions.includes('scripting'));
+      assert.deepEqual(grants.origins ?? [], []);
+    },
+    authority: report.timingHandoffFixture.authority,
+    sourceFixture: true,
+    checkPrivate: ({ returnWindow }) =>
+      checkFirefoxPrivateHandoff({
+        returnWindow,
+        driver,
+        id: report.timingHandoffFixture.id,
+        popupUrl: driverHandoffPopupUrl,
+        investigationUrl: driverHandoffInvestigationUrl,
+        localUrl,
+        report,
+        passed,
+      }),
+    revokeScripting: () =>
+      driver.executeAsyncScript((done) =>
+        browser.permissions.remove({ permissions: ['scripting'] }).then(done),
+      ),
+    report,
+    passed,
+  });
+  report.gaps.push(
+    'Timing attachments use a named source-popup fixture with compiled production core, a contains-only source consent seam after a separate approved optional-permission action, and unchanged packaged investigation assets. This does not qualify the actual React toolbar popup or human native consent; native unmodified-product evidence is separate.',
+  );
   report.result = 'passed-with-qualification-gaps';
 } catch (error) {
   report.result = 'failed';

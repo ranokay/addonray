@@ -56,6 +56,9 @@ for (const target of ['firefox', 'chrome']) {
       after: null,
       busy: null,
       assessment: null,
+      timingBefore: null,
+      timingAfter: null,
+      afterStarted: false,
     });
     expect(request).not.toHaveBeenCalled();
     expect(getAll).not.toHaveBeenCalled();
@@ -108,6 +111,9 @@ for (const target of ['firefox', 'chrome']) {
       },
       busy: null,
       assessment: null,
+      timingBefore: null,
+      timingAfter: null,
+      afterStarted: true,
     });
     current.setAssessment('better');
     current.setAssessment('uncertain');
@@ -125,6 +131,9 @@ for (const target of ['firefox', 'chrome']) {
       after: null,
       busy: null,
       assessment: null,
+      timingBefore: null,
+      timingAfter: null,
+      afterStarted: false,
     });
     await current.captureBefore();
     expect(getAll).toHaveBeenCalledTimes(3);
@@ -217,6 +226,9 @@ for (const target of ['firefox', 'chrome']) {
       after: null,
       busy: null,
       assessment: null,
+      timingBefore: null,
+      timingAfter: null,
+      afterStarted: false,
     });
     unsubscribe();
   });
@@ -238,6 +250,9 @@ for (const target of ['firefox', 'chrome']) {
       after: null,
       busy: null,
       assessment: null,
+      timingBefore: null,
+      timingAfter: null,
+      afterStarted: false,
     });
     unsubscribe();
   });
@@ -263,6 +278,9 @@ for (const target of ['firefox', 'chrome']) {
       after: null,
       busy: null,
       assessment: null,
+      timingBefore: null,
+      timingAfter: null,
+      afterStarted: false,
     });
   });
 

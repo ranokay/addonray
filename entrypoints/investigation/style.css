@@ -52,6 +52,11 @@ header p:last-child {
   color: #b0b0b0;
   overflow-wrap: anywhere;
 }
+.investigation-label {
+  color: #c2e8d2;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
 .privacy {
   margin: 28px 0 22px;
   padding: 12px 18px;
@@ -107,7 +112,8 @@ button:disabled {
 }
 button:focus-visible,
 summary:focus-visible,
-input:focus-visible {
+input:focus-visible,
+.timing-table-scroll:focus-visible {
   outline: 3px solid #c4e1ff;
   outline-offset: 4px;
 }
@@ -226,6 +232,59 @@ input[type='radio'] {
   margin: 0;
   accent-color: #b6e4ca;
 }
+.timing-table-scroll {
+  overflow-x: auto;
+}
+.timing-comparison {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 18px 0;
+  table-layout: fixed;
+}
+.timing-comparison caption {
+  text-align: left;
+  color: #b0b0b0;
+  font-size: 13px;
+  line-height: 1.6;
+  padding-bottom: 16px;
+}
+.timing-comparison th,
+.timing-comparison td {
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid #303030;
+  padding: 14px 12px;
+  overflow-wrap: anywhere;
+}
+.timing-comparison th:first-child {
+  width: 37%;
+  padding-left: 0;
+}
+.timing-comparison thead th {
+  color: #c2e8d2;
+  font-size: 13px;
+}
+.timing-comparison tbody th {
+  font-size: 14px;
+}
+.timing-comparison .metadata {
+  display: block;
+  margin-top: 6px;
+  font-weight: 400;
+}
+.timing-comparison td {
+  color: #d0d0d0;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.timing-guidance {
+  border-top: 1px solid #303030;
+  padding-top: 16px;
+}
+.timing-guidance p {
+  font-size: 14px;
+  color: #c5c5c5;
+}
 @media (max-width: 900px) {
   main {
     padding: 24px 16px 40px;
@@ -244,6 +303,9 @@ input[type='radio'] {
   .entry-heading {
     flex-wrap: wrap;
     gap: 4px 12px;
+  }
+  .timing-comparison {
+    min-width: 560px;
   }
 }
 @media (forced-colors: active) {

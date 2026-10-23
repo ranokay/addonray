@@ -12,6 +12,7 @@ import {
   installChromeExtension,
 } from './chrome-session.mjs';
 import { checkInvestigation } from './investigation-checks.mjs';
+import { checkTimingHandoff } from './timing-handoff-checks.mjs';
 import {
   checkTimings,
   prepareTimingModule,
@@ -98,6 +99,7 @@ const report = {
     'Comparison capture checks use that same explicitly named pre-granted UI fixture and unchanged production investigation assets. Its required management permission cannot be revoked; actual optional-management revocation with populated comparisons requires separate unmodified-product native evidence.',
     'Headless action/keyboard automation does not establish native desktop popup usability. Native denial/approval is recorded separately.',
     'This exact Chrome for Testing build is not retail Chrome installation, Chrome Web Store publication, or qualification of other releases or operating systems.',
+    'This headless run does not exercise private-source attachment exclusion. Local private-context setup routes were unqualified; actual unmodified native private-source exclusion is recorded separately.',
   ],
 };
 const passed = (name, detail) => {
@@ -591,6 +593,35 @@ try {
     settingsUrl: 'chrome://extensions/',
     fixtures: timing,
     report,
+    passed,
+  });
+  await checkTimingHandoff({
+    driver,
+    cdp,
+    browser: 'chrome',
+    productId: uiId,
+    popupUrl: uiUrl,
+    investigationUrl: uiInvestigationUrl,
+    localUrl,
+    grantPermissions: async () => {
+      const grants = await driver.executeAsyncScript((done) =>
+        chrome.permissions.getAll().then(done),
+      );
+      assert(grants.permissions.includes('management'));
+      assert(grants.permissions.includes('scripting'));
+      assert.deepEqual(grants.origins ?? [], []);
+    },
+    authority: 'Chrome pre-granted UI fixture with unchanged production assets',
+    report,
+    checkPrivate: async () => ({
+      status: 'not-exercised-in-this-run',
+      source:
+        'No private-source observation in this run. Local development setup attempts timed out or disconnected before a usable observation; actual unmodified native private-source exclusion remains required.',
+      receiver:
+        'Private/unknown receiver guards have deterministic tests. Chrome spanning mode cannot load packaged main-frame pages in incognito; this is a documented boundary, not an observed receiver guard verdict.',
+      attempts:
+        'Local development attempts are retained in ignored timing-comparison-chrome-private-failed.json and timing-comparison-private-attempt.mjs; they are not part of this run.',
+    }),
     passed,
   });
   report.result = 'passed-with-qualification-gaps';

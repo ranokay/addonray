@@ -47,6 +47,16 @@ Never return a whole performance entry: a navigation entry contains the page URL
 
 No observer or recorder remains on the page. Clear, popup close, and either existing optional-permission revocation remove popup results and invalidate pending actions. A later explicit page capture replaces the prior result; duplicate actions while busy remain ignored. Investigation tabs retain their independent inventory-only contract. No permission, host access, background process, storage, telemetry, cloud service, export, or result transfer is added.
 
+## Optional timing attachments
+
+The user approved the [timing comparison](plans/phase2-timing-comparison.md) on 2026-10-23. This explicitly extends the earlier popup-only timing contract. A separate Attach timing action discovers only eligible own investigation views, with synthetic labels and opaque document/generation identities. It does not enumerate browsing tabs, read investigations' observations, or broadcast a timing payload. The user chooses both destination and side and confirms transfer.
+
+The destination retains its own canonical copy of only the three milestone results and a numeric source-tab ID. This ID binds After to the same browser tab; it does not verify page identity. No URL, title, content, readiness/support list, absolute time origin, or free-form page data is attached. Protocol IDs and selections remain in visible-document memory and never enter extension URLs, storage, history, logs, or remote services.
+
+Only verified normal-window senders and destinations participate. Private/incognito and unclassifiable contexts cannot list, send, or receive attachments. Context checks use the existing selected tab's incognito flag and the investigation's own current-tab classification; ambiguous classifications fail closed. This does not add private-window feature qualification.
+
+Before timing precedes starting After inventory capture. Each side is fixed until Start over. A successful attachment survives popup close/Clear because the investigation owns an independent copy. Start over, either management/scripting revocation, destination close/reload/unloading, or teardown discards the entire investigation and its source ID. Pending work cannot repopulate it. Ordinary timing failure preserves valid destination observations. One popup capture can be attached successfully once.
+
 ## Reports and companion
 
 Export is a later feature. Before implementation, define redaction, preview, explicit save, retention, and treatment of URLs, query strings, DOM snippets, cookies, tokens, and extension IDs. A report must never be sent automatically.
