@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from 'react';
 import { capabilityLimits, type Result } from '../../lib/inspector';
 import type { InspectorSession } from '../../lib/session';
 import { Inventory } from './Inventory';
+import { PageTimings } from './PageTimings';
 
 function Outcome({ result }: { result: Result<unknown> | null }) {
   if (!result || result.status === 'success') return null;
@@ -113,9 +114,9 @@ export function App({
       <section aria-labelledby="page-heading">
         <h2 id="page-heading">Selected-page access</h2>
         <p>
-          Allow a one-time check of document readiness and available performance
-          entry types. We collect no page content or URL. {context.name}{' '}
-          protects some pages.
+          Allow a one-time check of document readiness, available performance
+          entry types, and three recorded loading milestones. We collect no page
+          content or URL. {context.name} protects some pages.
         </p>
         <button
           disabled={state.pageBusy}
@@ -133,9 +134,9 @@ export function App({
                 'No supported types reported.'}
             </p>
             <p className="metadata">
-              These describe browser support, not measured extension
-              performance.
+              The entry-type list describes browser support.
             </p>
+            <PageTimings timings={state.page.value.timings} />
           </div>
         )}
         <p className="metadata">

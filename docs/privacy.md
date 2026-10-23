@@ -39,6 +39,14 @@ Before/After snapshots and the explicit Better/Unchanged/Worse/Uncertain assessm
 
 The popup remains separate. Clear popup results affects only popup data; Start over affects only its investigation. A browser-wide permission revocation can clear every affected view through each view's own listener. No results transfer between views. No background process, messaging handoff, storage, page identifier, free text, automatic page access, or new manifest permission is added. The page assessment records the user's judgment and makes no browser call.
 
+## Phase 2 timing data lifecycle
+
+The approved [timing snapshot](plans/phase2-timing.md) extends only the deliberate selected-page action. The injected collector constructs three fixed milestone results before returning to the extension. It reads only DOMContentLoaded event end, load event end, and the named first-contentful-paint timestamp. Numeric values describe elapsed time since navigation, accompanied by fixed measured/unrecorded/unavailable statuses. The added timing block cannot exceed 1 KiB.
+
+Never return a whole performance entry: a navigation entry contains the page URL. No entry name, resource list, server timing, request details, page content, absolute time origin, URL, title, or free-form page data enters the extension through this change. Validate the response and copy only canonical fields into popup memory. The selected tab stays bound across consent; a navigation can change the document read or remove access. No page identity or navigation history is collected to resolve that change.
+
+No observer or recorder remains on the page. Clear, popup close, and either existing optional-permission revocation remove popup results and invalidate pending actions. A later explicit page capture replaces the prior result; duplicate actions while busy remain ignored. Investigation tabs retain their independent inventory-only contract. No permission, host access, background process, storage, telemetry, cloud service, export, or result transfer is added.
+
 ## Reports and companion
 
 Export is a later feature. Before implementation, define redaction, preview, explicit save, retention, and treatment of URLs, query strings, DOM snippets, cookies, tokens, and extension IDs. A report must never be sent automatically.

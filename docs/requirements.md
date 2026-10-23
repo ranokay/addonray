@@ -44,6 +44,12 @@ The approved first Phase 1 slice adds inventory search/filtering, permission exp
 
 On 2026-10-23 the user approved [P1B-01 through P1B-13](plans/phase1-comparison.md). Each fresh investigation tab holds one fixed Before/After inventory pair and a user-selected page assessment. Explicit captures report added, removed, enabled, and disabled extensions; no automatic state changes or measured page diagnostics are introduced. The independent document retains memory only while loaded and loses it on Start over, relevant revocation, close, reload, or unloading. The existing popup remains separate. This approval includes implementation, tests, independent review, and signed delivery to the existing private repository.
 
+## Approved Phase 2 timing slice
+
+On 2026-10-23 the user approved [P2A-01 through P2A-13](plans/phase2-timing.md), including implementation, tests, independent review, and signed private delivery. The existing page action gains three recorded top-frame loading milestones: DOMContentLoaded handler completion, load handler completion, and first contentful paint when reported. Values are elapsed milliseconds from navigation start, with unavailable and unrecorded states. The original selected tab is bound at the click; its document at execution supplies the result if access is still permitted.
+
+This is a one-shot popup snapshot with the existing permission and memory budget. It never reloads, observes subsequent events, records interaction responsiveness, transfers results to investigations, or attributes a delay to an extension. The new timing block is bounded to 1 KiB. Qualification requires isolated-world feasibility and a measured 5 ms p95 synchronous collector budget on controlled fixtures, separately from browser injection latency and with clock precision recorded.
+
 ## Out of scope for Phase 0
 
 Continuous recording, network collection, page-world instrumentation, console interception, automatic culprit ranking, automated extension state changes, theme management, report export, persistent history, mobile support, additional Chromium browsers, accounts, sync, AMO publication, and a native companion implementation.

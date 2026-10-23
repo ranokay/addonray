@@ -49,3 +49,7 @@ For Chrome, use `mise exec -- bun run dev:chrome` or `mise run package-chrome`. 
 - [Contributing](CONTRIBUTING.md) explains how to change this project.
 
 AddonRay does not offer arbitrary global or per-site switches for other extensions. An inventory entry does not prove that an extension ran on the current page. Diagnostics can supply observations and comparison results, not a reliable verdict about which extension caused a problem.
+
+## Page-timing snapshot
+
+The page-inspection action also reads three recorded loading milestones: DOM content loaded, load event completed, and first content displayed when reported. It uses the document loaded in the originally selected tab when the check runs. Results stay in popup memory. The check does not reload the page, record later interactions, collect a URL/content, or identify a responsible extension. See the [approved scope](docs/plans/phase2-timing.md) for field definitions, size/runtime budgets, and qualification requirements.

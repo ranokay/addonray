@@ -2,6 +2,8 @@
 
 ## Current state
 
+The approved [Phase 2 timing snapshot](plans/phase2-timing.md) is implemented locally. The existing popup page action adds DOM content loaded, load event completed, and first content displayed, with explicit unavailable/unrecorded states and the existing permission/lifetime budget. Dirty API feasibility passed on all four pinned browser targets before the UI change. Development packaged checks passed on Firefox 158.0.1 and Chrome for Testing 156.0.8078.47, including collector size/overhead checks. Independent production and probe reviews found no actionable issue. Complete the final development gate, signed implementation, clean qualification, native observations, and hosted report inspection before claiming delivery.
+
 The approved [manual comparison slice](plans/phase1-comparison.md) is implemented and privately pushed in signed `19516ef`, followed by test readiness correction `5b52ff2`. Each fresh investigation tab keeps one fixed Before/After pair and an explicit manual page assessment in memory. Start over, relevant permission revocation, close, reload, or unloading discards that investigation's data. The popup and other investigations remain independent. All 102 behavior tests, both source rebuilds, three macOS Firefox versions with 21 checks each, and macOS Chrome with 17 checks passed from clean committed source. Native full-tab consent, manual captures, keyboard assessment, independence, reset, and reload were observed on Firefox 158.0.1 and Chrome for Testing 156.0.8078.47/macOS. The shared gate, all six Firefox jobs, and both Chrome jobs passed at `5b52ff2`. All downloaded browser/rebuild reports confirm that exact clean source, versions, matching package identities, expected checks, and cleanup. [Comparison evidence](evidence/2026-10-23-phase1-comparison.md) records artifact/source identities, independent static review, hosted qualification, and remaining gates.
 
 The user approved the [Chrome MV3 continuation](plans/chrome-mv3.md) on 2026-10-23 and kept the pinned Bun canary for native linting. Firefox MV3 remains the baseline; other browsers and MV2 are deferred. Signed implementation `824dda6` is pushed, followed by bounded Chrome launch/CI fixes. All 62 behavior tests and both source rebuilds passed for that earlier slice. Clean macOS packaged Firefox checks passed all 15 cases on three versions; Chrome passed all 11 checks. The actual Chrome for Testing 156.0.8078.47 popup was observed on macOS, including native inventory denial/approval and keyboard operation. [Chrome evidence](evidence/2026-10-23-chrome-mv3.md) separates unmodified product behavior, pre-granted fixtures, hosted qualification, and remaining gates. The two-job Chrome and six-job Firefox workflows passed at signed `e77fd7d`; their downloaded reports confirm clean source, exact versions, package identities, source rebuilds, and cleanup. The shared CI gate passed at the same source.
@@ -80,9 +82,20 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Inspect the qualified implementation head's Linux/Windows reports and record source/artifact identities and remaining gaps.
 - [x] Record qualification evidence and prepare signed private delivery. Verify the delivery head's CI before reporting completion.
 
+## Page-timing checklist
+
+- [x] Resolve all five scope questions and obtain final shared-understanding confirmation for implementation, tests, review, and signed private delivery.
+- [x] Establish isolated-world API feasibility on minimum/ESR/current Firefox and pinned Chrome for Testing. Keep missing-navigation and fixture-authority gaps explicit.
+- [x] Implement the bounded collector/protocol, popup rendering, behavior tests, and shared browser fixtures/overhead checks.
+- [x] Complete independent production-code and probe reviews. Static review is separate from execution evidence.
+- [ ] Pass the final development gate and make the signed implementation commit.
+- [ ] Run clean source rebuilds and exact-version packaged browser checks, retaining empirical overhead samples and clock limitations.
+- [ ] Observe actual native popup access, milestones, keyboard explanations, Clear and close/reopen on available macOS Firefox/Chrome.
+- [ ] Inspect exact-head hosted reports, record dated evidence/gaps, and push signed status/evidence.
+
 ## Next action
 
-The next product step is to choose a bounded Phase 2 diagnostic collector through the requirements interview. Define its user value, permission, lifetime, collection limits, overhead budget, and uncertainty before implementation. No Phase 2 collector is approved yet. The manual-comparison slice is complete for its recorded private-build environments, with the release gates below still open. The original prototype is captured in signed commit `36e4d24` outside `main` and remains runnable with `mise run prototype` from its checkout.
+Complete the approved timing slice's signed implementation and clean qualification. [The interview](decisions.md#phase-2-timing-interview) records all five scope choices and the user's final implementation/private-delivery confirmation. The [plan](plans/phase2-timing.md) keeps a 1 KiB timing-block bound and a measured 5 ms p95 collector budget on controlled fixtures. Preserve native OS, accessibility, retail/store and signing release gaps. No other collector is approved. The original inventory prototype remains in signed `36e4d24` outside `main`, runnable with `mise run prototype` from its checkout.
 
 The user approved planning for the private build with the remaining release gates open. Follow the [desktop QA handoff](desktop-popup-qa.md) when a visible Linux/Windows target becomes available, and complete signed-distribution checks at the release gate. Current hosted jobs provide headless API evidence.
 

@@ -68,6 +68,16 @@ Chrome for Testing retains development extension loading used by the test driver
 
 Primary sources for this continuation are [Chrome management](https://developer.chrome.com/docs/extensions/reference/api/management), [permissions](https://developer.chrome.com/docs/extensions/reference/api/permissions), [activeTab](https://developer.chrome.com/docs/extensions/develop/concepts/activeTab), [scripting](https://developer.chrome.com/docs/extensions/reference/api/scripting), [webRequest](https://developer.chrome.com/docs/extensions/reference/api/webRequest), [Chrome's MV2 timeline](https://developer.chrome.com/docs/extensions/develop/migrate/mv2-deprecation-timeline), and [development-loading changes](https://groups.google.com/a/chromium.org/g/chromium-extensions/c/1-g8EFx2BBY/m/S0ET5wPjCAAJ).
 
+## Phase 2 recorded load timings
+
+Approved on 2026-10-23. The [timing slice](plans/phase2-timing.md) reads three already reported top-frame milestones through the existing isolated-world page probe. Navigation event-end values and first-contentful-paint timestamps are elapsed values from navigation start. Missing entries are unavailable at capture; event-end zero is unrecorded. A reported zero paint timestamp remains a valid value. Support for an entry type does not establish that the timeline currently contains an entry.
+
+Whole navigation entries contain the page URL. Construct only approved milestone fields inside the injected collector and validate/copy its response before retention. No page-world bridge or additional permission is justified by this slice. Exact click-time document targeting is unavailable at the existing Firefox minimum; the selected tab is fixed while the document at execution supplies the result. SPA views and restored pages can expose original loading milestones. Timings do not identify extension impact or ongoing responsiveness.
+
+Dirty feasibility probes on Firefox 140.0, 153.5.1esr, 158.0.1 and Chrome for Testing 156.0.8078.47 observed default isolated-world navigation/FCP values, native unrecorded load while a resource was held, missing FCP on an empty document, and protected-context rejection. A MAIN-world marker was visible only in its positive control. These host-granted disposable fixtures establish API visibility, not product consent, native UI, or clean packaged qualification. Authentic missing-navigation-entry behavior was not controlled and remains a deterministic test case. Qualification evidence must preserve that distinction.
+
+Primary references are [navigation timing](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming), [paint timing](https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming), [current timeline reads](https://developer.mozilla.org/en-US/docs/Web/API/Performance/getEntriesByType), [scripting target compatibility](https://github.com/mdn/browser-compat-data/blob/main/webextensions/api/scripting.json), and [back/forward-cache measurement](https://web.dev/articles/bfcache#performance_measurement).
+
 ## Primary Firefox references
 
 - [management.getAll](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/management/getAll)

@@ -12,6 +12,11 @@ import {
   installChromeExtension,
 } from './chrome-session.mjs';
 import { checkInvestigation } from './investigation-checks.mjs';
+import {
+  checkTimings,
+  prepareTimingModule,
+  timingFixtures,
+} from './timing-checks.mjs';
 
 await mkdir('.scratch', { recursive: true });
 // Chrome reads only controlled files in the system temp directory, not the user's Documents folder.
@@ -54,7 +59,10 @@ const controller = await fixture('Controlled API fixture', {
   permissions: ['management', 'scripting', 'tabs'],
   host_permissions: ['<all_urls>'],
 });
-const server = createServer((_request, response) => {
+await prepareTimingModule(controller);
+const timing = timingFixtures();
+const server = createServer((request, response) => {
+  if (timing.handle(request, response)) return;
   response.setHeader('Content-Type', 'text/html');
   response.end(
     '<!doctype html><title>Controlled AddonRay page</title><h1>Controlled local page</h1><script>window.addonrayPageMarker=true</script>',
@@ -364,6 +372,14 @@ try {
   passed(
     'Unmodified product obtains activeTab through its action and performs the minimal page probe without host grants',
   );
+  const timingRows = await popupValue(
+    '[...document.querySelectorAll("[data-testid^=timing-]")].map(row => row.textContent)',
+  );
+  assert.equal(timingRows.length, 3);
+  assert(timingRows.every((value) => / ms$/.test(value)));
+  passed(
+    'Unmodified production popup displays all three recorded loading milestones on the controlled page',
+  );
   assert.equal(
     await popupValue('chrome.permissions.remove({permissions:["scripting"]})'),
     true,
@@ -568,6 +584,15 @@ try {
   passed(
     'Protected Chrome context rejects injection from the separate host-granted controller',
   );
+  await checkTimings({
+    driver,
+    harnessUrl: controllerUrl,
+    localUrl,
+    settingsUrl: 'chrome://extensions/',
+    fixtures: timing,
+    report,
+    passed,
+  });
   report.result = 'passed-with-qualification-gaps';
 } catch (error) {
   report.result = 'failed';
@@ -585,6 +610,7 @@ try {
     }
   }
 } finally {
+  timing.release();
   if (session) {
     session.cdp.close();
     try {

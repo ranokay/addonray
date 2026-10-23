@@ -36,6 +36,10 @@ _Avoid_: Automatic diagnosis, saved report.
 The user's judgment that the page is better, unchanged, worse, or uncertain after a manual change. It does not establish the cause of that result.
 _Avoid_: Measured improvement, culprit verdict.
 
+**Timing snapshot**:
+A small set of loading milestones for the current document, reported at one deliberate capture. It records available observations, not a speed rating or proof of extension impact.
+_Avoid_: Performance score, extension overhead measurement.
+
 **Session**:
 The lifetime of the visible investigation and its temporary diagnostic data.
 _Avoid_: Browsing history, retained report.

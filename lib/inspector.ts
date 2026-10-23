@@ -43,9 +43,21 @@ export interface ExtensionEntry {
   hostPermissions: string[] | null;
 }
 
+export type TimingMeasurement =
+  | { status: 'measured'; milliseconds: number }
+  | { status: 'unrecorded' }
+  | { status: 'unavailable' };
+
+export interface TimingSnapshot {
+  domContentLoaded: TimingMeasurement;
+  loadEvent: TimingMeasurement;
+  firstContentfulPaint: TimingMeasurement;
+}
+
 export interface PageObservation {
   readyState: 'loading' | 'interactive' | 'complete';
   performanceEntryTypes: string[] | null;
+  timings: TimingSnapshot;
 }
 
 export function capabilityLimits(context: BrowserContext = firefoxContext) {
@@ -130,19 +142,100 @@ export async function loadInventory(
 
 // This function is serialized into the selected top frame. Keep it self-contained.
 export function collectPageObservation(): PageObservation {
+  function measurement(value: unknown, eventEnd: boolean): TimingMeasurement {
+    if (value === undefined) return { status: 'unavailable' };
+    if (
+      typeof value !== 'number' ||
+      !Number.isFinite(value) ||
+      value < 0 ||
+      value > Number.MAX_SAFE_INTEGER
+    ) {
+      throw new Error('Invalid timing observation');
+    }
+    // Event-end zero is unrecorded; a reported zero paint timestamp is valid.
+    if (eventEnd && value === 0) return { status: 'unrecorded' };
+    return { status: 'measured', milliseconds: value };
+  }
+
+  const navigation =
+    typeof performance !== 'undefined' &&
+    typeof performance.getEntriesByType === 'function'
+      ? performance.getEntriesByType('navigation')[0]
+      : undefined;
+  const paint =
+    typeof performance !== 'undefined' &&
+    typeof performance.getEntriesByName === 'function'
+      ? performance.getEntriesByName('first-contentful-paint', 'paint')[0]
+      : undefined;
+
   return {
     readyState: document.readyState,
     performanceEntryTypes:
       typeof PerformanceObserver === 'undefined'
         ? null
         : [...PerformanceObserver.supportedEntryTypes],
+    // A navigation entry's name is the page URL. Return fields, never entries.
+    timings: {
+      domContentLoaded: measurement(
+        navigation && 'domContentLoadedEventEnd' in navigation
+          ? navigation.domContentLoadedEventEnd
+          : undefined,
+        true,
+      ),
+      loadEvent: measurement(
+        navigation && 'loadEventEnd' in navigation
+          ? navigation.loadEventEnd
+          : undefined,
+        true,
+      ),
+      firstContentfulPaint: measurement(paint?.startTime, false),
+    },
   };
+}
+
+function isTimingMeasurement(
+  value: unknown,
+  eventEnd: boolean,
+): value is TimingMeasurement {
+  if (typeof value !== 'object' || value === null || !('status' in value))
+    return false;
+  if (value.status === 'unrecorded') return eventEnd;
+  if (value.status === 'unavailable') return true;
+  return (
+    value.status === 'measured' &&
+    'milliseconds' in value &&
+    typeof value.milliseconds === 'number' &&
+    Number.isFinite(value.milliseconds) &&
+    value.milliseconds >= 0 &&
+    (!eventEnd || value.milliseconds > 0) &&
+    value.milliseconds <= Number.MAX_SAFE_INTEGER
+  );
+}
+
+function isTimingSnapshot(value: unknown): value is TimingSnapshot {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'domContentLoaded' in value &&
+    isTimingMeasurement(value.domContentLoaded, true) &&
+    'loadEvent' in value &&
+    isTimingMeasurement(value.loadEvent, true) &&
+    'firstContentfulPaint' in value &&
+    isTimingMeasurement(value.firstContentfulPaint, false)
+  );
+}
+
+function copyTimingMeasurement(value: TimingMeasurement): TimingMeasurement {
+  return value.status === 'measured'
+    ? { status: value.status, milliseconds: value.milliseconds }
+    : { status: value.status };
 }
 
 function isPageObservation(value: unknown): value is PageObservation {
   if (typeof value !== 'object' || value === null) return false;
   if (!('readyState' in value) || !('performanceEntryTypes' in value))
     return false;
+  if (!('timings' in value) || !isTimingSnapshot(value.timings)) return false;
   if (
     value.readyState !== 'loading' &&
     value.readyState !== 'interactive' &&
@@ -213,6 +306,15 @@ export async function inspectPage(
         performanceEntryTypes: response.performanceEntryTypes
           ? [...response.performanceEntryTypes]
           : null,
+        timings: {
+          domContentLoaded: copyTimingMeasurement(
+            response.timings.domContentLoaded,
+          ),
+          loadEvent: copyTimingMeasurement(response.timings.loadEvent),
+          firstContentfulPaint: copyTimingMeasurement(
+            response.timings.firstContentfulPaint,
+          ),
+        },
       },
     };
   } catch {

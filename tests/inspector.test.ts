@@ -2,8 +2,19 @@ import { beforeEach, describe, expect, it, vi } from 'bun:test';
 import type { Browser } from 'wxt/browser';
 import { browser } from './browser';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { capabilityLimits, inspectPage, loadInventory } from '../lib/inspector';
+import {
+  capabilityLimits,
+  inspectPage,
+  loadInventory,
+  type TimingSnapshot,
+} from '../lib/inspector';
 import { getBrowserContext } from '../lib/browser-target';
+
+const unavailableTimings: TimingSnapshot = {
+  domContentLoaded: { status: 'unavailable' },
+  loadEvent: { status: 'unavailable' },
+  firstContentfulPaint: { status: 'unavailable' },
+};
 
 type ExtensionInfo = Browser.management.ExtensionInfo;
 
@@ -139,6 +150,7 @@ describe('selected-page probes', () => {
           result: {
             readyState: 'complete',
             performanceEntryTypes: ['navigation'],
+            timings: unavailableTimings,
           },
         },
       ]);
@@ -207,7 +219,15 @@ describe('selected-page probes', () => {
     },
   ])('rejects a malformed or oversized page response: %j', async (payload) => {
     vi.spyOn(browser.scripting, 'executeScript').mockImplementation(
-      async () => [{ frameId: 0, result: payload }],
+      async () => [
+        {
+          frameId: 0,
+          result:
+            payload === undefined
+              ? undefined
+              : { timings: unavailableTimings, ...payload },
+        },
+      ],
     );
     expect((await inspectPage(browser)).status).toBe('error');
   });
@@ -220,6 +240,7 @@ describe('selected-page probes', () => {
           result: {
             readyState: 'complete',
             performanceEntryTypes: null,
+            timings: unavailableTimings,
             secret: 'page content',
           },
         },
@@ -227,7 +248,11 @@ describe('selected-page probes', () => {
     );
     expect(await inspectPage(browser)).toEqual({
       status: 'success',
-      value: { readyState: 'complete', performanceEntryTypes: null },
+      value: {
+        readyState: 'complete',
+        performanceEntryTypes: null,
+        timings: unavailableTimings,
+      },
     });
   });
 });

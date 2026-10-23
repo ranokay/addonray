@@ -69,3 +69,15 @@ The user selected two deliberate inventory snapshots around a manually performed
 The user then chose a fresh independent browser tab for each New investigation action. Existing investigations remain reachable through the browser's tabs. The popup keeps its existing quick inspection tools; no popup results transfer into an investigation. Each investigation holds one Before/After pair. Start over discards both snapshots and the page assessment. Closing, reloading, or the browser unloading the investigation loses its memory.
 
 The [manual comparison plan](plans/phase1-comparison.md) captures the proposed acceptance criteria and technical findings. The user confirmed shared understanding and authorized implementation, testing, independent review, and a signed private push of this slice on 2026-10-23. No additional browser target, measured-performance collector, persisted data, issue-tracker write, or publication was requested.
+
+## Phase 2 timing interview
+
+On 2026-10-23 the user selected slow-page troubleshooting through a small, explicitly requested page-timing snapshot as the first diagnostic slice. Page-error observations remain a later collector. Timings cannot reliably identify a responsible extension.
+
+The user chose the existing selected-page popup action and its current memory lifetime. Closing or clearing the popup discards timing results. Adding timings to investigation comparisons is separate because it requires a page-selection and result-transfer design.
+
+The snapshot will read timing information already available for the current document's load. It will neither reload the page nor start a recorder. Later scrolling, typing, and other interaction responsiveness remain outside this slice.
+
+The user selected three milestones: DOM content loaded, load event completed, and first content displayed. Each has a short explanation and an elapsed value in milliseconds since navigation began when reported. Missing and incomplete observations remain explicit. No speed score or extension ranking is introduced.
+
+The selected tab is bound at the click. If that tab navigates during consent, the check reads the document loaded there when collection executes, subject to the browser's access restrictions. It never switches to another tab or retries automatically. Exact click-time document identity is outside this scope. [The timing plan](plans/phase2-timing.md) records the acceptance criteria, overhead budget, and staged browser qualification. The user confirmed shared understanding and authorized implementation, tests, independent review, and signed private delivery of this slice on 2026-10-23. The approved qualification gates include isolated-world feasibility first, a 1 KiB timing-block limit, and a 5 ms p95 synchronous collector budget on controlled fixtures.

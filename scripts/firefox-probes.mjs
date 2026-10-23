@@ -11,6 +11,11 @@ import { installTemporaryExtension } from './firefox-install.mjs';
 import { extensionArchive } from './package-paths.mjs';
 import { sha256 } from './check-package.mjs';
 import { checkInvestigation } from './investigation-checks.mjs';
+import {
+  checkTimings,
+  prepareTimingModule,
+  timingFixtures,
+} from './timing-checks.mjs';
 
 // Selenium Manager's download telemetry is independent of the product. Disable it here too.
 process.env.SE_AVOID_STATS = 'true';
@@ -93,7 +98,10 @@ const harness = await fixture('AddonRay API harness', harnessId, {
   permissions: ['management', 'scripting', 'tabs'],
   host_permissions: ['<all_urls>'],
 });
-const server = createServer((_request, response) => {
+await prepareTimingModule(harness);
+const timing = timingFixtures();
+const server = createServer((request, response) => {
+  if (timing.handle(request, response)) return;
   response.setHeader('Content-Type', 'text/html');
   response.end(
     '<!doctype html><html><head><title>Local fixture</title></head><body><h1>Controlled local page</h1><script>window.addonrayPageMarker = true</script></body></html>',
@@ -598,6 +606,15 @@ try {
     await driver.close();
     await driver.switchTo().window(harnessWindow);
   }
+  await checkTimings({
+    driver,
+    harnessUrl,
+    localUrl,
+    settingsUrl: 'about:addons',
+    fixtures: timing,
+    report,
+    passed,
+  });
   report.result = 'passed-with-qualification-gaps';
 } catch (error) {
   report.result = 'failed';
@@ -615,6 +632,7 @@ try {
   process.exitCode = 1;
   console.error(String(error));
 } finally {
+  timing.release();
   if (driver) {
     try {
       await driver.quit();
