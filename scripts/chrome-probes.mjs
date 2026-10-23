@@ -339,7 +339,7 @@ try {
   }
   await driver.wait(
     async () =>
-      (await popupValue('document.body.innerText')).includes(
+      (await popupValue('document.body?.innerText ?? ""')).includes(
         'Allow page access and inspect',
       ),
     10000,
