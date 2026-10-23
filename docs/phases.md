@@ -16,6 +16,8 @@ Exit when a user can reproduce a comparison, recover from denied access, and und
 
 The approved [Chrome MV3 continuation](plans/chrome-mv3.md) fits within the inventory slice. It retains Firefox MV3 and adds Chrome-specific builds, capability explanations, and qualification before comparison planning. All MV2 builds and other browser targets remain deferred.
 
+The approved [manual comparison slice](plans/phase1-comparison.md) adds one temporary Before/After pair per independent investigation tab and an explicit page assessment. Its [evidence](evidence/2026-10-23-phase1-comparison.md) separates automated checks from observed native consent and remaining accessibility/desktop release gates. Phase 2 still needs a collector scope decision.
+
 ## Phase 2: bounded diagnostics
 
 Propose collectors separately. Candidates include page error observations, supported performance entries, and aggregate mutation counts. Every collector needs permission justification, sampling bounds, overhead measurements, stop/clear behavior, navigation semantics, and an uncertainty explanation. Network observation and page-world instrumentation require additional review.

@@ -1,6 +1,6 @@
 # Phase 1 manual comparison
 
-Status: the user approved these acceptance criteria and authorized implementation, testing, independent review, and signed private delivery on 2026-10-23. [The interview record](../decisions.md#manual-comparison-interview) captures the four design decisions and final shared-understanding confirmation. Implementation is in progress.
+Status: implemented in signed `19516ef`, with test readiness correction `5b52ff2`. The user approved these acceptance criteria and authorized implementation, testing, independent review, and signed private delivery on 2026-10-23. [The interview record](../decisions.md#manual-comparison-interview) captures the four design decisions and final shared-understanding confirmation. [Qualification evidence](../evidence/2026-10-23-phase1-comparison.md) records actual results and the remaining native OS, accessibility, and distribution gates.
 
 ## Problem and result
 
