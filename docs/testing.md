@@ -114,3 +114,52 @@ For the unmodified Chrome native helper, retain both optional inventory and page
 CI runs the deterministic gate and separate Linux/Windows Firefox and Chrome matrices. Browser probes must fail visibly or report an explicit skip when no browser is available. They must not silently pass on mocks.
 
 The browser task reports `passed-with-qualification-gaps` when its observed checks pass but broader qualification remains. That is not a completed Phase 0 release gate. See [the dated evidence](evidence/2026-10-22-firefox.md) and [status](status.md) before deciding readiness.
+
+## Current-document page-error checks
+
+The [approved collector](plans/phase2-page-errors.md) has independent model,
+launch, observer, adapter and rendered-view tests. They distinguish a confirmed
+zero from interruption, require normal source/owner contexts, enforce a fixed
+summary schema, and cover cancellation, retained grants, late results, payload
+getters, deadline/cap behavior, duplicate actions and reset generations. Launch
+regressions replace the owner document during verification and immediately after
+binding. Neither replacement may receive the old launch or be activated.
+
+Both browser protocols include a separately named source fixture. Its report
+must identify copied package assets, any replaced entry points, source/output
+hashes, permissions, driver authority and consent seams. Keep fixture execution
+separate from unmodified product and native UI evidence. No fixture endpoint,
+measurement wrapper or extra permission may enter either product archive.
+
+Qualify the real 30-second and 200-event limits, top-frame event scope, confirmed
+Stop, discard, source navigation/closure, owner teardown and optional-permission
+revocation. Page-owned positive controls must establish that generated events
+actually occurred. An unread sentinel getter checks raw-payload minimization.
+Listener cleanup requires evidence beyond an empty owner result. Keep the
+candidate BFCache evidence separate from production behavior.
+
+Measure synchronous setup, event handlers and finalization separately. Record
+numeric raw samples, a calibrated minimum positive clock step and the empirical
+p95-plus-two-steps guard against the approved 5 ms budget. Identify any source
+instrumentation and preserve unmodified lifecycle runs separately. Neither the
+30-second duration nor browser injection/IPC time qualifies synchronous overhead.
+Enforce the 1 KiB summary bound, without interpreting counts as page quality or
+extension attribution.
+
+For native macOS checks, the existing popup helpers open a controlled source
+with page-owned error/rejection buttons. Use the actual unmodified toolbar popup
+to open a check, confirm opening collects nothing, Start and approve scripting,
+return to the source and reproduce events, then Stop and inspect the summary.
+Exercise keyboard controls, Start over, Clear, reload/close and permission
+revocation. Record exact source/package/browser/OS and cleanup. Retain separate
+native Linux/Windows, accessibility, retail installation and signing gates.
+
+For the focused Chrome page-error native session, first build with
+`mise run package-chrome`, then run
+`mise exec -- bun scripts/page-error-chrome-native.mjs`. Approve inventory
+through the actual popup and leave one confirmed 1/1/2 check open with both
+optional grants retained. After observations, Enter runs three separate API
+assertions against the unmodified product, including actual management and
+scripting revocation, then closes its disposable browser/server. Its JSON report
+and any CUA observations are separate evidence. It contains no physical callback
+instrumentation and does not declare a usability verdict.

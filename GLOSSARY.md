@@ -44,6 +44,10 @@ _Avoid_: Performance score, extension overhead measurement.
 A timing snapshot deliberately added to one side of an investigation. It is a separate observation from that side's inventory snapshot.
 _Avoid_: Synchronized capture, automatic measurement.
 
+**Page-error check**:
+A deliberate, bounded observation of JavaScript error and unhandled-rejection events while the user reproduces a page problem. It reports counts with visibility limits, rather than a diagnosis.
+_Avoid_: Console feed, complete error audit, culprit detector.
+
 **Session**:
 The lifetime of the visible investigation and its temporary diagnostic data.
 _Avoid_: Browsing history, retained report.

@@ -58,6 +58,14 @@ Before timing must be attached before starting the After inventory capture. Both
 
 Attachments are limited to verified normal-window views. Private/incognito and unclassifiable contexts fail closed without disabling existing local inspection. No permission, host grant, background process, storage, automatic reload, page monitor, percentage score, or culprit verdict is added. The earlier popup-only and inventory-only tables describe their original slice contracts; this approved extension supplies the deliberate transfer boundary.
 
+## Approved current-document page-error check
+
+On 2026-10-24 the user approved [P2C-01 through P2C-18](plans/phase2-page-errors.md), including feasibility-first implementation, tests, independent review, and signed private delivery. Each fresh check tab holds one bounded observation of future uncaught JavaScript error and unhandled-rejection events from the original selected tab's top-frame document. Start is explicit, Stop keeps confirmed partial counts, the window is 30 seconds, and the total event cap is 200. One final summary stays fixed until Start over; interruption is not a zero-error result.
+
+The popup binds only the original tab's numeric ID, without a URL/title or automatic source replacement. Checks participate only in verified normal windows. Firefox uses an isolated observer; Chrome uses a page-side observer with its interference limit disclosed. No raw messages, errors/reasons, stacks, filenames, event objects, page content, absolute timestamps, live counters, history/export, cross-load recording, extra permission, host grant, or background coordinator is added. The timing collector keeps its existing isolated execution on both targets.
+
+The approved new bounds are 1 KiB per final summary and measured 5 ms p95 for synchronous setup, event handling, and finalization on controlled fixtures with clock limitations recorded. Actual source bootstrap, selected-world control, cleanup on owner teardown/revocation, navigation/BFCache behavior, and the full duration/count limits must pass browser feasibility before product wiring. A failed essential gate requires a revised plan rather than wider authority. Preliminary visibility fixtures do not qualify the production check.
+
 ## Out of scope for Phase 0
 
 Continuous recording, network collection, page-world instrumentation, console interception, automatic culprit ranking, automated extension state changes, theme management, report export, persistent history, mobile support, additional Chromium browsers, accounts, sync, AMO publication, and a native companion implementation.

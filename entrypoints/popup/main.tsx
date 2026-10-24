@@ -4,6 +4,7 @@ import { browser } from 'wxt/browser';
 import { getBrowserContext } from '../../lib/browser-target';
 import { createSession } from '../../lib/session';
 import { createPopupTimingHandoff } from '../../lib/timing-handoff';
+import { createPageErrorLauncher } from '../../lib/page-error-launch';
 import { App } from './App';
 import './style.css';
 
@@ -12,7 +13,15 @@ if (!root) throw new Error('Missing popup root');
 const context = getBrowserContext(import.meta.env.BROWSER);
 const session = createSession(browser, context);
 const handoff = createPopupTimingHandoff(browser, session, window);
-window.addEventListener('pagehide', session.clear, { once: true });
+const errorLauncher = createPageErrorLauncher(browser, window);
+window.addEventListener(
+  'pagehide',
+  () => {
+    session.clear();
+    errorLauncher.dispose();
+  },
+  { once: true },
+);
 
 async function newInvestigation() {
   await browser.tabs.create({
@@ -26,6 +35,7 @@ ReactDOM.createRoot(root).render(
       session={session}
       onNewInvestigation={newInvestigation}
       handoff={handoff}
+      onNewPageErrorCheck={errorLauncher.open}
     />
   </React.StrictMode>,
 );

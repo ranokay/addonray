@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from 'react';
+import { useRef, useState, useSyncExternalStore } from 'react';
 import { capabilityLimits, type Result } from '../../lib/inspector';
 import type { InspectorSession } from '../../lib/session';
 import type { PopupTimingHandoff } from '../../lib/timing-handoff';
@@ -15,29 +15,39 @@ export function App({
   session,
   onNewInvestigation,
   handoff,
+  onNewPageErrorCheck,
 }: {
   session: InspectorSession;
   onNewInvestigation: () => Promise<void>;
   handoff?: PopupTimingHandoff;
+  onNewPageErrorCheck?: () => Promise<Result<null>>;
 }) {
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const capture = session.getTimingCapture();
   const { context } = session;
   const [launching, setLaunching] = useState(false);
+  const launchBusy = useRef(false);
   const [launchError, setLaunchError] = useState<string | null>(null);
 
-  async function launchInvestigation() {
-    if (launching) return;
+  async function launch(kind: 'investigation' | 'page-error') {
+    if (launchBusy.current) return;
+    launchBusy.current = true;
     setLaunching(true);
     setLaunchError(null);
     try {
-      await onNewInvestigation();
+      if (kind === 'investigation') await onNewInvestigation();
+      else {
+        const result = await onNewPageErrorCheck?.();
+        if (result && result.status !== 'success')
+          setLaunchError(result.reason);
+      }
     } catch {
       setLaunchError(
-        'The investigation tab could not open. Try New investigation again.',
+        'The new tab could not open. Try opening a fresh check or investigation.',
       );
     } finally {
       setLaunching(false);
+      launchBusy.current = false;
     }
   }
 
@@ -66,7 +76,7 @@ export function App({
         <button
           id="new-investigation"
           disabled={launching}
-          onClick={() => void launchInvestigation()}
+          onClick={() => void launch('investigation')}
         >
           {launching ? 'Opening investigation…' : 'New investigation'}
         </button>
@@ -77,6 +87,28 @@ export function App({
           investigation tabs.
         </p>
       </section>
+
+      {onNewPageErrorCheck && (
+        <section aria-labelledby="page-errors-heading">
+          <h2 id="page-errors-heading">Troubleshoot a broken interaction</h2>
+          <p>
+            Open a separate check bound to this page's tab. Then choose Start
+            there to count future JavaScript error events while you reproduce
+            the problem. Opening a check collects nothing.
+          </p>
+          <button
+            id="new-page-error-check"
+            disabled={launching}
+            onClick={() => void launch('page-error')}
+          >
+            New page-error check
+          </button>
+          <p className="metadata">
+            Normal windows only. One attempt lasts up to 30 seconds or 200
+            events. No raw error details, URLs or titles are collected.
+          </p>
+        </section>
+      )}
 
       <section aria-labelledby="inventory-heading">
         <h2 id="inventory-heading">Your extensions</h2>

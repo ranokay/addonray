@@ -16,6 +16,16 @@ Research date: 2026-10-22. The table records documentation/source findings. [Fir
 | Can it inspect network failures?                    | `webRequest` needs relevant permissions and host access. Errors do not reliably identify a blocking extension.                                     | Defer collection and avoid culprit claims.                                                         |
 | Can a Rust companion bypass these limits?           | Native messaging supplies a local message channel.                                                                                                 | Qualify each additional mechanism separately.                                                      |
 
+## Approved page-error observation
+
+On 2026-10-24 the user approved a [bounded current-document check](plans/phase2-page-errors.md), with feasibility gates before product wiring. The two proposed counts are uncaught JavaScript error notifications and promise rejections that are unhandled when observed. Handled exceptions, console calls, resources/network failures, earlier console history, and other extensions' private errors are outside this mechanism. Visibility can be restricted, so zero observed notifications is not proof of an error-free page.
+
+The [preliminary visibility fixtures](evidence/2026-10-24-page-error-api-research.md) observed both event kinds in Firefox's isolated world on the three pinned versions, and only in Chrome MAIN among its tested worlds. [ADR 0004](adr/0004-page-error-execution-worlds.md) records the accepted split. Chrome's page-side logic and results remain subject to page interference; it gains no extension-only APIs. The earlier isolated timing collector is unchanged. These host-granted fixtures do not qualify product consent, the toolbar bootstrap, or lifecycle control.
+
+The approved count window is 30 seconds with a 200-event total cap. Check a monotonic deadline before incrementing; delayed timers must not silently lengthen the eligible window. Cleanup/delivery scheduling is distinct from that window. Injected code needs explicit stopping, not an assumption that permission loss removes it. Owner closure/revocation, source navigation/BFCache, and the actual production bounds remain required browser gates. Returned fields must be canonical counts, fixed completion reason and bounded elapsed duration, within 1 KiB, without reading event payload properties.
+
+Primary API references are [Window error](https://developer.mozilla.org/en-US/docs/Web/API/Window/error_event), [unhandled rejection](https://developer.mozilla.org/en-US/docs/Web/API/Window/unhandledrejection_event), [execution worlds](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/scripting/ExecutionWorld), and [tabs.connect](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/connect). Their contracts do not replace the pending production qualification.
+
 ## Firefox restricted pages and world isolation
 
 Expect injection to fail on browser UI, other extensions' pages, restricted Mozilla domains, reader view, and built-in PDF viewer contexts. Protocol checks can reject obvious cases, but Firefox's actual response is authoritative because restricted hosts and settings can vary.

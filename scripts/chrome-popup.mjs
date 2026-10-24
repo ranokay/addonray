@@ -8,6 +8,7 @@ import { tmpdir, platform, arch } from 'node:os';
 import { createInterface } from 'node:readline/promises';
 import { By, until } from 'selenium-webdriver';
 import { checkTimingHandoff } from './timing-handoff-checks.mjs';
+import { pageErrorFixtureHandler } from './page-error-fixture.mjs';
 import {
   launchChrome,
   extractChromePackage,
@@ -29,7 +30,8 @@ await writeFile(
     permissions: ['storage'],
   }),
 );
-const server = createServer((_request, response) => {
+const server = createServer((request, response) => {
+  if (pageErrorFixtureHandler(request, response)) return;
   response.setHeader('Content-Type', 'text/html');
   response.end(
     '<!doctype html><title>AddonRay disposable Chrome check</title><h1>Controlled local page</h1>',
@@ -64,12 +66,14 @@ try {
   report.driverVersion = session.driverVersion;
   await installChromeExtension(session.cdp, fixture);
   const productId = await installChromeExtension(session.cdp, product);
-  await session.driver.get(`http://127.0.0.1:${server.address().port}/`);
+  await session.driver.get(
+    `http://127.0.0.1:${server.address().port}/page-errors/source`,
+  );
   console.log(
     `Disposable Chrome for Testing ${session.version}, driver ${session.driverVersion}, is ready.`,
   );
   console.log(
-    'Record the popup and New investigation flow, actual inventory/page approval, timing attachment selection, Before/After, keyboard assessment, Start over, independence and reload. Retain both optional grants for the post-consent checks.',
+    'Record native page-error launch, Start consent, page-owned reproduction, Stop, reset and cleanup, plus the existing inventory/timing flow. Retain both optional grants for the post-consent checks.',
   );
   input = createInterface({ input: process.stdin, output: process.stdout });
   await input.question(

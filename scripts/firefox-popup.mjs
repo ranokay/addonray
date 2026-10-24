@@ -10,6 +10,7 @@ import firefox from 'selenium-webdriver/firefox.js';
 import { installTemporaryExtension } from './firefox-install.mjs';
 import { extensionArchive } from './package-paths.mjs';
 import { checkPackage } from './check-package.mjs';
+import { pageErrorFixtureHandler } from './page-error-fixture.mjs';
 
 // This opens a disposable test profile and records no automatic UI verdict.
 process.env.SE_AVOID_STATS = 'true';
@@ -56,7 +57,8 @@ await writeFile(
   }),
 );
 
-const server = createServer((_request, response) => {
+const server = createServer((request, response) => {
+  if (pageErrorFixtureHandler(request, response)) return;
   response.setHeader('Content-Type', 'text/html');
   response.end(
     '<!doctype html><title>AddonRay disposable popup check</title><h1>Controlled local page</h1>',
@@ -84,10 +86,12 @@ try {
     driver,
     packaged ? extensionArchive : resolve('.output/firefox-mv3'),
   );
-  await driver.get(`http://127.0.0.1:${server.address().port}/`);
+  await driver.get(
+    `http://127.0.0.1:${server.address().port}/page-errors/source`,
+  );
   console.log(`Disposable Firefox ${actualVersion} is ready.`);
   console.log(
-    'Follow docs/testing.md, including native New investigation consent, captures, manual assessment, Start over and reload. This helper does not verify UI outcomes.',
+    'Follow docs/testing.md, including the native page-error launch, consent, Start, page-owned reproduction, Stop, reset and cleanup. This helper does not verify UI outcomes.',
   );
   input = createInterface({ input: process.stdin, output: process.stdout });
   await input.question(

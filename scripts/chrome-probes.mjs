@@ -14,6 +14,12 @@ import {
 import { checkInvestigation } from './investigation-checks.mjs';
 import { checkTimingHandoff } from './timing-handoff-checks.mjs';
 import {
+  preparePageErrorFixture,
+  pageErrorFixtureHandler,
+} from './page-error-fixture.mjs';
+import { checkPageErrors } from './page-error-checks.mjs';
+import { pageErrorDriverControls } from './page-error-driver-controls.mjs';
+import {
   checkTimings,
   prepareTimingModule,
   timingFixtures,
@@ -61,8 +67,14 @@ const controller = await fixture('Controlled API fixture', {
   host_permissions: ['<all_urls>'],
 });
 await prepareTimingModule(controller);
+const pageErrorDirectory = join(work, 'page-error-source-fixture');
+const pageErrorFixture = await preparePageErrorFixture(
+  pageErrorDirectory,
+  'chrome',
+);
 const timing = timingFixtures();
 const server = createServer((request, response) => {
+  if (pageErrorFixtureHandler(request, response)) return;
   if (timing.handle(request, response)) return;
   response.setHeader('Content-Type', 'text/html');
   response.end(
@@ -93,6 +105,7 @@ const report = {
     optionalPermissions: [],
     nativeConsentExercised: false,
   },
+  pageErrorFixture,
   checks: [],
   gaps: [
     'Inventory interface checks use a separately named fixture with management/scripting pre-granted as required permissions. They do not exercise production optional-management consent.',
@@ -116,6 +129,7 @@ try {
   const fixtureId = await installChromeExtension(cdp, ordinary);
   const controllerId = await installChromeExtension(cdp, controller);
   const uiId = await installChromeExtension(cdp, uiDirectory);
+  const pageErrorId = await installChromeExtension(cdp, pageErrorDirectory);
   const productUrl = `chrome-extension://${productId}/popup.html`;
   const uiUrl = `chrome-extension://${uiId}/popup.html`;
   const productInvestigationUrl = `chrome-extension://${productId}/investigation.html`;
@@ -623,6 +637,25 @@ try {
         'Local development attempts are retained in ignored timing-comparison-chrome-private-failed.json and timing-comparison-private-attempt.mjs; they are not part of this run.',
     }),
     passed,
+  });
+  const pageErrorUrl = `chrome-extension://${pageErrorId}/probe.html`;
+  await driver.switchTo().newWindow('tab');
+  const pageErrorControl = await driver.getWindowHandle();
+  await driver.get(pageErrorUrl);
+  await checkPageErrors({
+    driver,
+    fixtureUrl: pageErrorUrl,
+    localUrl,
+    report,
+    passed,
+    ...pageErrorDriverControls({
+      driver,
+      cdp,
+      browser: 'chrome',
+      fixtureUrl: pageErrorUrl,
+      fixtureId: pageErrorId,
+      controlHandle: pageErrorControl,
+    }),
   });
   report.result = 'passed-with-qualification-gaps';
 } catch (error) {

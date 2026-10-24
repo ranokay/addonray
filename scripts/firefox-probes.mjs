@@ -15,6 +15,12 @@ import { checkTimingHandoff } from './timing-handoff-checks.mjs';
 import { prepareHandoffFixture } from './timing-handoff-fixture.mjs';
 import { checkFirefoxPrivateHandoff } from './timing-private-checks.mjs';
 import {
+  preparePageErrorFixture,
+  pageErrorFixtureHandler,
+} from './page-error-fixture.mjs';
+import { checkPageErrors } from './page-error-checks.mjs';
+import { pageErrorDriverControls } from './page-error-driver-controls.mjs';
+import {
   checkTimings,
   prepareTimingModule,
   timingFixtures,
@@ -104,8 +110,14 @@ const harness = await fixture('AddonRay API harness', harnessId, {
 await prepareTimingModule(harness);
 const handoffDirectory = join(work, 'timing-source-fixture');
 report.timingHandoffFixture = await prepareHandoffFixture(handoffDirectory);
+const pageErrorDirectory = join(work, 'page-error-source-fixture');
+report.pageErrorFixture = await preparePageErrorFixture(
+  pageErrorDirectory,
+  'firefox',
+);
 const timing = timingFixtures();
 const server = createServer((request, response) => {
+  if (pageErrorFixtureHandler(request, response)) return;
   if (timing.handle(request, response)) return;
   response.setHeader('Content-Type', 'text/html');
   response.end(
@@ -148,6 +160,7 @@ try {
     harness,
     productArtifact,
     handoffDirectory,
+    pageErrorDirectory,
   ]) {
     await installTemporaryExtension(driver, extension);
   }
@@ -698,6 +711,27 @@ try {
   report.gaps.push(
     'Timing attachments use a named source-popup fixture with compiled production core, a contains-only source consent seam after a separate approved optional-permission action, and unchanged packaged investigation assets. This does not qualify the actual React toolbar popup or human native consent; native unmodified-product evidence is separate.',
   );
+  const pageErrorUrl = await extensionUrl(
+    report.pageErrorFixture.id,
+    'probe.html',
+  );
+  await driver.switchTo().newWindow('tab');
+  const pageErrorControl = await driver.getWindowHandle();
+  await driver.get(pageErrorUrl);
+  await checkPageErrors({
+    driver,
+    fixtureUrl: pageErrorUrl,
+    localUrl,
+    report,
+    passed,
+    ...pageErrorDriverControls({
+      driver,
+      browser: 'firefox',
+      fixtureUrl: pageErrorUrl,
+      fixtureId: report.pageErrorFixture.id,
+      controlHandle: pageErrorControl,
+    }),
+  });
   report.result = 'passed-with-qualification-gaps';
 } catch (error) {
   report.result = 'failed';

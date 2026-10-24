@@ -57,6 +57,16 @@ Only verified normal-window senders and destinations participate. Private/incogn
 
 Before timing precedes starting After inventory capture. Each side is fixed until Start over. A successful attachment survives popup close/Clear because the investigation owns an independent copy. Start over, either management/scripting revocation, destination close/reload/unloading, or teardown discards the entire investigation and its source ID. Pending work cannot repopulate it. Ordinary timing failure preserves valid destination observations. One popup capture can be attached successfully once.
 
+## Approved page-error check boundary
+
+The [page-error check](plans/phase2-page-errors.md) was approved on 2026-10-24 with feasibility gates before product wiring. Its visible check tab owns only the original source's numeric tab ID, attempt identity/generation, current status, and one final summary of two event-kind counts, total, fixed completion reason, and bounded elapsed duration. No identifier enters its URL. Opening the check collects no events; Start requests optional scripting access explicitly. Existing permission grants remain separate from diagnostic retention.
+
+Never read or serialize event message/error/reason/filename/stack/target properties, raw event objects, page content, URLs/titles, or absolute timestamps. Keep no per-event list or timeline. The observer counts only notifications received during the eligible current-document window, with a 200-event total cap and 1 KiB summary bound. Results appear after confirmed completion or Stop. Interrupted/unavailable is distinct from an observed zero.
+
+Clear/Start over, either optional-permission revocation, and owner teardown discard results and invalidate pending work. Source navigation/closure ends observation without moving to a replacement document. A Stop action is different from discard and may retain confirmed partial counts. Owner-close/revocation cleanup must use an established control connection and pass feasibility, because access loss is not proof that injected code was removed.
+
+Firefox observation remains isolated. Chrome's new observer shares the page execution environment and its results can be suppressed or altered by that page. It receives no extension-only API authority. Page-visible control data cannot authorize browser actions; validate fixed count/status results and keep extension control in its isolated/visible owners. This boundary does not claim hostile-page tamper-proof observation or create a cross-extension console feed. Normal-window classification remains mandatory. The existing inventory and timing lifetimes continue independently.
+
 ## Reports and companion
 
 Export is a later feature. Before implementation, define redaction, preview, explicit save, retention, and treatment of URLs, query strings, DOM snippets, cookies, tokens, and extension IDs. A report must never be sent automatically.
