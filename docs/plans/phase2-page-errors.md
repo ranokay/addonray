@@ -2,6 +2,12 @@
 
 Status: approved for feasibility-first implementation, tests, independent review, and signed private delivery on 2026-10-24. The user confirmed this concrete plan after all nine design answers, including Firefox isolated execution, Chrome page-side execution, the 1 KiB summary bound, and the measured 5 ms p95 synchronous-operation budget. Essential source/control/cleanup feasibility must pass before product wiring; a failed essential gate requires a revised plan. See the [interview](../decisions.md#page-error-diagnostic-interview), [API research](../evidence/2026-10-24-page-error-api-research.md), and [current delivery checklist](../status.md).
 
+Implementation and qualification completed at signed `d56b56f`. See the
+[dated delivery evidence](../evidence/2026-10-24-phase2-page-errors.md) for the
+clean browser matrix, native artifact matching, independent review and remaining
+gaps. The candidate descriptions below record the approval-time design and its
+required gates. They do not supersede the later observed evidence.
+
 Independent static planning review found no unresolved material issue after clarifying the counting deadline and distinguishing documentation, fixture observations, and unqualified production gates. The reviewer ran no browsers or tests. Production code and its control boundary still need their own later independent review.
 
 ## Problem and result

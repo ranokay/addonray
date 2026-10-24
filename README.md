@@ -55,3 +55,18 @@ AddonRay does not offer arbitrary global or per-site switches for other extensio
 The page-inspection action also reads three recorded loading milestones: DOM content loaded, load event completed, and first content displayed when reported. It uses the document loaded in the originally selected tab when the check runs. Results stay in popup memory. The check does not reload the page, record later interactions, collect a URL/content, or identify a responsible extension. See the [approved scope](docs/plans/phase2-timing.md) for field definitions, size/runtime budgets, and qualification requirements.
 
 The approved [optional timing comparison](docs/plans/phase2-timing-comparison.md) adds an explicit Attach timing action. Choose an investigation and side to retain that timing in its memory. Attach Before before starting the After inventory, then capture After timing from the same browser tab. The comparison shows measured millisecond differences with uncertainty, while inventory-only comparisons remain available. Attachments work only between verified normal-window views and add no permissions or saved history. Qualification is tracked in [status](docs/status.md).
+
+## Page-error checks
+
+Choose New page-error check from the source page's popup, then explicitly Start
+in its separate check tab. Reproduce the problem on the original page and Stop
+to keep confirmed counts, or let the 30-second/200-event window finish. The check
+counts only future top-frame uncaught JavaScript error and unhandled-rejection
+notifications. It collects no raw messages, stacks, rejected values, URLs or
+page titles, and cannot identify a responsible extension.
+
+Only verified normal windows participate. Firefox's observer stays isolated;
+Chrome's runs with the page, which can interfere with its counts. Start over,
+Clear, permission revocation and owner teardown discard results. Reload loses
+the source binding. Existing Before/After investigations remain separate. See
+[qualification and remaining gaps](docs/evidence/2026-10-24-phase2-page-errors.md).
