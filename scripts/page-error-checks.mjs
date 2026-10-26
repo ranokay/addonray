@@ -533,44 +533,64 @@ export async function checkPageErrors({
         }
       }
       const clock = Math.max(...clockSamples);
+      const measurement = {
+        path,
+        selectedWorld,
+        samples: 30,
+        clockSamplesMs: clockSamples,
+        guardClockStepMs: clock,
+        rawOperationSamplesMs: operationSamples,
+        operations: {},
+        isolatedSupervisor:
+          selectedWorld === 'main'
+            ? {
+                clockSamplesMs: supervisorClockSamples,
+                guardClockStepMs: Math.max(...supervisorClockSamples),
+                rawOperationSamplesMs: supervisorSamples,
+                operations: {},
+              }
+            : null,
+        observations,
+        driverAndUserFlowSamplesMs: endToEndMs,
+        budgetEvaluation: { world: selectedWorld, operation: 'clock' },
+      };
+      // Publish raw evidence before a qualification assertion can throw.
+      evidence.overhead.push(measurement);
       assert(
         clockSamples.every((value) => Number.isFinite(value) && value > 0),
       );
-      if (selectedWorld === 'main')
+      if (selectedWorld === 'main') {
+        measurement.budgetEvaluation = {
+          world: 'supervisor',
+          operation: 'clock',
+        };
         assert(
           supervisorClockSamples.length === 30 &&
             supervisorClockSamples.every(
               (value) => Number.isFinite(value) && value > 0,
             ),
         );
-      evidence.overhead.push({
-        path,
-        selectedWorld,
-        samples: 30,
-        clockSamplesMs: clockSamples,
-        guardClockStepMs: clock,
-        operations: Object.fromEntries(
-          Object.entries(operationSamples).map(([name, samples]) => [
-            name,
-            budget(samples, clock),
-          ]),
-        ),
-        isolatedSupervisor:
-          selectedWorld === 'main'
-            ? {
-                clockSamplesMs: supervisorClockSamples,
-                guardClockStepMs: Math.max(...supervisorClockSamples),
-                operations: Object.fromEntries(
-                  Object.entries(supervisorSamples).map(([name, samples]) => [
-                    name,
-                    budget(samples, Math.max(...supervisorClockSamples)),
-                  ]),
-                ),
-              }
-            : null,
-        observations,
-        driverAndUserFlowSamplesMs: endToEndMs,
-      });
+      }
+      for (const [name, samples] of Object.entries(operationSamples)) {
+        measurement.budgetEvaluation = {
+          world: selectedWorld,
+          operation: name,
+        };
+        measurement.operations[name] = budget(samples, clock);
+      }
+      if (measurement.isolatedSupervisor) {
+        for (const [name, samples] of Object.entries(supervisorSamples)) {
+          measurement.budgetEvaluation = {
+            world: 'supervisor',
+            operation: name,
+          };
+          measurement.isolatedSupervisor.operations[name] = budget(
+            samples,
+            measurement.isolatedSupervisor.guardClockStepMs,
+          );
+        }
+      }
+      delete measurement.budgetEvaluation;
       passed(
         `Measured production observer bodies on ${path} meet the 1 KiB and 5 ms p95 plus two observed clock-step budgets, with no callbacks after Stop`,
       );

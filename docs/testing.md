@@ -146,6 +146,10 @@ instrumentation and preserve unmodified lifecycle runs separately. Neither the
 Enforce the 1 KiB summary bound, without interpreting counts as page quality or
 extension attribution.
 
+Publish raw samples and clock steps before evaluating an overhead assertion.
+If it fails, preserve the fixture path, execution world and operation, and keep
+the run failed. A successful later run does not establish the earlier cause.
+
 For native macOS checks, the existing popup helpers open a controlled source
 with page-owned error/rejection buttons. Use the actual unmodified toolbar popup
 to open a check, confirm opening collects nothing, Start and approve scripting,

@@ -158,6 +158,13 @@ unchanged rerun. The product implementation remains unchanged from qualified
 add a separate foreground control. Inspect those reports before any scenario or
 product change; see the [failure record](evidence/2026-10-26-phase2-page-error-comparison.md#documentation-delivery-duration-failure).
 
+At diagnostic `028c29c`, Windows ESR and four other Firefox jobs passed, along
+with Check, both hosted Chrome jobs and clean local ESR/Chrome checks. Linux
+Firefox 158 failed the unchanged 5 ms overhead guard at 6 ms. The reporting fix
+retains raw samples before budget assertions; its next delivery head still needs
+the full hosted matrix and report verification. Neither failure's cause is
+established, and no budget or product timing limit has changed.
+
 Native Linux/Windows usability, full accessibility, private/unknown-context native guards, retail installation/store and signed-distribution qualification remain release gates. Chrome's page-side observer is not tamper-proof. Production Firefox BFCache restoration remains unobserved; focused candidate restoration and production fresh-load outcomes are separate evidence. Follow the [desktop QA handoff](desktop-popup-qa.md) when an appropriate visible desktop becomes available.
 
 The user approved the private build while these release gates remain open. Licensing/public visibility remain undecided. The original inventory prototype remains on signed `36e4d24` outside `main`. Toolchain setup and pinning remain in [toolchain](toolchain.md).

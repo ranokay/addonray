@@ -238,6 +238,22 @@ recorded chronology before changing the qualification scenario. Diagnostic sourc
 work can affect scheduling, so a passing traced run alone does not establish the
 cause or qualify a scenario correction.
 
+Diagnostic `028c29c` passed Check, both hosted Chrome jobs and five hosted Firefox
+jobs, including Windows ESR. Clean local Firefox ESR and Chrome runs passed 73
+and 67 checks. The remaining Linux Firefox 158 job failed after 48 checks at a
+6 ms guarded overhead result against the unchanged 5 ms limit. Its hidden-source
+duration trace returned a confirmed timeout summary after about 31 seconds, and
+its page-side sentinel fired at 30,001 ms. This duration attempt passed; it does
+not explain the earlier Windows interruptions.
+
+The failed overhead assertion threw while constructing its report entry, leaving
+the raw sample arrays absent. The 6 ms result alone cannot distinguish clock
+resolution from operation cost. The reporting correction publishes raw operation
+arrays, clock steps and observations before asserting the budget, and retains the
+world and operation being checked if an assertion throws. Passing output fields,
+sample counts, p95 calculation, clock guard and 5 ms limit are unchanged. No
+collector performance regression or scheduling fix is claimed from these reports.
+
 ## Remaining limits and resumption
 
 Native Linux/Windows usability, full accessibility, authentic private/unknown
