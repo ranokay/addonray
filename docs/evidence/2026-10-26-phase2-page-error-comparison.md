@@ -1,10 +1,13 @@
 # Optional page-error comparison qualification
 
 The approved [P2D slice](../plans/phase2-page-error-comparison.md) is implemented
-in signed `3346b35047e5f88c8c691e7697a09f9c23022e99`, privately pushed to
-`ranokay/addonray` main. Signed `f1b781dd26d1b6f2b61ed8b6e5b20e8aed57ce57`
-adds explicit Firefox native launch setup and its documentation. Product and
-comparison-probe inputs are unchanged between these heads.
+and privately pushed in signed `a5b8fedd0c5dde409d365f925d2c992d9abfe087`,
+including the standalone permission-retention correction qualified below.
+
+Initial implementation `3346b35047e5f88c8c691e7697a09f9c23022e99` and native
+helper follow-up `f1b781dd26d1b6f2b61ed8b6e5b20e8aed57ce57` have identical
+product and comparison-source-fixture inputs. Their original qualification remains recorded separately
+from the corrected revision.
 
 A completed check can attach once to an explicitly selected investigation and
 side. Fixed error slots share their numeric source-tab binding with timings.
@@ -52,11 +55,11 @@ These checks use disposable profiles. Browser/server and helper-owned tab cleanu
 passed. Six local browser/rebuild reports pass the revision,
 clean-source, identity, payload, budget and cleanup verifier.
 
-| Artifact on macOS/Linux | SHA-256                                                            |
-| ----------------------- | ------------------------------------------------------------------ |
-| Firefox XPI             | `3bdbc9aee10fdcd23158d967fcd83c069aeb0e5b14335ec6ad519466eb61d561` |
-| Chrome ZIP              | `7210b76349093e1729c8395919d931c6833d2c5e93f2b6b5e52ba965aeeb96b3` |
-| Each source ZIP         | `31e40a15a0d81c55a373e6b47aea36a38c4166c11df8d72c1b2282581ff3258f` |
+| Initial artifact on macOS/Linux at `f1b781d` | SHA-256                                                            |
+| -------------------------------------------- | ------------------------------------------------------------------ |
+| Firefox XPI                                  | `3bdbc9aee10fdcd23158d967fcd83c069aeb0e5b14335ec6ad519466eb61d561` |
+| Chrome ZIP                                   | `7210b76349093e1729c8395919d931c6833d2c5e93f2b6b5e52ba965aeeb96b3` |
+| Each source ZIP                              | `31e40a15a0d81c55a373e6b47aea36a38c4166c11df8d72c1b2282581ff3258f` |
 
 Source archives contain exactly 37 allowed files. Windows source inputs use
 CRLF; their raw hashes were checked against the corresponding immutable source
@@ -85,7 +88,7 @@ production input hashes match the reports.
 The existing collector retains its 1 KiB summary and 5 ms p95 synchronous
 setup/handler/finalization gates. Raw samples, calibrated clock steps and the
 empirical p95-plus-two-steps guard remain in the reports. The largest guarded
-value in the verified local and initial hosted matrices is 4 ms. These controlled
+value in the verified initial local and hosted matrices is 4 ms. These controlled
 observations do not establish universal timing accuracy or a new transfer budget.
 
 ## Native macOS observations
@@ -171,8 +174,46 @@ the receiver's fail-closed reset is unchanged.
 A focused regression preserves the original snapshot and permits explicit retry
 after inventory consent. Independent review found no material issue. The native
 helper now records/asserts initially absent optional grants and its own source
-hash. Corrected-head clean browser, native regression and hosted qualification
-are required separately from the initial results above.
+hash.
+
+At clean `a5b8fed`, all 370 tests with 1568 assertions, native formatting/lint/types,
+the frozen shared gate, three macOS Firefox versions with 73 checks each, Chrome
+with 67 checks and both 14-file source rebuilds pass. All six local reports passed
+revision/identity/budget/cleanup verification. The largest local guarded collector
+p95 is 5 ms, within the existing 5 ms limit; the collector source is unchanged.
+
+Both fresh native profiles started with only activeTab and no host origins.
+In Chrome, a completed zero-count check at 5,674.8 ms remained readable after
+Attach reported unavailable with no inventory grant. In Firefox, the corresponding
+zero summary at 9,519 ms remained readable. Each user flow then created an
+investigation, approved inventory consent and explicitly retried attachment from
+the same completed check without another Start. Before was accepted and marked
+used. Actual management removal subsequently cleared both owners in each browser.
+Both browsers/servers closed; both reports have clean start/end `a5b8fed` and
+helper SHA-256 `e49e70aa6eaaa5fe0471cc00edadb41609992d0b7da87c60f0f0fecf2429e531`.
+
+The raw snapshots prove the same check label, finished zero counts after the
+unavailable attempt, and its subsequent accepted Before copy. Unchanged displayed
+duration and absence of another Start are CUA observations; the deterministic
+regression verifies exact snapshot/generation retention. These focused native
+cases qualify the changed absence/consent/retry path. They do not requalify the
+earlier full After/closure native flows. The current production-source matrix
+re-exercises both fixed slots, shared binding, dead views and revocation.
+
+| Current artifact on macOS/Linux at `a5b8fed` | SHA-256                                                            |
+| -------------------------------------------- | ------------------------------------------------------------------ |
+| Firefox XPI                                  | `8681cae7a383026459f58a116be49f8bff3668d8ba47f46a8821e024cade861f` |
+| Chrome ZIP                                   | `4e1b3df37943c01ef204ad70112d34f9e4c4ce87084cba230fb6cf95a8682f08` |
+| Each source ZIP                              | `ead75e48a086217c8f96e7fe398796e87e681157265f30427bf6207e5716f4e9` |
+
+[Corrected Check](https://github.com/ranokay/addonray/actions/runs/40291397418),
+[Firefox](https://github.com/ranokay/addonray/actions/runs/40291397380) and
+[Chrome](https://github.com/ranokay/addonray/actions/runs/40291397484) passed on
+the first attempt. All six Firefox jobs report 73 checks, both Chrome jobs report
+67, and all 16 downloaded browser/rebuild reports passed digest, immutable-source,
+fixture-output, artifact, bounds and cleanup verification. No cases are omitted
+from this matrix; authentic private error-attachment contexts remain a separate
+gap. Independent review verified the correction, native records and hosted data.
 
 ## Remaining limits and resumption
 

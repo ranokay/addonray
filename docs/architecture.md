@@ -88,6 +88,8 @@ marks successful use before notifications. Lost acknowledgment cannot make an
 accepted check reusable. No foreign Window/object/function/array enters retained
 UI or investigation state.
 
+Missing transfer grants reject attachment without discarding a completed
+standalone check; its permission-removal listener owns actual revocation.
 Accepted copies outlive donor reset/closure under the existing temporary
 investigation lifetime. Either permission revocation clears all observations.
 All attachment kinds must match the first accepted source tab, including timing

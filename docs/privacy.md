@@ -76,6 +76,8 @@ plus its source-tab binding shared with timings. Donor Clear/reset or closure
 does not retract that copy. Investigation reset, either optional-permission
 revocation and destination teardown discard it with all other investigation data.
 
+A transfer grant that was never obtained does not erase the completed standalone
+check. Actual permission removal still clears through its existing listener.
 Each completed check attaches successfully once. Discovery returns only bounded
 normal own-view metadata. No raw event details, URL/title, page content, absolute
 time, storage, broadcast summary or extra permission is added. The shared numeric

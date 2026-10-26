@@ -2,18 +2,11 @@
 
 ## Current state
 
-The approved [optional page-error comparison](plans/phase2-page-error-comparison.md) is implemented in signed `3346b35` and privately pushed. Signed `f1b781d` adds explicit Firefox native setup without changing product inputs. Completed checks attach once to selected fixed slots, share one source tab with timings, and leave independent investigation copies. Counts, durations and reasons remain side by side without causal verdicts.
+The approved [optional page-error comparison](plans/phase2-page-error-comparison.md) is implemented and privately pushed in signed `a5b8fed`. Completed checks attach once to explicit fixed Before/After slots, share one source tab with timings and leave independent investigation copies. Missing initial inventory access preserves a standalone completed check for retry after consent. Actual permission removal still clears it.
 
-All 369 behavior tests with 1561 assertions, the clean shared gate, both source rebuilds, three exact macOS Firefox versions with 73 checks each and Chrome with 67 checks pass at `f1b781d`. Native Chrome and Firefox check-tab selection/confirmation, retained copies/reset and separate actual management/scripting revocation passed within their recorded authority. Firefox toolbar launch used explicit driver setup after CUA scrolling proved unreliable. [Comparison evidence](evidence/2026-10-26-phase2-page-error-comparison.md) preserves that gap and the other release gates.
+All 370 behavior tests with 1568 assertions, the clean frozen shared gate, both 14-file source rebuilds, three exact macOS Firefox versions with 73 checks each and Chrome with 67 checks pass. All six hosted Firefox and two Chrome jobs passed on the first attempt at `a5b8fed`; all 16 downloaded browser/rebuild reports passed verification. The maximum local guarded collector p95 is 5 ms, within the unchanged budget. Independent implementation/probe/evidence review has no unresolved material finding.
 
-All 16 hosted browser/rebuild reports passed verification at `3346b35`. The follow-up `f1b781d` first Windows/Firefox 140 job was interrupted during the unchanged standalone collector's 30-second check. Its artifact and fixtures match the earlier passing job. The unchanged rerun passed. All 16 follow-up reports at `f1b781d` passed verification, with 73 checks in each Firefox job and 67 in each Chrome job. Both attempts remain preserved; no interruption is counted as a successful measurement. Later delivery heads require their own verification.
-
-A final requirements read found and corrected a standalone retention edge case:
-Attach before inventory access was ever granted must preserve the completed
-check. Missing transfer grants now reject the attachment without clearing the
-source; actual revocation still clears through its existing listener. The fix and
-focused regression passed independent review. Its new clean/native/hosted
-qualification is in progress; earlier results do not qualify that new path.
+Original full native flows at `3346b35`/`f1b781d` and focused current-revision consent/retention/retry plus actual management revocation are recorded separately. Firefox check-tab interaction used explicit driver toolbar setup after CUA scrolling proved unreliable. [Comparison evidence](evidence/2026-10-26-phase2-page-error-comparison.md) preserves those authority limits, current artifact/input hashes, the earlier unexplained Windows interruption and remaining release gates. Later documentation delivery heads require their own checks/reports before being described as passing.
 
 The approved [current-document page-error slice](plans/phase2-page-errors.md) is implemented and privately pushed in signed `d56b56f`. All 258 deterministic tests with 824 assertions, the clean shared gate, both source rebuilds, three macOS Firefox versions with 55 checks each and Chrome with 49 checks pass. The shared CI gate, all six Firefox jobs and both Chrome jobs passed at that exact head; all 16 downloaded browser/rebuild reports confirm clean source, identities, bounded outcomes, budgets and cleanup. Unmodified native launch/Start/reproduction/Stop and keyboard guidance were observed on Firefox 158.0.1 and Chrome for Testing 156.0.8078.47/macOS, with separate real optional management/scripting revocation assertions on Chrome. Those dirty-source native artifacts and all production input hashes match the clean implementation. Independent production/probe/native-helper review has no unresolved material finding. [Page-error evidence](evidence/2026-10-24-phase2-page-errors.md) records authority, corrections, BFCache and remaining native/platform/release gaps. This describes qualified implementation `d56b56f`; verify later documentation delivery heads against their own hosted runs before claiming they passed.
 
@@ -150,11 +143,12 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Implement the approved models, handoff and UI; pass 369 behavior tests and the dirty shared gate; complete independent production/probe review and correct the probe findings.
 - [x] Qualify corrected production probes, six clean local browser/rebuild reports, available native views and all 16 implementation-head hosted reports, with explicit gaps.
 - [x] Verify the unchanged follow-up retry and all 16 initial reports.
-- [ ] Qualify the final standalone permission-retention correction, update evidence/status, and complete signed private delivery with final-head verification.
+- [x] Qualify the final standalone permission-retention correction, new native absence/consent/retry cases, six clean local reports and all 16 corrected-head hosted reports.
+- [x] Prepare reviewed evidence/status for signed private documentation delivery. Verify every later delivery head separately before reporting completion.
 
 ## Next action
 
-Finish qualification of the independently reviewed standalone permission-retention correction. Preserve the initial evidence and qualify the new permission-absence path natively with no inventory grant, followed by explicit consent/retry. Complete the corrected clean local/hosted matrix and signed private documentation delivery. Stop after these attachments. Export, console feeds, history, new targets, extension-state changes and the native companion remain separate decisions.
+The approved page-error attachment slice is complete within the recorded qualification. Stop after its signed private delivery. Choose any next product slice through a fresh focused interview. Export, console feeds, history, new collectors or targets, extension-state changes and the native companion remain separate decisions.
 
 Verify the current pushed documentation head's Check, six Firefox jobs, two Chrome jobs and all 16 browser/rebuild reports before claiming that head passed. Qualified implementation results above do not automatically qualify a newer head. Keep raw reports in ignored scratch space and use the current runner's source/dirty/artifact records.
 
