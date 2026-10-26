@@ -1,4 +1,4 @@
-/* global WebExtensionPolicy */
+/* global WebExtensionPolicy, gBrowser */
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -6,7 +6,7 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { arch, platform, tmpdir } from 'node:os';
 import { createInterface } from 'node:readline/promises';
-import { Builder } from 'selenium-webdriver';
+import { Builder, By, until } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
 import { checkPackage, sha256 } from './check-package.mjs';
 import { packagePaths } from './package-paths.mjs';
@@ -31,7 +31,7 @@ const report = {
   os: `${platform()} ${arch()}`,
   runtime: { bun: Bun.version, revision: Bun.revision },
   authority:
-    'Unmodified validated product in a disposable visible profile. Driver reads only own loaded extension DOM and removes actual optional grants after operator-controlled native use.',
+    'Unmodified validated product in a disposable visible profile. Driver reads own extension DOM and removes optional grants after native use. The explicit Firefox driver-launch command supplies toolbar setup only; native observations remain separate.',
   checks: [],
   snapshots: [],
   gaps: [
@@ -123,6 +123,78 @@ async function returnToSource() {
   } catch {
     // Closing the original source is a permitted native lifetime observation.
   }
+}
+
+async function launchFirefoxCheck() {
+  assert.equal(target, 'firefox', 'This setup fallback is Firefox-only.');
+  await driver.switchTo().window(controlHandle);
+  await driver.setContext('chrome');
+  try {
+    await driver.executeScript((url) => {
+      const source = [...gBrowser.tabs].find(
+        (tab) => tab.linkedBrowser.currentURI.spec === url,
+      );
+      if (!source) throw new Error('Controlled source is absent.');
+      gBrowser.selectedTab = source;
+    }, sourceUrl);
+    await driver.findElement(By.id('unified-extensions-button')).click();
+    await driver
+      .findElement(
+        By.css(
+          `[data-extensionid="${productId}"] .unified-extensions-item-action-button`,
+        ),
+      )
+      .click();
+    await driver.wait(
+      until.elementLocated(By.css('.webextension-popup-browser')),
+      10000,
+    );
+  } finally {
+    await driver.setContext('content');
+  }
+  await driver.executeScript(() => {
+    const api = globalThis.browser ?? globalThis.chrome;
+    const popup = api.extension
+      .getViews({ type: 'popup' })
+      .find((view) => view.location.href === api.runtime.getURL('/popup.html'));
+    const button = popup?.document.querySelector('#new-page-error-check');
+    if (!button) throw new Error('Actual product popup launcher is absent.');
+    button.click();
+  });
+  await driver.wait(
+    () =>
+      driver.executeAsyncScript(async (done) => {
+        try {
+          const api = globalThis.browser ?? globalThis.chrome;
+          const owner = api.extension
+            .getViews({ type: 'tab' })
+            .find(
+              (view) =>
+                view.location.href === api.runtime.getURL('/page-error.html') &&
+                view.document.querySelector('#page-error-status')?.dataset
+                  .phase === 'ready',
+            );
+          done(
+            !!owner &&
+              (await (owner.browser ?? owner.chrome).tabs.getCurrent())
+                ?.active === true,
+          );
+        } catch {
+          done(false);
+        }
+      }),
+    10000,
+  );
+  passed(
+    'Driver-triggered actual Firefox toolbar launch opens a ready unmodified check without starting observation',
+    {},
+  );
+  report.gaps.push(
+    'Firefox driver-launch invoked the actual toolbar action and unchanged product launcher as setup. It does not qualify native toolbar scrolling, keyboard or launch usability. Check-tab native interactions are recorded separately.',
+  );
+  console.log(
+    'Actual Firefox toolbar setup opened a ready check. Select its tab natively; Start remains explicit.',
+  );
 }
 
 async function revoke(permission) {
@@ -331,13 +403,15 @@ try {
     'Use the actual toolbar popup and native controls for all captures, checks and attachments. No build or source edits while this session remains open.',
   );
   console.log(
-    'Commands: snapshot, revoke-scripting, revoke-management, finish. Revocation requires a fresh populated snapshot and a confirmed check left open.',
+    'Commands: snapshot, driver-launch (Firefox setup only), revoke-scripting, revoke-management, finish. Revocation requires a fresh populated snapshot and a confirmed check left open.',
   );
   input = createInterface({ input: process.stdin, output: process.stdout });
   for await (const line of input) {
     const command = line.trim();
     if (command === 'finish') break;
-    if (command === 'snapshot') {
+    if (command === 'driver-launch') {
+      await launchFirefoxCheck();
+    } else if (command === 'snapshot') {
       const value = await snapshot();
       report.snapshots.push({ timestamp: new Date().toISOString(), value });
       lastPopulatedSnapshot = populatedInvestigations(value).length

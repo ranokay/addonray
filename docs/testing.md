@@ -199,3 +199,17 @@ Firefox and Chrome separately. No native/platform, private-context or consent
 claim follows from the source fixture. Existing 1 KiB and synchronous 5 ms p95
 collector regression budgets remain unchanged; transfer latency has no new
 performance promise.
+
+The focused native comparison helper is
+`mise exec -- bun scripts/page-error-comparison-native.mjs firefox` or `chrome`.
+Its `snapshot`, `revoke-scripting` and `revoke-management` commands read the
+unmodified product and verify actual grant removal after a populated comparison.
+A fresh populated snapshot and confirmed check are required before each removal.
+`finish` checks source/package identity and closes the disposable browser/server.
+
+Firefox additionally offers explicit `driver-launch` setup when native automation
+cannot reach the toolbar launch control. It uses Firefox's actual toolbar action
+and unchanged product launcher, then verifies a bound ready check without starting
+observation. This setup does not qualify native toolbar scrolling or launch
+usability. Start, reproduction and attachment interactions must be recorded
+separately. No product hook or permission is added.
