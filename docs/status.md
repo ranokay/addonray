@@ -152,6 +152,12 @@ The approved page-error attachment slice is complete within the recorded qualifi
 
 Verify the current pushed documentation head's Check, six Firefox jobs, two Chrome jobs and all 16 browser/rebuild reports before claiming that head passed. Qualified implementation results above do not automatically qualify a newer head. Keep raw reports in ignored scratch space and use the current runner's source/dirty/artifact records.
 
+Delivery `82ea820` has an unresolved Windows ESR duration-check failure after one
+unchanged rerun. The product implementation remains unchanged from qualified
+`a5b8fed`. Fixture-only lifecycle diagnostics preserve the failed assertion and
+add a separate foreground control. Inspect those reports before any scenario or
+product change; see the [failure record](evidence/2026-10-26-phase2-page-error-comparison.md#documentation-delivery-duration-failure).
+
 Native Linux/Windows usability, full accessibility, private/unknown-context native guards, retail installation/store and signed-distribution qualification remain release gates. Chrome's page-side observer is not tamper-proof. Production Firefox BFCache restoration remains unobserved; focused candidate restoration and production fresh-load outcomes are separate evidence. Follow the [desktop QA handoff](desktop-popup-qa.md) when an appropriate visible desktop becomes available.
 
 The user approved the private build while these release gates remain open. Licensing/public visibility remain undecided. The original inventory prototype remains on signed `36e4d24` outside `main`. Toolchain setup and pinning remain in [toolchain](toolchain.md).

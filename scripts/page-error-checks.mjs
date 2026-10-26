@@ -313,9 +313,87 @@ export async function checkPageErrors({
     );
 
     await reset();
+    await switchOwner();
+    const traceInstalled = await driver.executeAsyncScript((tabId, done) => {
+      (globalThis.browser ?? globalThis.chrome).scripting
+        .executeScript({
+          target: { tabId, frameIds: [0] },
+          world: 'MAIN',
+          func: () => {
+            globalThis.beginErrorDurationTrace();
+            return true;
+          },
+        })
+        .then(
+          (results) => done(results[0]?.result === true),
+          () => done(false),
+        );
+    }, sourceTabId);
+    assert.equal(traceInstalled, true);
+    await driver.executeScript(() => globalThis.checkFixture.beginTrace());
     const began = Date.now();
     await start();
     const timed = await waitPhase('finished', 42000);
+    evidence.observations.durationDiagnostics = {
+      outcome: timed.outcome,
+      wallElapsedMs: Date.now() - began,
+    };
+    try {
+      evidence.observations.durationDiagnostics.owner =
+        await driver.executeScript(() => globalThis.checkFixture.trace());
+      evidence.observations.durationDiagnostics.source =
+        await driver.executeAsyncScript((tabId, done) => {
+          (globalThis.browser ?? globalThis.chrome).scripting
+            .executeScript({
+              target: { tabId, frameIds: [0] },
+              world: 'MAIN',
+              func: () => ({
+                events: JSON.parse(
+                  document.documentElement.getAttribute(
+                    'data-addonray-duration-trace',
+                  ),
+                ),
+                life: globalThis.errorLife,
+              }),
+            })
+            .then(
+              (results) => done(results[0]?.result ?? null),
+              () => done(null),
+            );
+        }, sourceTabId);
+      if (timed.outcome?.status !== 'success') {
+        // This control cannot replace the failed qualification attempt.
+        await reset();
+        await start();
+        await switchSource();
+        const foreground = await driver.executeScript(() => ({
+          began: performance.now(),
+          visibility: document.visibilityState,
+        }));
+        await driver.wait(
+          () =>
+            driver.executeScript(
+              (began) => performance.now() - began >= 31000,
+              foreground.began,
+            ),
+          42000,
+        );
+        const control = await waitPhase('finished');
+        evidence.observations.durationDiagnostics.foregroundControl = {
+          foreground,
+          outcome: control.outcome,
+          valid: false,
+        };
+        assert.equal(foreground.visibility, 'visible');
+        assert.equal(control.outcome?.status, 'success');
+        validateSummary(control.outcome.value);
+        assert.equal(control.outcome.value.finish, 'timeout');
+        assert.equal(control.outcome.value.observedMs, 30000);
+        evidence.observations.durationDiagnostics.foregroundControl.valid = true;
+      }
+    } catch {
+      evidence.observations.durationDiagnostics.diagnosticFailure = true;
+    }
     assert.equal(timed.outcome?.status, 'success');
     validateSummary(timed.outcome.value);
     assert.equal(timed.outcome.value.finish, 'timeout');

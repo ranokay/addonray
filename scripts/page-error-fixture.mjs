@@ -175,12 +175,36 @@ const context = getBrowserContext('${target}');
 let measured = false;
 let latestToken = null;
 let permissionRequests = 0;
+let traceStart = null;
+let trace = [];
+function record(kind) {
+ if (traceStart !== null && trace.length < 40) trace.push({kind, elapsedMs: performance.now() - traceStart});
+}
 const driverApi = {
   permissions: {
     request: (p) => {permissionRequests++; return api.permissions.request(p);},
     contains: (p) => api.permissions.contains(p),
   },
-  tabs: api.tabs,
+  tabs: {
+    get: (...args) => api.tabs.get(...args),
+    getCurrent: () => api.tabs.getCurrent(),
+    connect: (...args) => {
+      const port = api.tabs.connect(...args);
+      port.onMessage.addListener(message => {
+        if (['supervisor-ready','observing','result','interrupted'].includes(message?.kind)) record('port:' + message.kind);
+      });
+      port.onDisconnect.addListener(() => record('port:disconnect'));
+      return {
+        onMessage: port.onMessage,
+        onDisconnect: port.onDisconnect,
+        postMessage: message => {
+          if (['start','stop','discard'].includes(message?.kind)) record('send:' + message.kind);
+          port.postMessage(message);
+        },
+        disconnect: () => {record('local:disconnect');port.disconnect();},
+      };
+    },
+  },
   runtime: api.runtime,
   get scripting() {
     if (!api.scripting) return undefined;
@@ -191,7 +215,19 @@ const driverApi = {
     }};
   },
 };
-const check = createPageErrorCheck(api, createPageErrorDriver(driverApi, context), context);
+const productionDriver = createPageErrorDriver(driverApi, context);
+const tracedDriver = {
+ start: (tabId, signal, observing) => {
+   record('start');
+   const aborted = () => record('abort');
+   signal.addEventListener('abort', aborted);
+   return productionDriver.start(tabId, signal, () => {record('observing');observing();})
+     .then(outcome => {record('outcome:' + outcome.status);return outcome;})
+     .finally(() => signal.removeEventListener('abort', aborted));
+ },
+ stop: () => {record('stop');productionDriver.stop();},
+};
+const check = createPageErrorCheck(api, tracedDriver, context);
 const remove = installPageErrorBinding(api, check, window);
 check.subscribe(() => {
  const snapshot = check.getSnapshot();
@@ -207,6 +243,8 @@ document.querySelector('#page-error-reset').onclick = check.startOver;
 document.querySelector('#error-grant-management').onclick = () => api.permissions.request({permissions:['management']});
 globalThis.checkFixture = {
  debug: () => ({...check.getSnapshot(), latestToken, permissionRequests, measured}),
+ beginTrace: () => {traceStart=performance.now();trace=[];},
+ trace: () => [...trace],
  measure: (value) => {measured = value === true;},
  revoke: (name) => api.permissions.remove({permissions:[name]}),
  calibrate: () => {
@@ -261,6 +299,18 @@ export function pageErrorFixtureHandler(request, response) {
 ${heavy}${frame}<script nonce="error-fixture">
 window.errorPositive = {errors:0,rejections:0,payloadReads:0,excluded:0,resourceFailures:0};
 window.errorLife = {shows:0,hides:0,persisted:false};
+window.beginErrorDurationTrace = () => {
+ const began = performance.now();const events = [];
+ const record = kind => {
+  if(events.length === 10)return;
+  events.push({kind,elapsedMs:performance.now()-began,visibility:document.visibilityState});
+  document.documentElement.setAttribute('data-addonray-duration-trace',JSON.stringify(events));
+ };
+ record('scheduled');
+ document.addEventListener('visibilitychange',()=>record('visibility'));
+ addEventListener('pagehide',()=>record('pagehide'),{once:true});
+ setTimeout(()=>record('sentinel-timer'),30000);
+};
 addEventListener('pageshow', event => {errorLife.shows++;errorLife.persisted=event.persisted;});
 addEventListener('pagehide', () => errorLife.hides++);
 addEventListener('error', event => {if(event.target===window)errorPositive.errors++;});

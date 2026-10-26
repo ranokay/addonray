@@ -215,6 +215,29 @@ fixture-output, artifact, bounds and cleanup verification. No cases are omitted
 from this matrix; authentic private error-attachment contexts remain a separate
 gap. Independent review verified the correction, native records and hosted data.
 
+## Documentation delivery duration failure
+
+The documentation-only `82ea820` passed Check and both Chrome jobs. In its
+[Firefox run](https://github.com/ranokay/addonray/actions/runs/40318895190),
+five jobs passed, but Windows ESR stopped after 44 checks at the existing
+standalone 30-second observation assertion. One unchanged rerun failed at the
+same assertion. Both reports contain `interrupted`, not a count summary, and
+record owned-tab cleanup. The new comparison cases had not run in that job.
+These failures do not qualify that delivery head, despite the passing corrected
+implementation matrix above.
+
+The duration test repeatedly selects the check tab and leaves its source in the
+background. This is a scheduling hypothesis, not an established cause. Fixture-only
+diagnostics now record bounded visibility, timer and control-port chronology. A
+separate foreground control runs only after a failure and cannot replace the
+original strict assertion. Test-only MAIN injections install and read the
+controlled page's scheduling sentinel without selecting its tab. This sentinel
+cannot establish the isolated observer's timer behavior by itself. Product source, permissions, timing limits and success
+criteria are unchanged. Keep the original failed reports and investigate the
+recorded chronology before changing the qualification scenario. Diagnostic source
+work can affect scheduling, so a passing traced run alone does not establish the
+cause or qualify a scenario correction.
+
 ## Remaining limits and resumption
 
 Native Linux/Windows usability, full accessibility, authentic private/unknown
