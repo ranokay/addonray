@@ -26,15 +26,16 @@ Exit when tests prove the collector lifecycle, spoofed data is handled, caps hol
 
 The approved [optional timing comparison](plans/phase2-timing-comparison.md) extends the Phase 2 popup snapshot into the existing investigation through a deliberate handoff. It adds no history or export. Its own qualification distinguishes candidate/source fixtures, packaged integration, native UI, and remaining context/platform gates.
 
-The approved [current-document page-error check](plans/phase2-page-errors.md) observes two JavaScript event kinds after an explicit Start, with one counts-only summary per separate check tab. Its 30-second/200-event limits, Firefox-isolated/Chrome-page-side split, and close/revocation/navigation cleanup require their own feasibility and qualification. Basic visibility evidence is separate from product wiring, native consent/UI, and the new collector's overhead. Cross-load recording and comparison attachments remain later decisions.
+The approved [current-document page-error check](plans/phase2-page-errors.md) observes two JavaScript event kinds after an explicit Start, with one counts-only summary per separate check tab. Its 30-second/200-event limits, Firefox-isolated/Chrome-page-side split, and close/revocation/navigation cleanup require their own feasibility and qualification. Basic visibility evidence is separate from product wiring, native consent/UI, and the new collector's overhead. Cross-load recording remains a later decision. Comparison attachments have their own approval below.
 
-The user selected [optional page-error comparisons](plans/phase2-page-error-comparison.md)
-as the next planning focus. Q1–Q8 are settled and the user confirmed Q9, authorizing feasibility-first
-implementation, tests, independent review and signed private delivery. Essential
-transport/lifetime feasibility remains pending before product wiring. The proposed handoff
-extends completed check summaries into investigations without adding a collector,
-error deltas, rates, history or export. Timing and error attachments would share
-one source-tab binding, with independent copies and fixed ordered slots.
+The approved [optional page-error comparison](plans/phase2-page-error-comparison.md)
+is implemented through completed check summaries and fixed investigation slots.
+The essential candidate gate passed before product wiring. Timing and error
+attachments share one numeric source-tab binding; accepted copies survive donor
+reset/closure. No collector, error arithmetic, history or export is added.
+[Qualification](evidence/2026-10-26-phase2-page-error-comparison.md) separates
+production-source tests, native observations, hosted results and remaining gaps.
+Stop after private delivery of this slice; the next phase needs a new decision.
 
 ## Phase 3: user-controlled reports and better comparisons
 

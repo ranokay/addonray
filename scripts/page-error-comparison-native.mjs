@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { arch, platform, tmpdir } from 'node:os';
 import { createInterface } from 'node:readline/promises';
@@ -30,6 +30,7 @@ const report = {
   distribution: target === 'firefox' ? 'Firefox' : 'Chrome for Testing',
   os: `${platform()} ${arch()}`,
   runtime: { bun: Bun.version, revision: Bun.revision },
+  helperSha256: sha256(await readFile(import.meta.filename)),
   authority:
     'Unmodified validated product in a disposable visible profile. Driver reads own extension DOM and removes optional grants after native use. The explicit Firefox driver-launch command supplies toolbar setup only; native observations remain separate.',
   checks: [],
@@ -329,7 +330,7 @@ try {
   let popupUrl;
   if (target === 'firefox') {
     report.gaps.push(
-      'Firefox driver system access is enabled only for the installed own-extension URL lookup. It is test authority, not an extension permission.',
+      'Firefox driver system access supplies own-extension URL lookup and the explicit driver-launch toolbar setup. It is test authority, not an extension permission.',
     );
     const version = '158.0.1';
     if (process.env.FIREFOX_VERSION)
@@ -392,6 +393,20 @@ try {
       ),
     10000,
   );
+  report.initialGrants = await driver.executeAsyncScript((done) => {
+    (globalThis.browser ?? globalThis.chrome).permissions
+      .getAll()
+      .then(done, () => done(null));
+  });
+  assert(report.initialGrants, 'Initial optional grants could not be read.');
+  assert.deepEqual(report.initialGrants.origins ?? [], []);
+  for (const name of ['management', 'scripting']) {
+    assert.equal(
+      report.initialGrants.permissions.includes(name),
+      false,
+      `A fresh native profile must start without optional ${name} access.`,
+    );
+  }
   await returnToSource();
   console.log(
     `Disposable unmodified ${report.distribution} ${report.browserVersion} ready.`,

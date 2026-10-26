@@ -96,19 +96,25 @@ Scratch fixtures passed 11 checks on each pinned macOS browser with the product 
 
 These candidate fixtures establish API feasibility, not production capture/select/confirm usability or private-window support. Attachments exclude private/incognito and unclassifiable contexts. `inIncognitoContext` alone does not classify every spanning-process extension view; the selected source tab and destination's own tab provide the needed flags. No page identity is inferred from their numeric tab IDs. Production integration, context exclusion, actual native use, and exact-head hosted evidence remain separate qualification gates.
 
-## Draft page-error attachment boundary
+## Page-error attachment boundary
 
-The [selected design](plans/phase2-page-error-comparison.md) proposes a new
-check-tab-to-investigation handoff. Existing popup-only timing tests do not
-qualify that sender boundary, its one-use protocol or mixed timing/error source
-binding. Own-view APIs describe a candidate mechanism; product authority and
-lifetime behavior require fresh browser probes. No new browser permission,
-background owner, broad host grant or source-page enumeration is proposed.
+The [approved comparison](plans/phase2-page-error-comparison.md) uses a distinct
+own-check-tab sender. Own-view access does not create isolation between compromised
+extension documents. A current unused completed check, normal contexts, current
+permissions and an explicitly selected live investigation are required. Its
+bounded action permit and synchronous reserved commit preserve one use after
+lost acknowledgment. Existing popup-only timing sender checks remain unchanged.
 
-Preserve the current collector's Firefox-isolated/Chrome-page-side limits.
-A confirmed count summary remains a limited observation after transfer. Displaying durations and completion reasons side by side cannot establish
-equal interactions or conditions. A numeric tab match does not identify the document, and attachment
-order is not proof of when collection occurred relative to a manual change.
+Production source fixtures qualify the new handoff and shared timing/error tab
+binding separately from native React interaction. Private/unknown classifications
+remain simulated negative cases, with authentic-context gaps explicit in
+[qualification](evidence/2026-10-26-phase2-page-error-comparison.md). No source-page
+enumeration, broader permission, background owner or storage is added.
+
+Firefox-isolated/Chrome-page-side collector limits still apply to copied counts.
+Side-by-side durations/reasons do not establish equal interactions or conditions.
+A numeric tab match does not identify the document, and attachment order does not
+prove collection occurred after a particular inventory or manual change.
 
 ## Primary Firefox references
 

@@ -70,23 +70,31 @@ The [approved collector](plans/phase2-page-errors.md) adds a separate unlisted c
 
 The collector has a 30-second eligible window and 200-event cap, returning only two event counts, total, fixed completion reason and bounded elapsed duration. Check the monotonic deadline before counting rather than relying solely on timer scheduling. The owner validates/copies the fixed result and ignores stale generations after discard/revocation. Page-side results remain untrusted and never carry raw event payloads. Navigation means interrupted without reattachment. No background coordinator or persistence is introduced.
 
-## Approved page-error comparison design
+## Page-error comparison ownership
 
-The user selected [optional page-error attachments](plans/phase2-page-error-comparison.md)
-from completed check tabs. The user confirmed the concrete plan in Q9; essential browser feasibility
-remains required before product wiring. The donor would own current-attempt/one-use state; the investigation
-would own fixed error slots, a source ID shared with timings, generation checks
-and canonical copies. Existing timing-only and standalone check flows remain
-required regressions. In particular, timing Before must reject a different tab
-when an error attachment already established the source.
+The [approved comparison](plans/phase2-page-error-comparison.md) adds a narrow
+check-tab sender in `lib/page-error-handoff.ts`. It preserves the timing receiver's
+actual-popup boundary and the check launcher's separate bootstrap endpoint.
+`lib/page-error-check.ts` owns current-attempt identity/generation, reservation and
+one-use consumption. `lib/investigation.ts` owns fixed error slots, canonical
+copies and the numeric source ID shared by all timing/error attachments.
 
-The popup-only timing receiver cannot accept check tabs unchanged. A narrow
-candidate own-view protocol would verify the current packaged check sender,
-normal contexts, current permissions, attempt/destination identity, generation
-and slot eligibility. Metadata, acknowledgments and retained summaries must
-belong to their receiving realm. Accepted copies would outlive donor reset or
-close under the existing temporary investigation lifetime. This adds no storage
-or coordinator and makes no synchronization or capture-time ordering claim.
+Discovery returns copied identity/label/generation/side metadata. Confirmation
+resolves the selected live document again and checks routes, contexts, permissions,
+attempt, side, generation and source matching. A bounded action permit expires on
+timeout/reset/teardown. The receiver copies the summary in its realm, then performs
+only guarded private synchronous writes inside the donor reservation. The donor
+marks successful use before notifications. Lost acknowledgment cannot make an
+accepted check reusable. No foreign Window/object/function/array enters retained
+UI or investigation state.
+
+Accepted copies outlive donor reset/closure under the existing temporary
+investigation lifetime. Either permission revocation clears all observations.
+All attachment kinds must match the first accepted source tab, including timing
+Before after error Before. Attachment ordering proves no capture-time history or
+page identity. No coordinator, storage, collector or new permission is added.
+[Evidence](evidence/2026-10-26-phase2-page-error-comparison.md) separates the
+prerequisite candidate, production source fixtures, native UI and remaining gaps.
 
 ## Future diagnostics
 

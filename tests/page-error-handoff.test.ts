@@ -623,7 +623,7 @@ for (const owner of ['source', 'receiver'] as const) {
       f.close();
     });
   }
-  it(`clears only the observed ${owner} owner when its grant confirmation reports access missing`, async () => {
+  it(`rejects missing ${owner} grants while preserving the standalone check`, async () => {
     const f = await fixture();
     const selected = await f.selected();
     const api = owner === 'source' ? f.sourceApi : f.receiverApi;
@@ -632,11 +632,32 @@ for (const owner of ['source', 'receiver'] as const) {
       'success',
     );
     expect(f.investigation.getSnapshot().errorBefore).toBeNull();
-    if (owner === 'source') expect(f.check.getSnapshot().outcome).toBeNull();
-    else expect(f.investigation.getSnapshot().before).toBeNull();
+    expect(f.check.getSnapshot().outcome?.status).toBe('success');
+    if (owner === 'receiver')
+      expect(f.investigation.getSnapshot().before).toBeNull();
     f.close();
   });
 }
+
+it('keeps a completed check when inventory access was never granted, then permits an explicit retry after consent', async () => {
+  const f = await fixture();
+  f.investigation.startOver();
+  f.other.startOver();
+  const before = f.check.getSnapshot();
+  const generation = f.check.getGeneration();
+  vi.spyOn(f.sourceApi.permissions, 'contains').mockResolvedValue(false);
+  expect((await f.handoff.listDestinations()).status).toBe('unavailable');
+  expect(f.check.getSnapshot()).toBe(before);
+  expect(f.check.getGeneration()).toBe(generation);
+  expect(f.check.isAttachmentUsed()).toBe(false);
+  vi.spyOn(f.sourceApi.permissions, 'contains').mockResolvedValue(true);
+  await f.investigation.captureBefore();
+  expect((await f.handoff.attach(await f.selected(), 'before')).status).toBe(
+    'success',
+  );
+  expect(f.investigation.getSnapshot().errorBefore).toEqual(summary());
+  f.close();
+});
 
 it('rejects a getter or malformed source summary without consuming or reading raw values', async () => {
   const f = await fixture();

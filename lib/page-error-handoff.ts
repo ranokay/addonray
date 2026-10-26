@@ -150,12 +150,12 @@ function own(
     api.extension.getViews({ type: 'tab' }).includes(input)
   );
 }
-async function normal(api: PageErrorHandoffBrowser, revoked: () => void) {
+async function normal(api: PageErrorHandoffBrowser, revoked?: () => void) {
   if ((await api.tabs.getCurrent())?.incognito !== false) return false;
   const granted = await api.permissions.contains({
     permissions: ['management', 'scripting'],
   });
-  if (!granted) revoked();
+  if (!granted) revoked?.();
   return granted && (await api.tabs.getCurrent())?.incognito === false;
 }
 
@@ -275,7 +275,9 @@ export function createPageErrorHandoff(
     own(api, target, '/investigation.html');
   const source: SenderEndpoint = {
     async normal() {
-      return current() && (await normal(api, check.clear)) && current();
+      // A standalone check may never have had inventory access. Missing transfer
+      // grants leave it readable; the check's removal listener owns revocation.
+      return current() && (await normal(api)) && current();
     },
     // A successful check already validated its original source's normal context.
     // Do not inspect that source again when transferring a past observation.

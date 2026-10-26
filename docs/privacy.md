@@ -67,23 +67,21 @@ Clear/Start over, either optional-permission revocation, and owner teardown disc
 
 Firefox observation remains isolated. Chrome's new observer shares the page execution environment and its results can be suppressed or altered by that page. It receives no extension-only API authority. Page-visible control data cannot authorize browser actions; validate fixed count/status results and keep extension control in its isolated/visible owners. This boundary does not claim hostile-page tamper-proof observation or create a cross-extension console feed. Normal-window classification remains mandatory. The existing inventory and timing lifetimes continue independently.
 
-## Selected page-error attachment design
+## Page-error attachment retention
 
-The [approved comparison plan](plans/phase2-page-error-comparison.md) would explicitly
-extend the current check-only retention contract. After selected and confirmed
-transfer, the investigation would own a canonical copy of counts, duration and
-completion reason, plus its shared numeric source-tab binding. Donor Clear/reset
-or closure would not retract that accepted copy. Investigation reset, either
-optional-permission revocation, and destination teardown would discard it with
-all other investigation data.
+The [approved comparison](plans/phase2-page-error-comparison.md) extends the
+check-only retention contract through explicit destination, side and confirmation.
+An investigation owns a canonical copy of counts, duration and completion reason,
+plus its source-tab binding shared with timings. Donor Clear/reset or closure
+does not retract that copy. Investigation reset, either optional-permission
+revocation and destination teardown discard it with all other investigation data.
 
-Each completed check would attach successfully once, with discovery limited to
+Each completed check attaches successfully once. Discovery returns only bounded
 normal own-view metadata. No raw event details, URL/title, page content, absolute
-time, storage, broadcast payload or extra permission is proposed. Timing and
-error attachments would share one source tab without claiming the same page or
-conditions. The user approved this retention boundary in Q9. New transport/lifetime
-feasibility and implementation remain required; this is not current product
-behavior.
+time, storage, broadcast summary or extra permission is added. The shared numeric
+tab ID does not verify the same page or conditions. The user approved this
+boundary in Q9. [Qualification](evidence/2026-10-26-phase2-page-error-comparison.md)
+keeps source fixtures, native observations and private-context gaps separate.
 
 ## Reports and companion
 

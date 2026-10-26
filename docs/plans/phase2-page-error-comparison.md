@@ -5,6 +5,7 @@ and signed private delivery on 2026-10-24. The user confirmed Q9 after settling
 Q1–Q8 in the [comparison interview](../decisions.md#page-error-comparison-interview).
 Essential new handoff/lifetime gates must pass before product wiring; an essential
 failure requires a revised plan without wider permissions or a coordinator.
+The slice is now implemented privately. [Production qualification and remaining gaps](../evidence/2026-10-26-phase2-page-error-comparison.md) record the subsequent delivery.
 The standalone collector remains qualified at `d56b56f`; its
 [evidence](../evidence/2026-10-24-phase2-page-errors.md) does not qualify this new
 transfer or the shared source-binding rule.
@@ -96,7 +97,11 @@ navigation history or new collector is added to manufacture that claim.
 | P2D-18 | Independently review production, probes and evidence; pass mise run check and the Firefox/Chrome tasks. Qualify clean source rebuilds, local minimum/ESR/current Firefox and pinned Chrome, all six hosted Firefox/two Chrome jobs, and each head's browser/rebuild reports. Observe native unmodified select/confirm, retained copies, reset/close and actual revocation on available macOS targets. Preserve skipped or unavailable cases explicitly. |
 | P2D-19 | Sign and push only to private ranokay/addonray main, record exact source/artifact/browser/authority/results/cleanup and update the resumption checklist. No issue/label, license, public visibility, store publication, new browser/manifest or companion change. Stop after these attachments.                                                                                                                                                         |
 
-## Current source facts and candidate design
+## Source facts before implementation
+
+The following facts describe the baseline used to design the candidate. The
+implemented ownership and guard changes are documented in the architecture and
+qualification evidence.
 
 `lib/investigation.ts` owns fixed inventories, optional timings, a manual
 assessment and a source ID that currently binds the timing pair. Its timing
