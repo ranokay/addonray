@@ -70,6 +70,24 @@ The [approved collector](plans/phase2-page-errors.md) adds a separate unlisted c
 
 The collector has a 30-second eligible window and 200-event cap, returning only two event counts, total, fixed completion reason and bounded elapsed duration. Check the monotonic deadline before counting rather than relying solely on timer scheduling. The owner validates/copies the fixed result and ignores stale generations after discard/revocation. Page-side results remain untrusted and never carry raw event payloads. Navigation means interrupted without reattachment. No background coordinator or persistence is introduced.
 
+## Approved page-error comparison design
+
+The user selected [optional page-error attachments](plans/phase2-page-error-comparison.md)
+from completed check tabs. The user confirmed the concrete plan in Q9; essential browser feasibility
+remains required before product wiring. The donor would own current-attempt/one-use state; the investigation
+would own fixed error slots, a source ID shared with timings, generation checks
+and canonical copies. Existing timing-only and standalone check flows remain
+required regressions. In particular, timing Before must reject a different tab
+when an error attachment already established the source.
+
+The popup-only timing receiver cannot accept check tabs unchanged. A narrow
+candidate own-view protocol would verify the current packaged check sender,
+normal contexts, current permissions, attempt/destination identity, generation
+and slot eligibility. Metadata, acknowledgments and retained summaries must
+belong to their receiving realm. Accepted copies would outlive donor reset or
+close under the existing temporary investigation lifetime. This adds no storage
+or coordinator and makes no synchronization or capture-time ordering claim.
+
 ## Future diagnostics
 
 Introduce a background coordinator only when the approved workflow requires a longer session. Define the session lifetime, navigation behavior, event bounds, stop/clear behavior, and revocation handling before building a collector. Event pages can be suspended, so durable session behavior needs deliberate design and a privacy review.

@@ -20,6 +20,8 @@ import {
 } from './page-error-fixture.mjs';
 import { checkPageErrors } from './page-error-checks.mjs';
 import { pageErrorDriverControls } from './page-error-driver-controls.mjs';
+import { preparePageErrorComparisonFixture } from './page-error-comparison-fixture.mjs';
+import { checkPageErrorComparisons } from './page-error-comparison-checks.mjs';
 import {
   checkTimings,
   prepareTimingModule,
@@ -115,6 +117,11 @@ report.pageErrorFixture = await preparePageErrorFixture(
   pageErrorDirectory,
   'firefox',
 );
+const errorComparisonDirectory = join(work, 'page-error-comparison-fixture');
+report.pageErrorComparisonFixture = await preparePageErrorComparisonFixture(
+  errorComparisonDirectory,
+  'firefox',
+);
 const timing = timingFixtures();
 const server = createServer((request, response) => {
   if (pageErrorFixtureHandler(request, response)) return;
@@ -161,6 +168,7 @@ try {
     productArtifact,
     handoffDirectory,
     pageErrorDirectory,
+    errorComparisonDirectory,
   ]) {
     await installTemporaryExtension(driver, extension);
   }
@@ -731,6 +739,24 @@ try {
       fixtureId: report.pageErrorFixture.id,
       controlHandle: pageErrorControl,
     }),
+  });
+  const comparisonUrl = await extensionUrl(
+    report.pageErrorComparisonFixture.id,
+    'comparison-probe.html',
+  );
+  const comparisonControls = pageErrorDriverControls({
+    driver,
+    browser: 'firefox',
+    fixtureUrl: comparisonUrl,
+    fixtureId: report.pageErrorComparisonFixture.id,
+    controlHandle: pageErrorControl,
+  });
+  await checkPageErrorComparisons({
+    driver,
+    fixtureUrl: comparisonUrl,
+    approveOptional: comparisonControls.approveOptional,
+    report,
+    passed,
   });
   report.result = 'passed-with-qualification-gaps';
 } catch (error) {

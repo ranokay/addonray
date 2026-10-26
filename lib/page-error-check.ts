@@ -15,6 +15,13 @@ export interface PageErrorSummary {
   observedMs: number;
 }
 
+export interface PageErrorCapture {
+  identity: string;
+  generation: number;
+  sourceTabId: number;
+  value: PageErrorSummary;
+}
+
 export type PageErrorFailure =
   | 'denied'
   | 'unsupported'
@@ -127,6 +134,8 @@ export function createPageErrorCheck(
   let sourceTabId: number | null = null;
   let generation = 0;
   let disposed = false;
+  let attachmentUsed = false;
+  let attachmentReservation: symbol | null = null;
   let controller = new AbortController();
   let snapshot: Snapshot = { phase: 'unbound', outcome: null };
   const subscribers = new Set<() => void>();
@@ -134,6 +143,8 @@ export function createPageErrorCheck(
 
   const clear = () => {
     generation += 1;
+    attachmentUsed = false;
+    attachmentReservation = null;
     controller.abort();
     controller = new AbortController();
     snapshot = {
@@ -154,11 +165,103 @@ export function createPageErrorCheck(
   };
 
   const identity = crypto.randomUUID();
+  const matchesAttachment = (
+    captureIdentity: string,
+    expectedGeneration: number,
+    tabId: number,
+  ) =>
+    !disposed &&
+    captureIdentity === identity &&
+    expectedGeneration === generation &&
+    tabId === sourceTabId &&
+    snapshot.phase === 'finished' &&
+    snapshot.outcome?.status === 'success' &&
+    !attachmentUsed;
+  const isAttachmentCurrent = (
+    captureIdentity: string,
+    expectedGeneration: number,
+    tabId: number,
+  ) =>
+    attachmentReservation === null &&
+    matchesAttachment(captureIdentity, expectedGeneration, tabId);
+
   return {
     context,
     identity,
     label: `Page-error check ${identity.slice(0, 8)}`,
     getSnapshot: () => snapshot,
+    getGeneration: () => generation,
+    isAttachmentUsed: () => attachmentUsed,
+    isAttachmentCurrent,
+    getAttachmentCapture(): PageErrorCapture | null {
+      const expectedGeneration = generation;
+      const tabId = sourceTabId;
+      const outcome = snapshot.outcome;
+      if (
+        tabId === null ||
+        outcome?.status !== 'success' ||
+        !isAttachmentCurrent(identity, expectedGeneration, tabId)
+      )
+        return null;
+      const value = copyPageErrorSummary(outcome.value);
+      if (
+        !value ||
+        snapshot.outcome !== outcome ||
+        !isAttachmentCurrent(identity, expectedGeneration, tabId)
+      )
+        return null;
+      return {
+        identity,
+        generation: expectedGeneration,
+        sourceTabId: tabId,
+        value,
+      };
+    },
+    // The callback must commit synchronously and consult its guard immediately
+    // before writing. A retained guard expires when this call returns.
+    commitAttachment(
+      captureIdentity: string,
+      expectedGeneration: number,
+      tabId: number,
+      commitDestination: (stillCurrent: () => boolean) => boolean,
+    ): boolean {
+      if (
+        typeof commitDestination !== 'function' ||
+        !isAttachmentCurrent(captureIdentity, expectedGeneration, tabId)
+      )
+        return false;
+      const outcome = snapshot.outcome;
+      const reservation = Symbol();
+      attachmentReservation = reservation;
+      const stillCurrent = () =>
+        attachmentReservation === reservation &&
+        snapshot.outcome === outcome &&
+        matchesAttachment(captureIdentity, expectedGeneration, tabId);
+      let committed: boolean;
+      try {
+        committed = commitDestination(stillCurrent) === true;
+      } catch {
+        return false;
+      } finally {
+        if (attachmentReservation === reservation) attachmentReservation = null;
+      }
+      if (
+        committed &&
+        snapshot.outcome === outcome &&
+        matchesAttachment(captureIdentity, expectedGeneration, tabId)
+      ) {
+        attachmentUsed = true;
+        snapshot = { ...snapshot };
+        for (const subscriber of [...subscribers]) {
+          try {
+            subscriber();
+          } catch {
+            // Acceptance has committed; a view subscriber cannot make it reusable.
+          }
+        }
+      }
+      return committed;
+    },
     bindSource(tabId: number) {
       if (
         disposed ||

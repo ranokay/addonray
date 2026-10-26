@@ -28,6 +28,14 @@ The approved [optional timing comparison](plans/phase2-timing-comparison.md) ext
 
 The approved [current-document page-error check](plans/phase2-page-errors.md) observes two JavaScript event kinds after an explicit Start, with one counts-only summary per separate check tab. Its 30-second/200-event limits, Firefox-isolated/Chrome-page-side split, and close/revocation/navigation cleanup require their own feasibility and qualification. Basic visibility evidence is separate from product wiring, native consent/UI, and the new collector's overhead. Cross-load recording and comparison attachments remain later decisions.
 
+The user selected [optional page-error comparisons](plans/phase2-page-error-comparison.md)
+as the next planning focus. Q1–Q8 are settled and the user confirmed Q9, authorizing feasibility-first
+implementation, tests, independent review and signed private delivery. Essential
+transport/lifetime feasibility remains pending before product wiring. The proposed handoff
+extends completed check summaries into investigations without adding a collector,
+error deltas, rates, history or export. Timing and error attachments would share
+one source-tab binding, with independent copies and fixed ordered slots.
+
 ## Phase 3: user-controlled reports and better comparisons
 
 Add previewed, minimized export and reproducible comparison records. Decide what may persist and for how long before introducing history. Explore comparison guidance without automatic changes to other extensions.

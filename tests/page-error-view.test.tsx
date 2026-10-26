@@ -4,6 +4,7 @@ import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { browser } from './browser';
 import { App } from '../entrypoints/page-error/App';
 import { getBrowserContext } from '../lib/browser-target';
+import type { PageErrorHandoff } from '../lib/page-error-handoff';
 import {
   createPageErrorCheck,
   pageErrorFailureMessages,
@@ -37,7 +38,10 @@ function fixture(target: 'firefox' | 'chrome' = 'firefox') {
     driver,
     result,
     observing: () => ready(),
-    markup: () => renderToStaticMarkup(<App check={check} />),
+    markup: (handoff?: PageErrorHandoff) =>
+      renderToStaticMarkup(
+        <App check={check} {...(handoff ? { handoff } : {})} />,
+      ),
   };
 }
 
@@ -243,4 +247,124 @@ it('removes a final summary on Start over and returns to an explicit ready state
   expect(markup).not.toContain('id="page-error-reset"');
   expect(button(markup, 'page-error-start')).not.toContain('disabled');
   expect(current.driver.start).toHaveBeenCalledTimes(1);
+});
+
+function handoffFixture(): PageErrorHandoff {
+  return {
+    listDestinations: vi.fn<PageErrorHandoff['listDestinations']>(async () => ({
+      status: 'success',
+      value: [],
+    })),
+    attach: vi.fn<PageErrorHandoff['attach']>(async () => ({
+      status: 'success',
+      value: null,
+    })),
+    dispose: vi.fn(),
+  };
+}
+
+it.each(['firefox', 'chrome'] as const)(
+  'offers optional explicit discovery only after a confirmed %s summary, with no automatic selection or calls',
+  async (target) => {
+    const current = fixture(target);
+    const handoff = handoffFixture();
+    expect(current.markup(handoff)).not.toContain(
+      'id="page-error-destinations"',
+    );
+    current.check.bindSource(17);
+    expect(current.markup(handoff)).not.toContain(
+      'id="page-error-destinations"',
+    );
+    const pending = current.check.start();
+    current.observing();
+    expect(current.markup(handoff)).not.toContain(
+      'id="page-error-destinations"',
+    );
+    current.result.resolve({ status: 'success', value: summary() });
+    await pending;
+    const markup = current.markup(handoff);
+    expect(button(markup, 'page-error-destinations')).not.toContain('disabled');
+    expect(markup).toContain('Attach to investigation');
+    expect(markup).toContain('id="page-error-attachment-status" role="status"');
+    expect(markup).toContain('One successful attachment per completed check');
+    expect(markup).toContain('An accepted copy stays in its investigation');
+    expect(markup).not.toContain('<select');
+    expect(markup).not.toContain('id="attach-page-error"');
+    expect(handoff.listDestinations).not.toHaveBeenCalled();
+    expect(handoff.attach).not.toHaveBeenCalled();
+    expect(current.driver.start).toHaveBeenCalledTimes(1);
+    expect(current.driver.stop).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  summary(),
+  summary({ finish: 'timeout', observedMs: 30_000 }),
+  summary({ scriptErrors: 199, total: 200, finish: 'limit' }),
+])(
+  'offers attachment for every confirmed completion kind without replacing its summary',
+  async (value) => {
+    const current = fixture();
+    current.check.bindSource(17);
+    const pending = current.check.start();
+    current.result.resolve({ status: 'success', value });
+    await pending;
+    const markup = current.markup(handoffFixture());
+    expect(markup).toContain('id="page-error-destinations"');
+    expect(markup).toContain('id="page-error-total">' + value.total + '</dd>');
+  },
+);
+
+it.each(['interrupted', 'denied', 'invalid-result'] as const)(
+  'never offers attachment for a %s observation',
+  async (status) => {
+    const current = fixture();
+    const handoff = handoffFixture();
+    current.check.bindSource(17);
+    const pending = current.check.start();
+    current.result.resolve({ status });
+    await pending;
+    expect(current.markup(handoff)).not.toContain(
+      'id="page-error-destinations"',
+    );
+    expect(current.markup(handoff)).not.toContain(
+      'Optional investigation attachment',
+    );
+    expect(handoff.listDestinations).not.toHaveBeenCalled();
+  },
+);
+
+it('keeps a used check readable and prevents fresh discovery even when no acknowledgment UI remains', async () => {
+  const current = fixture();
+  current.check.bindSource(17);
+  const pending = current.check.start();
+  current.result.resolve({ status: 'success', value: summary() });
+  await pending;
+  const capture = current.check.getAttachmentCapture();
+  if (!capture) throw new Error('Expected completed attachment capture');
+  expect(
+    current.check.commitAttachment(
+      capture.identity,
+      capture.generation,
+      capture.sourceTabId,
+      (stillCurrent) => stillCurrent(),
+    ),
+  ).toBe(true);
+  const handoff = handoffFixture();
+  const markup = current.markup(handoff);
+  expect(markup).toContain('id="page-error-total">3</dd>');
+  expect(markup).toContain(
+    'This completed check has been used and cannot be attached again',
+  );
+  expect(markup).toContain(
+    'Review the chosen investigation; it may contain the copy',
+  );
+  expect(markup).not.toContain('id="page-error-destinations"');
+  expect(markup).not.toContain('<select');
+  expect(button(markup, 'page-error-reset')).not.toContain('disabled');
+  expect(handoff.listDestinations).not.toHaveBeenCalled();
+  current.check.startOver();
+  expect(current.markup(handoff)).not.toContain(
+    'id="page-error-attachment-status"',
+  );
 });

@@ -4,6 +4,7 @@ import { browser } from 'wxt/browser';
 import { getBrowserContext } from '../../lib/browser-target';
 import { createInvestigation } from '../../lib/investigation';
 import { installInvestigationTimingHandoff } from '../../lib/timing-handoff';
+import { installInvestigationErrorHandoff } from '../../lib/page-error-handoff';
 import { App } from './App';
 import './style.css';
 
@@ -16,10 +17,16 @@ const removeTimingHandoff = installInvestigationTimingHandoff(
   investigation,
   window,
 );
+const removeErrorHandoff = installInvestigationErrorHandoff(
+  browser,
+  investigation,
+  window,
+);
 window.addEventListener(
   'pagehide',
   () => {
     removeTimingHandoff();
+    removeErrorHandoff();
     investigation.startOver();
   },
   { once: true },

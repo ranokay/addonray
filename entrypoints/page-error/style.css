@@ -116,7 +116,8 @@ button:disabled {
   cursor: default;
 }
 button:focus-visible,
-summary:focus-visible {
+summary:focus-visible,
+select:focus-visible {
   outline: 3px solid #c4e1ff;
   outline-offset: 4px;
 }
@@ -218,5 +219,43 @@ details p {
     align-items: flex-start;
     flex-direction: column;
     gap: 12px;
+  }
+}
+
+.error-attachment-selection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  max-width: 600px;
+  margin-top: 22px;
+}
+.error-attachment-selection label {
+  margin-top: 8px;
+  color: #c2e8d2;
+  font-size: 14px;
+}
+.error-attachment-selection select {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: #f1f1f1;
+  background: #191919;
+  border: 1px solid #707070;
+  border-radius: 7px;
+}
+.error-attachment-selection button {
+  justify-self: start;
+  margin-top: 10px;
+}
+#page-error-attachment-status {
+  color: #c7e4d4;
+}
+@media (forced-colors: active) {
+  button,
+  section,
+  select {
+    border: 1px solid ButtonText;
   }
 }

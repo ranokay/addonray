@@ -58,6 +58,8 @@ for (const target of ['firefox', 'chrome']) {
       assessment: null,
       timingBefore: null,
       timingAfter: null,
+      errorBefore: null,
+      errorAfter: null,
       afterStarted: false,
     });
     expect(request).not.toHaveBeenCalled();
@@ -113,6 +115,8 @@ for (const target of ['firefox', 'chrome']) {
       assessment: null,
       timingBefore: null,
       timingAfter: null,
+      errorBefore: null,
+      errorAfter: null,
       afterStarted: true,
     });
     current.setAssessment('better');
@@ -133,6 +137,8 @@ for (const target of ['firefox', 'chrome']) {
       assessment: null,
       timingBefore: null,
       timingAfter: null,
+      errorBefore: null,
+      errorAfter: null,
       afterStarted: false,
     });
     await current.captureBefore();
@@ -228,6 +234,8 @@ for (const target of ['firefox', 'chrome']) {
       assessment: null,
       timingBefore: null,
       timingAfter: null,
+      errorBefore: null,
+      errorAfter: null,
       afterStarted: false,
     });
     unsubscribe();
@@ -252,6 +260,8 @@ for (const target of ['firefox', 'chrome']) {
       assessment: null,
       timingBefore: null,
       timingAfter: null,
+      errorBefore: null,
+      errorAfter: null,
       afterStarted: false,
     });
     unsubscribe();
@@ -280,6 +290,8 @@ for (const target of ['firefox', 'chrome']) {
       assessment: null,
       timingBefore: null,
       timingAfter: null,
+      errorBefore: null,
+      errorAfter: null,
       afterStarted: false,
     });
   });

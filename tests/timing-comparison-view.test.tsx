@@ -98,7 +98,7 @@ it('explains the closed Before timing slot after the After inventory has started
       afterStarted
     />,
   );
-  expect(html).toContain('This attempt remains inventory-only');
+  expect(html).toContain('This attempt has no timing pair');
   expect(html).toContain('Choose Start over to begin a timing comparison');
   expect(html).toContain(
     'repeat the Before inventory and Before timing sequence',

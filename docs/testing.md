@@ -163,3 +163,39 @@ assertions against the unmodified product, including actual management and
 scripting revocation, then closes its disposable browser/server. Its JSON report
 and any CUA observations are separate evidence. It contains no physical callback
 instrumentation and does not declare a usability verdict.
+
+## Optional page-error attachment checks
+
+The [P2D plan](plans/phase2-page-error-comparison.md) adds a separate own-check
+sender and fixed error slots. Model tests cover all completion kinds, exact
+summary validation without payload getters, canonical copying, shared timing/error
+source binding in both orders, ordering, one-use reservation, reset/revocation,
+late work and lost acknowledgments. Handoff tests use separate fake view APIs and
+foreign-realm metadata. React server rendering tests cover visible states and
+wording; they do not establish interactive selection or native usability.
+
+Both browser protocols install a separately named comparison source fixture.
+Its six transpiled production modules and generated outputs have recorded hashes.
+Inventories, completed-summary driver results and timing acceptance are synthetic;
+actual own-view endpoints perform the transfer. Required management is a disclosed
+automation seam on both targets. Scripting is requested and removed using real
+browser APIs. This does not qualify optional-management consent/removal, the
+collector, the toolbar bootstrap or React interaction. Existing standalone and
+popup timing protocols continue independently.
+
+The comparison fixture checks normal contexts, copied metadata, selected-only
+acceptance, all finish kinds, shared binding, fixed slots, concurrency, stale
+reset/reload/close, five-second timeout cancellation, lost acknowledgment,
+independent copies and actual scripting revocation. Scheduling wrappers delay
+invocation or acknowledgment around unchanged production functions. Private,
+unknown and failed classifications remain explicit simulations. Every owned tab
+must close and the original control handle must be restored. A failed cleanup
+fails the run.
+
+Native macOS qualification uses the unmodified product's completed check,
+blank destination/side selectors, explicit confirmation, retained donor summary,
+donor close/reset, populated investigation and reset/revocation. Record available
+Firefox and Chrome separately. No native/platform, private-context or consent
+claim follows from the source fixture. Existing 1 KiB and synchronous 5 ms p95
+collector regression budgets remain unchanged; transfer latency has no new
+performance promise.

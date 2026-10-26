@@ -66,6 +66,24 @@ The popup binds only the original tab's numeric ID, without a URL/title or autom
 
 The approved new bounds are 1 KiB per final summary and measured 5 ms p95 for synchronous setup, event handling, and finalization on controlled fixtures with clock limitations recorded. Actual source bootstrap, selected-world control, cleanup on owner teardown/revocation, navigation/BFCache behavior, and the full duration/count limits must pass browser feasibility before product wiring. A failed essential gate requires a revised plan rather than wider authority. Preliminary visibility fixtures do not qualify the production check.
 
+## Selected optional page-error comparison design
+
+The user settled Q1–Q8 for [P2D-01 through P2D-19](plans/phase2-page-error-comparison.md).
+The user confirmed Q9 and approved feasibility-first implementation and private
+delivery on 2026-10-24. This is not yet an implemented or browser-qualified
+capability. A confirmed check would attach once through
+explicit investigation/side selection and confirmation. Stop, timeout and capped
+summaries qualify; failed or in-flight observations do not.
+
+Each side is fixed. Before attaches before After inventory begins; After requires
+its successful inventory and the Before error attachment. All timing and error
+attachments share one source-tab ID established by the first attachment. Display
+counts, durations and completion reasons side by side without arithmetic error
+differences, rates or automatic assessments. The investigation owns a copy after
+donor reset/close, and its existing reset/revocation/teardown clears all data.
+Transport feasibility, implementation, independent review, tests and qualified
+private delivery remain pending under that approval.
+
 ## Out of scope for Phase 0
 
 Continuous recording, network collection, page-world instrumentation, console interception, automatic culprit ranking, automated extension state changes, theme management, report export, persistent history, mobile support, additional Chromium browsers, accounts, sync, AMO publication, and a native companion implementation.

@@ -5,6 +5,8 @@ import {
   type PageErrorCheck,
   type PageErrorSummary,
 } from '../../lib/page-error-check';
+import type { PageErrorHandoff } from '../../lib/page-error-handoff';
+import { PageErrorAttachment } from './PageErrorAttachment';
 
 type State = ReturnType<PageErrorCheck['getSnapshot']>;
 
@@ -43,7 +45,13 @@ function statusMessage(state: State) {
     : pageErrorFailureMessages[state.outcome.status];
 }
 
-export function App({ check }: { check: PageErrorCheck }) {
+export function App({
+  check,
+  handoff,
+}: {
+  check: PageErrorCheck;
+  handoff?: PageErrorHandoff;
+}) {
   const state = useSyncExternalStore(
     check.subscribe,
     check.getSnapshot,
@@ -80,7 +88,8 @@ export function App({ check }: { check: PageErrorCheck }) {
         </p>
         <p>
           Clear results discards this attempt. Stop keeps confirmed partial
-          counts. Other checks, investigations and the popup are independent.
+          counts. Other checks, investigations and the popup are independent. An
+          accepted investigation copy survives clearing or closing this check.
         </p>
       </aside>
 
@@ -170,6 +179,15 @@ export function App({ check }: { check: PageErrorCheck }) {
         </section>
       ) : null}
 
+      {summary && handoff ? (
+        <PageErrorAttachment
+          key={check.getGeneration()}
+          check={check}
+          generation={check.getGeneration()}
+          handoff={handoff}
+        />
+      ) : null}
+
       {state.phase === 'finished' ? (
         <div className="reset-attempt">
           <button
@@ -222,7 +240,8 @@ export function App({ check }: { check: PageErrorCheck }) {
           <p>
             The observation window is bounded even if browser scheduling delays
             cleanup or delivery. Revoking inventory or page-inspection access
-            clears this entire check. Before/After comparisons remain separate.
+            clears this entire check and affected investigations. Attaching a
+            confirmed result starts no new collection.
           </p>
         </details>
       </section>

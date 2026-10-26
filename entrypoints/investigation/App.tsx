@@ -9,6 +9,7 @@ import {
 import type { Result } from '../../lib/inspector';
 import type { Investigation } from '../../lib/investigation';
 import { TimingComparison } from './TimingComparison';
+import { PageErrorComparison } from './PageErrorComparison';
 
 type InvestigationState = ReturnType<Investigation['getSnapshot']>;
 
@@ -187,7 +188,8 @@ export function InvestigationView({
           <p className="metadata">
             AddonRay does not change extensions or reload the page. Timings
             require a separate deliberate popup capture. This tab does not
-            verify which page you tested. No collection runs between captures.
+            verify which page you tested. This investigation starts no
+            collection between captures.
           </p>
         </section>
 
@@ -217,6 +219,15 @@ export function InvestigationView({
         hasBeforeInventory={before !== null}
         hasAfterInventory={after !== null}
         afterStarted={state.afterStarted}
+      />
+
+      <PageErrorComparison
+        before={state.errorBefore}
+        after={state.errorAfter}
+        hasBeforeInventory={before !== null}
+        hasAfterInventory={after !== null}
+        afterStarted={state.afterStarted}
+        context={context}
       />
 
       {changes !== null && (

@@ -61,7 +61,7 @@ export function TimingComparison({
   if (hasBeforeInventory) {
     if (before === null) {
       guidance = afterStarted
-        ? 'Before timing was not attached before the After inventory started. This attempt remains inventory-only. Choose Start over to begin a timing comparison.'
+        ? 'Before timing was not attached before the After inventory started. This attempt has no timing pair. Choose Start over to begin a timing comparison.'
         : 'For a timing comparison, inspect the page through the popup and attach Before timing before starting the After inventory.';
     } else if (!hasAfterInventory) {
       guidance =

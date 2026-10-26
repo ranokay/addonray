@@ -19,6 +19,8 @@ import {
 } from './page-error-fixture.mjs';
 import { checkPageErrors } from './page-error-checks.mjs';
 import { pageErrorDriverControls } from './page-error-driver-controls.mjs';
+import { preparePageErrorComparisonFixture } from './page-error-comparison-fixture.mjs';
+import { checkPageErrorComparisons } from './page-error-comparison-checks.mjs';
 import {
   checkTimings,
   prepareTimingModule,
@@ -72,6 +74,11 @@ const pageErrorFixture = await preparePageErrorFixture(
   pageErrorDirectory,
   'chrome',
 );
+const errorComparisonDirectory = join(work, 'page-error-comparison-fixture');
+const pageErrorComparisonFixture = await preparePageErrorComparisonFixture(
+  errorComparisonDirectory,
+  'chrome',
+);
 const timing = timingFixtures();
 const server = createServer((request, response) => {
   if (pageErrorFixtureHandler(request, response)) return;
@@ -106,6 +113,7 @@ const report = {
     nativeConsentExercised: false,
   },
   pageErrorFixture,
+  pageErrorComparisonFixture,
   checks: [],
   gaps: [
     'Inventory interface checks use a separately named fixture with management/scripting pre-granted as required permissions. They do not exercise production optional-management consent.',
@@ -130,6 +138,10 @@ try {
   const controllerId = await installChromeExtension(cdp, controller);
   const uiId = await installChromeExtension(cdp, uiDirectory);
   const pageErrorId = await installChromeExtension(cdp, pageErrorDirectory);
+  const errorComparisonId = await installChromeExtension(
+    cdp,
+    errorComparisonDirectory,
+  );
   const productUrl = `chrome-extension://${productId}/popup.html`;
   const uiUrl = `chrome-extension://${uiId}/popup.html`;
   const productInvestigationUrl = `chrome-extension://${productId}/investigation.html`;
@@ -656,6 +668,12 @@ try {
       fixtureId: pageErrorId,
       controlHandle: pageErrorControl,
     }),
+  });
+  await checkPageErrorComparisons({
+    driver,
+    fixtureUrl: `chrome-extension://${errorComparisonId}/comparison-probe.html`,
+    report,
+    passed,
   });
   report.result = 'passed-with-qualification-gaps';
 } catch (error) {

@@ -113,3 +113,50 @@ The user selected one final summary per attempt, with counts shown when observat
 The user accepted the browser-specific execution choice: use an isolated observer on Firefox and a page-side observer on Chrome, as indicated by the controlled visibility tests. Chrome pages can interfere with that observer or its counts, so the UI must explain this limitation. The choice adds no browser permission and authorizes no raw error details. Control/cleanup, consent, privacy, overhead, and production qualification remain required. [ADR 0004](adr/0004-page-error-execution-worlds.md) records the trade-off; the [concrete plan](plans/phase2-page-errors.md) defines the implementation and qualification gates.
 
 The user confirmed the concrete plan and authorized feasibility-first implementation, tests, independent review, and a signed push to private ranokay/addonray on 2026-10-24. This includes a 1 KiB summary limit and a measured 5 ms p95 budget for synchronous setup, event handling, and finalization. Source binding, existing-connection cleanup on owner close/revocation, navigation, and the actual duration/count limits must pass browser feasibility before product wiring. An essential failure requires a revised plan, without new permissions or a background coordinator.
+
+## Page-error comparison interview
+
+The user selected optional Before/After page-error counts in the existing
+investigation tabs as the next planning focus. Each observation stays deliberate,
+temporary and counts-only. No automatic extension changes or causal verdict is
+introduced. Previewed report export remains a separate decision.
+
+The user chose an explicit Attach to investigation action on a completed check.
+It will require selecting the investigation and Before/After side, followed by
+confirmation. Inventory-only and timing-only comparisons keep working. The
+existing timing handoff accepts only popup senders, while page-error checks
+currently have no attachment contract. This new path needs its own browser
+feasibility and qualification before implementation.
+
+Any confirmed summary may be attached, including manual Stop, the 30-second
+timeout and the 200-event cap. Denied, interrupted, cancelled and invalid
+observations are ineligible. The comparison shows Before/After counts,
+observation durations and completion reasons side by side. It adds no arithmetic
+count differences, automatic improvement rating or rate calculation. The
+existing manual page assessment remains separate, and neither display identifies
+a culprit.
+
+The user accepted the four remaining design rules together. Each side holds one
+fixed error attachment. Before must attach before After inventory capture
+starts; After requires its successful inventory and the Before error attachment.
+Start over is required to replace attachments.
+
+All timing and error attachments in an investigation must share the numeric
+source-tab ID established by its first attachment. No URL/title is collected;
+a matching tab does not verify the same page or document. This intentionally
+tightens the timing Before rule when an error attachment established the source
+first, while preserving timing-only comparisons.
+
+Each completed check can attach successfully once. Its local result remains
+visible until that check resets or closes. The investigation receives an
+independent copy that survives donor reset or close. Investigation Start over,
+either optional-permission revocation, or destination close/reload discards the
+whole investigation. Failed or stale transfers preserve existing observations.
+
+The [concrete plan](plans/phase2-page-error-comparison.md) defines the acceptance
+criteria and feasibility gates. Independent read-only planning review found no
+material issue; no new browser execution was performed. The user then confirmed Q9 and authorized feasibility-first implementation,
+tests, independent review and a signed push to private ranokay/addonray on
+2026-10-24. Essential new handoff and lifetime behavior must pass browser
+feasibility before product wiring. A failed essential gate returns to a revised
+plan without new permissions, storage, a background process or a collector.

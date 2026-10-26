@@ -7,6 +7,10 @@ import {
 } from './inspector';
 import type { BrowserContext } from './browser-target';
 import {
+  copyPageErrorSummary,
+  type PageErrorSummary,
+} from './page-error-check';
+import {
   pageAssessments,
   type InventorySnapshot,
   type PageAssessment,
@@ -19,6 +23,8 @@ interface Snapshot {
   assessment: PageAssessment | null;
   timingBefore: TimingSnapshot | null;
   timingAfter: TimingSnapshot | null;
+  errorBefore: PageErrorSummary | null;
+  errorAfter: PageErrorSummary | null;
   afterStarted: boolean;
 }
 
@@ -30,6 +36,8 @@ function emptySnapshot(): Snapshot {
     assessment: null,
     timingBefore: null,
     timingAfter: null,
+    errorBefore: null,
+    errorAfter: null,
     afterStarted: false,
   };
 }
@@ -45,6 +53,19 @@ export function createInvestigation(
   let controller = new AbortController();
   const subscribers = new Set<() => void>();
   const notify = () => subscribers.forEach((subscriber) => subscriber());
+  const matchesSource = (tabId: number) =>
+    Number.isSafeInteger(tabId) &&
+    tabId >= 0 &&
+    (sourceTabId === null || sourceTabId === tabId);
+  const eligible = (kind: 'timing' | 'error', slot: 'before' | 'after') =>
+    !snapshot.busy &&
+    snapshot.before?.status === 'success' &&
+    (slot === 'before'
+      ? !snapshot.afterStarted &&
+        !snapshot[kind === 'timing' ? 'timingBefore' : 'errorBefore']
+      : snapshot.after?.status === 'success' &&
+        !!snapshot[kind === 'timing' ? 'timingBefore' : 'errorBefore'] &&
+        !snapshot[kind === 'timing' ? 'timingAfter' : 'errorAfter']);
 
   const startOver = () => {
     controller.abort();
@@ -102,17 +123,68 @@ export function createInvestigation(
     label: `Investigation ${identity.slice(0, 8)}`,
     getGeneration: () => generation,
     timingSides() {
-      const sides: Array<'before' | 'after'> = [];
-      if (snapshot.busy || snapshot.before?.status !== 'success') return sides;
-      if (!snapshot.afterStarted && !snapshot.timingBefore)
-        sides.push('before');
-      if (
-        snapshot.after?.status === 'success' &&
-        snapshot.timingBefore &&
-        !snapshot.timingAfter
-      )
-        sides.push('after');
-      return sides;
+      return (['before', 'after'] as const).filter((side) =>
+        eligible('timing', side),
+      );
+    },
+    errorSides() {
+      return (['before', 'after'] as const).filter((side) =>
+        eligible('error', side),
+      );
+    },
+    attachError(
+      slot: 'before' | 'after',
+      tabId: number,
+      input: unknown,
+      expectedGeneration: number,
+      commitSource: (commitDestination: () => boolean) => boolean,
+    ): Result<null> {
+      const current = () =>
+        expectedGeneration === generation &&
+        eligible('error', slot) &&
+        matchesSource(tabId);
+      if (!current())
+        return {
+          status: 'error',
+          reason:
+            'That error side changed, is filled, or requires the same browser tab. Discover destinations again.',
+        };
+      const summary = copyPageErrorSummary(input);
+      if (!summary || !current())
+        return {
+          status: 'error',
+          reason: 'The error attachment is invalid or no longer available.',
+        };
+      let accepting = true;
+      let committed = false;
+      try {
+        commitSource(() => {
+          if (!accepting || committed || !current()) return false;
+          // Only private writes occur here. Source consumption precedes notifications.
+          sourceTabId = tabId;
+          snapshot = {
+            ...snapshot,
+            [slot === 'before' ? 'errorBefore' : 'errorAfter']: summary,
+          };
+          committed = true;
+          return true;
+        });
+      } catch {
+        // A dead sender cannot turn an already accepted copy into another transfer.
+      } finally {
+        accepting = false;
+      }
+      if (!committed)
+        return {
+          status: 'cancelled',
+          reason: 'This check or investigation changed. Choose again.',
+        };
+      try {
+        notify();
+      } catch {
+        /* Acceptance must survive a subscriber failure. */
+      }
+      return { status: 'success', value: null };
     },
     attachTiming(
       slot: 'before' | 'after',
@@ -127,32 +199,25 @@ export function createInvestigation(
           reason:
             'This investigation was reset. Choose its current destination again.',
         };
-      const eligible =
-        !snapshot.busy &&
-        snapshot.before?.status === 'success' &&
-        (slot === 'before'
-          ? !snapshot.afterStarted && !snapshot.timingBefore
-          : snapshot.after?.status === 'success' &&
-            !!snapshot.timingBefore &&
-            !snapshot.timingAfter);
-      if (!eligible)
+      if (!eligible('timing', slot))
         return {
           status: 'error',
           reason:
             'That timing side is unavailable or already filled. Start over for another attempt.',
         };
-      if (
-        !Number.isSafeInteger(tabId) ||
-        tabId < 0 ||
-        (slot === 'after' && tabId !== sourceTabId)
-      )
+      if (!matchesSource(tabId))
         return {
           status: 'error',
           reason:
-            'Capture After timing from the same browser tab as Before. Its URL and title are not collected.',
+            'Capture timings from the same browser tab as the existing attachments. Its URL and title are not collected.',
         };
       const timings = copyTimingSnapshot(input);
-      if (!timings)
+      if (
+        !timings ||
+        expectedGeneration !== generation ||
+        !eligible('timing', slot) ||
+        !matchesSource(tabId)
+      )
         return {
           status: 'error',
           reason: 'The timing attachment is invalid or unavailable.',
@@ -163,12 +228,16 @@ export function createInvestigation(
           reason:
             'The page capture was cleared, replaced, or already attached.',
         };
-      if (expectedGeneration !== generation)
+      if (
+        expectedGeneration !== generation ||
+        !eligible('timing', slot) ||
+        !matchesSource(tabId)
+      )
         return {
           status: 'cancelled',
           reason: 'This investigation was cleared.',
         };
-      if (slot === 'before') sourceTabId = tabId;
+      sourceTabId = tabId;
       snapshot = {
         ...snapshot,
         [slot === 'before' ? 'timingBefore' : 'timingAfter']: timings,

@@ -48,6 +48,10 @@ _Avoid_: Synchronized capture, automatic measurement.
 A deliberate, bounded observation of JavaScript error and unhandled-rejection events while the user reproduces a page problem. It reports counts with visibility limits, rather than a diagnosis.
 _Avoid_: Console feed, complete error audit, culprit detector.
 
+**Page-error attachment**:
+A confirmed page-error summary deliberately added to one side of an investigation. It is a separate observation from that side's inventory and timing data.
+_Avoid_: Synchronized capture, causal evidence, error-rate measurement.
+
 **Session**:
 The lifetime of the visible investigation and its temporary diagnostic data.
 _Avoid_: Browsing history, retained report.

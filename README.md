@@ -68,5 +68,21 @@ page titles, and cannot identify a responsible extension.
 Only verified normal windows participate. Firefox's observer stays isolated;
 Chrome's runs with the page, which can interfere with its counts. Start over,
 Clear, permission revocation and owner teardown discard results. Reload loses
-the source binding. Existing Before/After investigations remain separate. See
+the source binding. Each view keeps its own temporary data. See
 [qualification and remaining gaps](docs/evidence/2026-10-24-phase2-page-errors.md).
+
+## Optional page-error comparisons
+
+In a completed check, choose Attach to investigation. Select its label and an
+error-count side, then confirm. Attach Before before starting After inventory;
+attach After only after its inventory and the Before error attachment exist.
+Each completed check attaches successfully once. Its summary stays readable.
+
+The investigation owns a copy after the check resets or closes. All timing and
+error attachments use the same browser tab, without collecting its URL/title or
+proving that it still contains the same page. Start over in the investigation,
+permission revocation, reload, close or unloading discards all its observations.
+Counts, durations and completion reasons appear side by side. Different intervals
+or interactions prevent automatic error-rate or causal comparisons. See the
+[approved scope](docs/plans/phase2-page-error-comparison.md) and
+[current qualification](docs/status.md).

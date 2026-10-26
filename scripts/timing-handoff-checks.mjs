@@ -511,7 +511,7 @@ export async function checkTimingHandoff({
           return Boolean(
             view?.document
               .querySelector('[data-testid="timing-comparison-status"]')
-              ?.textContent.includes('inventory-only'),
+              ?.textContent.includes('Before timing was not attached'),
           );
         }, firstLabel),
       10000,

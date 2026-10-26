@@ -96,6 +96,20 @@ Scratch fixtures passed 11 checks on each pinned macOS browser with the product 
 
 These candidate fixtures establish API feasibility, not production capture/select/confirm usability or private-window support. Attachments exclude private/incognito and unclassifiable contexts. `inIncognitoContext` alone does not classify every spanning-process extension view; the selected source tab and destination's own tab provide the needed flags. No page identity is inferred from their numeric tab IDs. Production integration, context exclusion, actual native use, and exact-head hosted evidence remain separate qualification gates.
 
+## Draft page-error attachment boundary
+
+The [selected design](plans/phase2-page-error-comparison.md) proposes a new
+check-tab-to-investigation handoff. Existing popup-only timing tests do not
+qualify that sender boundary, its one-use protocol or mixed timing/error source
+binding. Own-view APIs describe a candidate mechanism; product authority and
+lifetime behavior require fresh browser probes. No new browser permission,
+background owner, broad host grant or source-page enumeration is proposed.
+
+Preserve the current collector's Firefox-isolated/Chrome-page-side limits.
+A confirmed count summary remains a limited observation after transfer. Displaying durations and completion reasons side by side cannot establish
+equal interactions or conditions. A numeric tab match does not identify the document, and attachment
+order is not proof of when collection occurred relative to a manual change.
+
 ## Primary Firefox references
 
 - [management.getAll](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/management/getAll)

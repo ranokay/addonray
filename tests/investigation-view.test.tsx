@@ -41,6 +41,8 @@ function view(
     assessment: null,
     timingBefore: null,
     timingAfter: null,
+    errorBefore: null,
+    errorAfter: null,
     afterStarted: false,
     ...update,
   };
@@ -216,7 +218,9 @@ it('explains independent lifetime and the Chrome consent boundary', () => {
   expect(markup).toContain(
     'Chrome groups inventory and extension controls under one permission.',
   );
-  expect(markup).toContain('No collection runs between captures.');
+  expect(markup).toContain(
+    'This investigation starts no collection between captures.',
+  );
   expect(markup).not.toContain('Firefox');
 });
 
@@ -246,4 +250,80 @@ it('retains a fixed Before timing and its retry guidance after an After inventor
   expect(markup).toContain('capture the After inventory here');
   expect(button(markup, 'capture-after')).not.toContain('disabled');
   expect(markup).not.toContain('Your page assessment');
+});
+
+const errorSummary = {
+  scriptErrors: 2,
+  unhandledRejections: 1,
+  total: 3,
+  finish: 'stop',
+  observedMs: 1250,
+} as const;
+
+it('renders optional error slots as missing, with deliberate ordering and no collection on render', () => {
+  const { markup, actions } = view();
+  expect(markup).toContain('Optional page-error counts');
+  expect(markup).toContain(
+    'inventory-only and timing-only comparisons still work',
+  );
+  expect(markup.match(/comparison-error-/g)).toHaveLength(5);
+  expect(markup.match(/data-side="before">Not attached/g)).toHaveLength(8);
+  expect(markup.match(/data-side="after">Not attached/g)).toHaveLength(8);
+  expect(markup).toContain('Attachment order does not prove when');
+  for (const action of Object.values(actions))
+    expect(action).not.toHaveBeenCalled();
+});
+
+it('keeps Before error counts after failed After inventory and leaves manual assessment absent', () => {
+  const { markup } = view({
+    before: { status: 'success', value: before },
+    after: { status: 'error', reason: 'Retry capture after.' },
+    afterStarted: true,
+    errorBefore: errorSummary,
+  });
+  expect(markup).toContain('Before error counts attached');
+  expect(markup).toContain(
+    'data-testid="comparison-error-total"><th scope="row">Total observed events</th><td data-side="before">3</td><td data-side="after">Not attached</td>',
+  );
+  expect(markup).toContain('1,250 ms');
+  expect(markup).toContain('Stopped by you');
+  expect(markup).toContain('This attempt has no timing pair');
+  expect(markup).not.toContain('This attempt remains inventory-only');
+  expect(markup).not.toContain('Your page assessment');
+  expect(button(markup, 'capture-after')).not.toContain('disabled');
+});
+
+it('keeps the manual assessment independent of attached errors and timings', () => {
+  const { markup } = view({
+    before: { status: 'success', value: [] },
+    after: { status: 'success', value: [] },
+    afterStarted: true,
+    errorBefore: errorSummary,
+    errorAfter: {
+      ...errorSummary,
+      scriptErrors: 0,
+      unhandledRejections: 0,
+      total: 0,
+      finish: 'timeout',
+      observedMs: 30_000,
+    },
+    timingBefore: {
+      domContentLoaded: { status: 'measured', milliseconds: 1 },
+      loadEvent: { status: 'unrecorded' },
+      firstContentfulPaint: { status: 'unavailable' },
+    },
+    assessment: 'uncertain',
+  });
+  expect(markup).toContain('Before and After error counts attached');
+  expect(markup).toContain('30-second window ended');
+  expect(markup).toContain('Your assessment: Uncertain');
+  expect(markup).toContain('your page assessment remains separate');
+  expect(markup).toContain(
+    'All timing and error attachments must come from the same browser tab',
+  );
+  expect(markup).toContain(
+    'Resetting or closing the source check does not retract them',
+  );
+  expect(markup).toContain('revoking inventory or page-inspection permission');
+  expect(markup).toContain('Failed transfers keep existing results');
 });

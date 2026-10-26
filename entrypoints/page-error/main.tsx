@@ -5,6 +5,7 @@ import { getBrowserContext } from '../../lib/browser-target';
 import { createPageErrorCheck } from '../../lib/page-error-check';
 import { createPageErrorDriver } from '../../lib/page-error-browser';
 import { installPageErrorBinding } from '../../lib/page-error-launch';
+import { createPageErrorHandoff } from '../../lib/page-error-handoff';
 import { App } from './App';
 import './style.css';
 
@@ -17,16 +18,18 @@ const check = createPageErrorCheck(
   context,
 );
 const removeBinding = installPageErrorBinding(browser, check, window);
+const handoff = createPageErrorHandoff(browser, check, window);
 window.addEventListener(
   'pagehide',
   () => {
     removeBinding();
+    handoff.dispose();
     check.dispose();
   },
   { once: true },
 );
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
-    <App check={check} />
+    <App check={check} handoff={handoff} />
   </React.StrictMode>,
 );
