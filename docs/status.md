@@ -26,20 +26,25 @@ and Chrome for Testing 156.0.8078.47 before product wiring. The independent audi
 verified all 16 retained artifact sizes/hashes, unchanged first-five-case source
 blocks, original download-path retention through owner closure and cleanup.
 
-The serializer, snapshot-bound controller, ordinary browser download adapter and
-exact read-only preview are wired in the working tree. The focused suite passes
-63 tests with 266 assertions, native type checking passes 55 files, and
-independent export-core review has no material finding. The earlier 32/128 and
-22/85 model counts were historical drafts. Full shared gates, source rebuilds,
-packaged UI checks, native download observations, hosted qualification and signed
-private delivery were pending at that checkpoint. The full deterministic suite
-now passes 433 tests with 1,834 assertions. The development shared gate and local
-Firefox 158 / Chrome flows pass 79/73 checks, and available unmodified macOS
-consent, keyboard preview/Cancel/download, reload and actual management-removal
-observations are recorded in the [export evidence](evidence/2026-10-28-report-export.md).
-Clean exact-head checking, source rebuilds, all packaged local pins, hosted
-qualification and signed delivery remain required. Candidate and dirty-source
-checks do not replace those gates.
+The serializer, snapshot-bound controller, browser download adapter and exact
+read-only preview are implemented in signed private `8091ad1`. All 433 behavior
+tests with 1,834 assertions, native type checking of 55 files, the frozen shared
+gate and both 14-file source rebuilds pass. The three local Firefox pins pass
+79 checks each and Chrome passes 73. All six hosted Firefox members and two
+Chrome members qualify, with all 16 selected reports and eight ZIP digests
+verified independently and by the coordinator. The selected largest guarded
+collector p95 is 3 ms locally and 4 ms hosted against the unchanged 5 ms limit.
+Independent production/probe/evidence review has no unresolved material finding.
+
+The [export evidence](evidence/2026-10-28-report-export.md) preserves the initial
+private-fixture qualification gaps, one failed 6 ms local collector-budget
+attempt and the unchanged passing retries. No cause or fix is established by
+those retries. Available unmodified macOS consent, keyboard preview/Cancel and
+download, reload and actual management-removal observations retain their
+native authority limits. Their 41 product-input hashes match `8091ad1`.
+A later documentation delivery head requires its own frozen check and hosted
+report verification. `.scratch/p3a-delivery.json` is the final local receipt for
+that exact delivered head; do not infer later-head success from this paragraph.
 
 The prior attachment delivery is complete at signed `deeb3d8`. Its final local
 receipt is `.scratch/p2d-delivery-deeb3d8.json`, verified during read-only resumption
@@ -203,20 +208,20 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Prove the unchanged-permission candidate download, exact UTF-8 bytes and owner/stale-action behavior, with independent artifact and source-block audit.
 - [x] Wire canonical report preparation, revision/reset validation, exact preview and explicit browser download; pass 63 focused tests with 266 assertions and native type checking of 55 files.
 - [x] Complete independent export-core review with no material finding.
-- [ ] Complete probe/native-helper/evidence review and fix material findings.
-- [ ] Run the shared gate, source rebuilds and exact Firefox/Chrome qualifications; observe available native flows and record gaps.
-- [ ] Prepare reviewed evidence, sign authored paths, deliver privately to `main` and verify the final head's hosted reports.
+- [x] Complete probe/native-helper/evidence review and fix material findings.
+- [x] Run the shared gate, source rebuilds and exact Firefox/Chrome implementation qualifications; observe available native flows and record gaps.
+- [x] Prepare reviewed evidence and deliver signed implementation privately to `main`. The final documentation head is complete only when `.scratch/p3a-delivery.json` verifies that exact head and its hosted reports.
 
 ## Next action
 
-Complete shared gates, source rebuilds and packaged Firefox/Chrome report-export
-checks for the wired [report export slice](plans/phase3-report-export.md), then
-observe available native preview/download flows and inspect hosted reports.
-Keep permissions and retention unchanged. Preserve the original failed
-assertions and distinguish request dispatch, browser acceptance and final file
-completion. Existing page-error attachments are delivered; do not repeat their
-matrix merely to resume. Console feeds, history, new collectors or targets,
-extension-state changes and the native companion remain separate decisions.
+Read `.scratch/p3a-delivery.json` against the current checkout head. If its frozen
+shared gate and all hosted browser/rebuild reports verify that exact signed,
+pushed head, the [report export slice](plans/phase3-report-export.md) is complete.
+Otherwise finish those delivery checks and retain the receipt. Stop after this
+phase. New product scope requires a fresh decision. Preserve the original failed assertions and distinguish
+request dispatch, browser acceptance and final file completion. Console feeds,
+history, new collectors or targets, extension-state changes and the native
+companion remain separate decisions.
 
 The final `.scratch/p2d-delivery-deeb3d8.json` receipt closes the prior
 documentation head's required verification. Future export implementation and

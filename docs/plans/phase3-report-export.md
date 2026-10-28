@@ -6,12 +6,11 @@ user accepted Q1 through Q11 in the [report export interview](../decisions.md#re
 including the 1 MiB UTF-8 report limit, then accepted Q12's lifetime revision on
 the same date after an essential candidate failure. The revised candidate gate
 then passed six checks on each pinned local target, including ESR, before product
-wiring. The serializer, controller, browser download adapter and investigation UI
-are now wired in the working tree. Focused tests and native type checking pass;
-the development shared gate and current local Firefox/Chrome flows pass, and
-available macOS native controls are observed. Clean exact-head qualification,
-hosted evidence and signed delivery remain pending. See
-[production evidence](../evidence/2026-10-28-report-export.md).
+wiring. Signed implementation `8091ad1` is privately pushed. All 433 behavior
+tests, both source rebuilds, four local browser targets and eight hosted targets
+qualify, with separate retries and failed attempts preserved. Available macOS
+native controls are observed. A later documentation head needs its own final
+verification. See [production evidence](../evidence/2026-10-28-report-export.md).
 
 ## Failed candidate and accepted lifetime revision
 
@@ -40,8 +39,9 @@ Before wiring, draft serializer tests passed 32 tests with 128 assertions and
 draft controller tests passed 22 tests with 85 assertions. Those historical
 counts are not current qualification. The wired implementation's focused suite
 passes 63 tests with 266 assertions, and native type checking passes 55 files.
-Independent review of the export core has no material finding. Full shared gates,
-packaged UI, native downloads, hosted reports and signed delivery remain pending.
+Independent production, probe and evidence review has no unresolved material
+finding. The shared gate, packaged UI, available native downloads, clean local
+and hosted implementation qualification are recorded in the dated evidence.
 
 ## Problem and result
 
@@ -148,8 +148,9 @@ describes the declaration for transmitted data and the `none` declaration.
 The approved rationale retains `none` for this explicit local download, with no
 AddonRay network transfer or automatic sharing. This interpretation is bounded
 to the approved behavior. It does not qualify implementation, installation,
-store compliance or publication. Browser/download qualification is pending;
-reassess if a later feature sends data elsewhere.
+store compliance or publication. Browser/download qualification and its limits
+are recorded in the production evidence. Reassess if a later feature sends data
+elsewhere.
 
 ## Feasibility and qualification sequence
 

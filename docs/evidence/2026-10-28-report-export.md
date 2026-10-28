@@ -1,10 +1,12 @@
 # Previewed investigation report export qualification
 
 The approved [P3A contract](../plans/phase3-report-export.md), including Q12,
-is implemented. This record separates working-tree checks and native
-observations from the forthcoming clean implementation and hosted results.
-Signed delivery is incomplete until those exact-head checks and downloaded
-reports are verified. No release-support, store or signing gate is closed.
+is implemented in signed private commit `8091ad120cb12195722c59e87bad8563f214ed27`.
+Clean local qualification and all eight hosted targets pass at that implementation
+head, after the separate attempts recorded below. Working-tree checks and native
+observations retain their own authority. Later documentation delivery requires
+its own exact-head checks and downloaded-report verification. No release-support,
+store or distribution-signing gate is closed.
 
 ## Implementation and review
 
@@ -39,7 +41,7 @@ revocation observations were asserted before being retained. Both were corrected
 so failure reports keep bytes/hashes or the actual API/state/read failure before
 assertions. The reviewer verified both corrections and reported no remaining
 material source finding. `.scratch/p3a-code-review.json` records review scope;
-final source identities must be checked separately.
+the clean-source and native-input audits below bind those findings to delivery.
 
 ## Working-tree validation
 
@@ -122,8 +124,9 @@ Both helper reports preserve package/source-input hashes and verify them again
 at finish. Both sessions passed their two requested driver assertions, closed
 the browsers and removed their exact owned profiles. Chrome required the
 recorded post-quit exact-path cleanup. Completed files remain in the ignored
-controlled-evidence directories. Product inputs must match the eventual clean
-source before reusing these dirty-native observations.
+controlled-evidence directories. The 41 product-input hashes match clean implementation `8091ad1`, as recorded
+in `.scratch/p3a-audit/native-to-clean-8091ad1.json`. The native reports retain
+their dirty-source baseline `deeb3d8`; they are not clean-commit browser runs.
 
 Automatic-download preferences/CDP settings selected the destination. Native
 Save As and download cancellation under default user settings were not observed.
@@ -132,12 +135,95 @@ were not newly observed in native UI. Their content is covered by serializer
 tests alongside existing attachment qualification. No complete accessibility or
 other-OS native verdict follows from the keyboard checks.
 
-## Remaining delivery and release boundaries
+## Clean implementation qualification
 
-Clean frozen shared checking, both source rebuilds, all three packaged local
-Firefox versions, Chrome and the exact-head hosted matrices remain required for
-signed private delivery. Every later documentation delivery head needs its own
-hosted verification; earlier results cannot qualify a newer SHA.
+Signed `8091ad1` is pushed to private `ranokay/addonray` on `main`. Its frozen
+shared gate passed 433 tests with 1,834 assertions and native type checking of
+55 files. Both clean source-archive rebuilds compared all 14 packaged files.
+The pinned Bun runtime reports `1.4.4-canary.1+963452075`; the configured archive
+pin and checksum remain unchanged.
+
+Frozen receipts under `/Users/ranokay/.local/state/agent-tools/gates/` are:
+
+| Gate                                    | Receipt                              |
+| --------------------------------------- | ------------------------------------ |
+| Shared check                            | `20261028T065847Z-347f0a6d14a1.json` |
+| Firefox source rebuild                  | `20261028T070018Z-0b78df311670.json` |
+| Chrome source rebuild                   | `20261028T070021Z-f26e90457602.json` |
+| macOS Firefox 140.0                     | `20261028T070237Z-5fb3dd1b18bf.json` |
+| macOS Firefox 153.5.1esr                | `20261028T070529Z-1011c08ca42f.json` |
+| macOS Firefox 158.0.1 controlled repeat | `20261028T072256Z-cdee2c67a661.json` |
+| macOS Chrome for Testing 156.0.8078.47  | `20261028T070849Z-20221cbe0766.json` |
+
+All three Firefox versions pass 79 checks each and Chrome passes 73 on macOS
+27.2 arm64. Firefox uses geckodriver 0.37.1; ChromeDriver matches the Chrome
+version. The selected complete reports are listed in
+`.scratch/p3a-audit/selected-local-8091ad1.json`. The source rebuilds and original
+runs are under `.scratch/p3a-local-8091ad1/`; Firefox 158 attempts are separate
+under `.scratch/p3a-local-8091ad1-retry/`. Each selected report verifies the exact
+5,071-byte fixture export and fresh observations of its original download path
+after reset and owner closure.
+
+The implementation's hosted [Check](https://github.com/ranokay/addonray/actions/runs/40647439501),
+[Firefox](https://github.com/ranokay/addonray/actions/runs/40647439468) and
+[Chrome](https://github.com/ranokay/addonray/actions/runs/40647439477) workflows
+passed. The selected six Firefox jobs on Ubuntu 24.04 x64 and Windows Server
+2025 x64 pass 79 checks each. Both pinned Chrome jobs pass 73 checks. All 16
+selected browser/rebuild reports verify clean `8091ad1`, exact browser versions,
+41 source-input hashes, paired archive identities, all 14 rebuilt package files,
+export bytes and both completed-file lifetime observations, bounds and cleanup.
+Windows source/package hashes differ from Linux/macOS through the verified CRLF
+checkout conversion. No other input drift is accepted.
+Selected browser reports retain `passed-with-qualification-gaps` for their
+documented fixture/native and release limits. The selected retries fill the two
+missing private-fixture checks without closing those standing limits.
+
+The independent audits are `.scratch/p3a-audit/local-8091ad1-final.json` and
+`.scratch/p3a-audit/hosted-8091ad1-final.json`; coordinator reruns with the
+`parent-` prefix independently pass. They recompute every raw 30-sample collector
+p95 and two-clock-step guard, summary-size, duration and event-cap bounds. The
+largest selected guarded p95 is 3 ms locally and 4 ms hosted, within the unchanged
+5 ms limit. All eight selected ZIPs match GitHub SHA-256 digests and their
+extracted reports. Selection is explicit in
+`.scratch/p3a-audit/selected-hosted-8091ad1.json`, with original six members under
+`.scratch/p3a-hosted-8091ad1/` and two unchanged retries under
+`.scratch/p3a-hosted-8091ad1-retry/`.
+
+### Preserved incomplete and failed attempts
+
+The first local Firefox 158 and initial hosted Linux Firefox 140 / Windows
+Firefox 158 runs reported 77 checks and `passed-with-qualification-gaps`.
+Their two existing private timing-fixture checks could not run because the
+requested private control showed Firefox's welcome page. Their export checks
+passed, but those runs do not qualify the full matrix. One unchanged hosted
+retry per affected member passed all 79 checks. Original artifacts 12798367621
+and 12798328448 remain separate from retry artifacts 12798556961 and 12798488312.
+
+The first unchanged local Firefox 158 retry passed its private checks, then
+failed the existing empty page-error supervisor/setup budget. Its raw p95 was
+4 ms and clock step 1 ms, giving a guarded 6 ms against the unchanged 5 ms limit.
+Its receipt is `20261028T071222Z-f630768ddaa6.json`; the failed report is
+`.scratch/p3a-local-8091ad1-retry/firefox-evidence-158.0.1-first-retry-failed.json`.
+The independent failure audit is
+`.scratch/p3a-audit/local-158-first-retry-failure-audit.json`. A further controlled
+unchanged run passed all 79 checks and budgets. The selection uses that whole
+report, without combining sections of failed runs. No threshold, sampling,
+warmup, assertion or collector scenario changed. A later pass does not establish
+a cause or a fix for the failure.
+
+A separate disposable-profile diagnosis did not reproduce the private-page
+overwrite in eight trials. It found a readiness gap between window creation and
+initial private-page loading, but did not establish that gap caused the earlier
+results. `.scratch/private-fixture-diagnosis/result.json` retains the trials.
+No unrelated fixture change was made in this slice.
+
+## Delivery and release boundaries
+
+This dated record qualifies implementation `8091ad1`. Every later documentation
+delivery head needs its own frozen shared check and hosted verification; earlier
+results cannot qualify a newer SHA. The final local receipt is
+`.scratch/p3a-delivery.json` and must name that exact head, its workflows and the
+verified downloaded reports before delivery is complete.
 
 Authentic private/unknown export guards, default download settings, full
 accessibility, native Linux/Windows, retail installation, signed distribution
