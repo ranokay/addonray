@@ -116,6 +116,26 @@ Side-by-side durations/reasons do not establish equal interactions or conditions
 A numeric tab match does not identify the document, and attachment order does not
 prove collection occurred after a particular inventory or manual change.
 
+## Approved local report download
+
+The [approved report slice](plans/phase3-report-export.md) constructs a local Blob
+and requests its generic `.md` filename through an anchor's `download` attribute.
+This adds no `downloads` permission or completion API. Browser settings control
+prompting, saving and opening. Dispatching the click does not prove that the
+browser accepted or finished the file.
+
+Accepted Q12 requires keeping the owning investigation open until the browser
+shows the download. Closing/reloading before acceptance may cancel the request;
+accepted files can remain after clearing. The [candidate record](evidence/2026-10-27-report-export-feasibility.md)
+preserves failed immediate-close cases separately from revised exact-byte checks
+on the four pinned local browsers. It does not establish universal URL-revocation
+or close/reload behavior. [Production evidence](evidence/2026-10-28-report-export.md)
+separates built UI checks, native observations and clean delivery qualification.
+
+Primary references are [anchor downloads](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#download),
+[Blob URLs](https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL_static)
+and [URL revocation](https://developer.mozilla.org/en-US/docs/Web/API/URL/revokeObjectURL_static).
+
 ## Primary Firefox references
 
 - [management.getAll](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/management/getAll)

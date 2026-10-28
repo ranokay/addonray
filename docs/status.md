@@ -2,6 +2,52 @@
 
 ## Current state
 
+The user approved [previewed investigation report export](plans/phase3-report-export.md)
+on 2026-10-27 after accepting Q1 through Q11. The approved scope includes exact
+read-only Markdown preview, an explicit browser-controlled download, existing
+observations only, normal-window guards and a 1 MiB UTF-8 cap without truncation.
+Feasibility-first implementation, tests, independent review and signed private
+delivery to `main` were authorized. An essential Firefox 158 candidate lifetime
+gate initially failed, and product wiring stopped. Small and
+1 MiB exact downloads passed with Blob and data URLs, but immediate same-task
+owner closure after `anchor.click()` could preempt the request and leave no file.
+Firefox 140 repeated the Blob failure; Chrome for Testing 156.0.8078.47 passed
+the same six candidate cases. ESR was not run in that initial attempt.
+The failed assertions remain failed. See the
+[feasibility record](evidence/2026-10-27-report-export-feasibility.md).
+
+The user accepted Q12 on 2026-10-27. A dispatched request is not browser
+acceptance. Keep the investigation open until the browser shows the download;
+close/reload may cancel an unaccepted request. Browser-accepted bytes or files
+can outlive the investigation. Permission and lifetime limits remain unchanged.
+The original Q11 approval and failed assertions remain recorded. The revised
+candidate gate then passed six checks each on Firefox 140.0, 153.5.1esr, 158.0.1
+and Chrome for Testing 156.0.8078.47 before product wiring. The independent audit
+verified all 16 retained artifact sizes/hashes, unchanged first-five-case source
+blocks, original download-path retention through owner closure and cleanup.
+
+The serializer, snapshot-bound controller, ordinary browser download adapter and
+exact read-only preview are wired in the working tree. The focused suite passes
+63 tests with 266 assertions, native type checking passes 55 files, and
+independent export-core review has no material finding. The earlier 32/128 and
+22/85 model counts were historical drafts. Full shared gates, source rebuilds,
+packaged UI checks, native download observations, hosted qualification and signed
+private delivery were pending at that checkpoint. The full deterministic suite
+now passes 433 tests with 1,834 assertions. The development shared gate and local
+Firefox 158 / Chrome flows pass 79/73 checks, and available unmodified macOS
+consent, keyboard preview/Cancel/download, reload and actual management-removal
+observations are recorded in the [export evidence](evidence/2026-10-28-report-export.md).
+Clean exact-head checking, source rebuilds, all packaged local pins, hosted
+qualification and signed delivery remain required. Candidate and dirty-source
+checks do not replace those gates.
+
+The prior attachment delivery is complete at signed `deeb3d8`. Its final local
+receipt is `.scratch/p2d-delivery-deeb3d8.json`, verified during read-only resumption
+on 2026-10-27. Check, six Firefox jobs and two Chrome jobs passed at that exact
+head, and the receipt records verification of all 16 browser/rebuild reports.
+It closes the earlier pending-delivery wording below without erasing those
+historical failed attempts or their unproven causes.
+
 The approved [optional page-error comparison](plans/phase2-page-error-comparison.md) is implemented and privately pushed in signed `a5b8fed`. Completed checks attach once to explicit fixed Before/After slots, share one source tab with timings and leave independent investigation copies. Missing initial inventory access preserves a standalone completed check for retry after consent. Actual permission removal still clears it.
 
 All 370 behavior tests with 1568 assertions, the clean frozen shared gate, both 14-file source rebuilds, three exact macOS Firefox versions with 73 checks each and Chrome with 67 checks pass. All six hosted Firefox and two Chrome jobs passed on the first attempt at `a5b8fed`; all 16 downloaded browser/rebuild reports passed verification. The maximum local guarded collector p95 is 5 ms, within the unchanged budget. Independent implementation/probe/evidence review has no unresolved material finding.
@@ -146,11 +192,37 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Qualify the final standalone permission-retention correction, new native absence/consent/retry cases, six clean local reports and all 16 corrected-head hosted reports.
 - [x] Prepare reviewed evidence/status for signed private documentation delivery. Verify every later delivery head separately before reporting completion.
 
+## Report export checklist
+
+- [x] Select previewed, minimized export and settle the Q1 through Q10 product choices.
+- [x] Confirm Q11, the 1 MiB UTF-8 cap, shared understanding and feasibility-first implementation/private-delivery approval.
+- [x] Record the report/preview terms, [P3A-01 through P3A-18](plans/phase3-report-export.md), data boundaries and Firefox declaration rationale.
+- [x] Record the initial Firefox 158 candidate's lifetime failure without converting successful byte checks into a gate pass.
+- [x] Accept Q12's request/acceptance and owner-close guidance, and explicitly revise P3A-14/P3A-16 while preserving original failed assertions.
+- [x] Qualify the revised candidate contract on all four pinned local targets, including ESR, before product wiring; retain the original failed attempts separately.
+- [x] Prove the unchanged-permission candidate download, exact UTF-8 bytes and owner/stale-action behavior, with independent artifact and source-block audit.
+- [x] Wire canonical report preparation, revision/reset validation, exact preview and explicit browser download; pass 63 focused tests with 266 assertions and native type checking of 55 files.
+- [x] Complete independent export-core review with no material finding.
+- [ ] Complete probe/native-helper/evidence review and fix material findings.
+- [ ] Run the shared gate, source rebuilds and exact Firefox/Chrome qualifications; observe available native flows and record gaps.
+- [ ] Prepare reviewed evidence, sign authored paths, deliver privately to `main` and verify the final head's hosted reports.
+
 ## Next action
 
-The approved page-error attachment slice is complete within the recorded qualification. Stop after its signed private delivery. Choose any next product slice through a fresh focused interview. Export, console feeds, history, new collectors or targets, extension-state changes and the native companion remain separate decisions.
+Complete shared gates, source rebuilds and packaged Firefox/Chrome report-export
+checks for the wired [report export slice](plans/phase3-report-export.md), then
+observe available native preview/download flows and inspect hosted reports.
+Keep permissions and retention unchanged. Preserve the original failed
+assertions and distinguish request dispatch, browser acceptance and final file
+completion. Existing page-error attachments are delivered; do not repeat their
+matrix merely to resume. Console feeds, history, new collectors or targets,
+extension-state changes and the native companion remain separate decisions.
 
-Verify the current pushed documentation head's Check, six Firefox jobs, two Chrome jobs and all 16 browser/rebuild reports before claiming that head passed. Qualified implementation results above do not automatically qualify a newer head. Keep raw reports in ignored scratch space and use the current runner's source/dirty/artifact records.
+The final `.scratch/p2d-delivery-deeb3d8.json` receipt closes the prior
+documentation head's required verification. Future export implementation and
+delivery heads need their own Check, Firefox/Chrome and browser/rebuild evidence.
+Keep raw reports in ignored scratch space and use current source/dirty/artifact
+records. Earlier product qualification does not qualify the export path.
 
 Delivery `82ea820` has an unresolved Windows ESR duration-check failure after one
 unchanged rerun. The product implementation remains unchanged from qualified
@@ -161,9 +233,10 @@ product change; see the [failure record](evidence/2026-10-26-phase2-page-error-c
 At diagnostic `028c29c`, Windows ESR and four other Firefox jobs passed, along
 with Check, both hosted Chrome jobs and clean local ESR/Chrome checks. Linux
 Firefox 158 failed the unchanged 5 ms overhead guard at 6 ms. The reporting fix
-retains raw samples before budget assertions; its next delivery head still needs
-the full hosted matrix and report verification. Neither failure's cause is
-established, and no budget or product timing limit has changed.
+retains raw samples before budget assertions. The later `deeb3d8` delivery receipt
+records the completed matrix and report verification; the historical failure
+remains failed. Neither failure's cause is established, and no budget or product
+timing limit has changed.
 
 Native Linux/Windows usability, full accessibility, private/unknown-context native guards, retail installation/store and signed-distribution qualification remain release gates. Chrome's page-side observer is not tamper-proof. Production Firefox BFCache restoration remains unobserved; focused candidate restoration and production fresh-load outcomes are separate evidence. Follow the [desktop QA handoff](desktop-popup-qa.md) when an appropriate visible desktop becomes available.
 
@@ -177,4 +250,9 @@ For fresh revision-bound evidence, run `/Users/ranokay/.agents/tools/run gate_ru
 
 ## Unresolved future decisions
 
-License, public visibility, final AMO identity/publication, remaining native OS and signed-distribution qualification, retail Chrome installation, longer investigation lifetime, diagnostic collectors and overhead budgets, report export/history rules, and a concrete optional companion capability. These remain separate from the completed inspection slices.
+License, public visibility, final AMO identity/publication, remaining native OS
+and signed-distribution qualification, retail Chrome installation, longer
+investigation lifetime, diagnostic collectors and overhead budgets, saved
+history, report import/other formats and a concrete optional companion capability.
+These remain separate from the approved first export slice and completed
+inspection slices.

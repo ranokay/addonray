@@ -43,6 +43,8 @@ if (requestedVersion) {
 }
 await mkdir('.scratch', { recursive: true });
 const work = await mkdtemp(resolve('.scratch/firefox-'));
+const reportDirectory = join(work, 'report-downloads');
+await mkdir(reportDirectory);
 const fixtureId = 'controlled-fixture@addonray.test';
 const harnessId = 'api-harness@addonray.test';
 const productId = 'addonray@ranokay.dev';
@@ -141,7 +143,20 @@ function passed(name, details = {}) {
 }
 
 try {
-  const options = new firefox.Options().addArguments('-headless');
+  const options = new firefox.Options()
+    .addArguments('-headless')
+    // Fixture-only download settings; the product does not control save dialogs.
+    .setPreference('browser.download.folderList', 2)
+    .setPreference('browser.download.dir', reportDirectory)
+    .setPreference('browser.download.useDownloadDir', true)
+    .setPreference(
+      'browser.download.always_ask_before_handling_new_types',
+      false,
+    )
+    .setPreference(
+      'browser.helperApps.neverAsk.saveToDisk',
+      'text/markdown,text/plain',
+    );
   if (requestedVersion) options.setBrowserVersion(requestedVersion);
   driver = await new Builder()
     .forBrowser('firefox')
@@ -497,6 +512,7 @@ try {
   passed('Production disabled inventory preserves unavailable metadata');
   await checkInvestigation({
     driver,
+    reportDirectory,
     popupUrl: productUrl,
     investigationUrl,
     localUrl,

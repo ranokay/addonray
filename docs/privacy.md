@@ -85,9 +85,58 @@ tab ID does not verify the same page or conditions. The user approved this
 boundary in Q9. [Qualification](evidence/2026-10-26-phase2-page-error-comparison.md)
 keeps source fixtures, native observations and private-context gaps separate.
 
-## Reports and companion
+## Approved report export
 
-Export is a later feature. Before implementation, define redaction, preview, explicit save, retention, and treatment of URLs, query strings, DOM snippets, cookies, tokens, and extension IDs. A report must never be sent automatically.
+The user approved [previewed investigation export](plans/phase3-report-export.md)
+and Q12's revised download lifetime boundary on 2026-10-27. Revised feasibility,
+implementation and browser qualification are pending. A report contains one
+completed Before/After investigation's existing observations only.
+It includes extension names, versions and enabled states, inventory changes, an
+optional manual assessment and optional attached timing/error summaries with
+their limits. Missing values remain explicit. Omit extension-ID fields, internal
+labels and tab/document/attempt/transfer identifiers. Names and versions can still
+reveal extension choices, so the preview must disclose that they are included.
+
+Export adds no collection of page URLs/titles, query strings, DOM snippets,
+cookies, tokens, raw errors, permission/host metadata, absolute timestamps,
+browser/OS context or user notes. Serialize allowed values only and treat names
+and versions as literal text. Omitting identifier fields does not anonymize an
+inventory. The whole UTF-8 report has a 1 MiB limit; an oversized report fails
+without truncation or a partial download.
+
+The exact read-only Markdown preview stays in the owning investigation's memory.
+Preparing and downloading require two successful inventory captures, an idle
+state, current permission eligibility and a verified normal-window view.
+Private/incognito and unknown classifications fail closed. Never-granted
+scripting access does not block an inventory-only report; actual removal of
+either optional permission retains the existing whole-investigation reset.
+Revision and reset-generation checks invalidate stale preparation and download
+work after assessment/attachment changes, reset or revocation. Cancel discards
+the preview. Close, reload, unloading and teardown erase its unsaved data.
+
+Download report requests a browser download of only the reviewed bytes under a
+generic `.md` filename. Request dispatch does not prove browser acceptance. Keep
+the investigation open until the browser shows the download; closing or reloading
+can cancel an unaccepted request. The browser may save automatically according
+to its settings. AddonRay does not claim final disk completion, retry
+automatically or send the report to another person or service. Browser-accepted
+bytes or a file can remain on disk or pending after reset, revocation or close;
+AddonRay cannot recall them. No saved history, restoration, clipboard action,
+background owner, longer investigation lifetime, durable storage or additional
+permission is introduced.
+
+Firefox's data declaration was reassessed on 2026-10-27. Mozilla's
+[policy FAQ](https://extensionworkshop.com/documentation/publish/add-on-policies-faq/)
+permits user-initiated local filesystem exports under its local-backup exception,
+while remote-server transmission must follow the data collection and consent
+rules. Its [built-in consent documentation](https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/)
+describes declarations for transmitted data and `none`. The approved rationale
+retains `none` for this explicit local-only download with no AddonRay network
+transfer. This is a documented interpretation for the selected scope, not
+qualified implementation, store approval or publication. Export browser/native
+qualification remains pending, and any future transmission needs reassessment.
+
+## Companion
 
 The optional companion needs a separate disclosure of local process access and data crossing the native messaging boundary. Its installation must never become a prerequisite for basic inventory or capability explanations.
 

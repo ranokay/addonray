@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { By, until } from 'selenium-webdriver';
+import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { checkReportExport } from './report-export-checks.mjs';
 
 const beforeSelector = '[data-testid="before-snapshot"]';
 const afterSelector = '[data-testid="after-snapshot"]';
@@ -20,6 +23,7 @@ export async function checkInvestigation({
   revokeManagement,
   authority,
   passed,
+  reportDirectory,
 }) {
   await driver.get(popupUrl);
   await driver.wait(until.elementLocated(By.id('new-investigation')), 10000);
@@ -43,6 +47,11 @@ export async function checkInvestigation({
     );
     assert.equal(
       await driver.findElement(By.id('capture-after')).isEnabled(),
+      false,
+    );
+    assert.equal((await driver.findElements(By.id('report-text'))).length, 0);
+    assert.equal(
+      await driver.findElement(By.id('report-prepare')).isEnabled(),
       false,
     );
   }
@@ -227,8 +236,52 @@ export async function checkInvestigation({
     `${authority}: new and reopened investigations start fresh while popup Clear and other investigations preserve the original`,
   );
 
+  const reportEvidence = await checkReportExport({
+    driver,
+    directory: reportDirectory,
+    fixtureId,
+    fixtureName,
+    authority,
+    passed,
+  });
+
+  async function verifyRetainedReport(phase) {
+    const observation = { phase, status: 'reading' };
+    (reportEvidence.lifetimeObservations ??= []).push(observation);
+    try {
+      const bytes = await readFile(reportEvidence.downloadedPath);
+      Object.assign(observation, {
+        status: 'observed',
+        bytes: bytes.length,
+        markdown: bytes.toString('utf8'),
+        sha256: createHash('sha256').update(bytes).digest('hex'),
+        exactUtf8Match: bytes.equals(
+          Buffer.from(reportEvidence.reviewedMarkdown, 'utf8'),
+        ),
+      });
+      assert.deepEqual(
+        bytes,
+        Buffer.from(reportEvidence.reviewedMarkdown, 'utf8'),
+      );
+      observation.status = 'verified';
+    } catch (error) {
+      observation.status = 'failed';
+      observation.failure = String(error);
+      throw error;
+    }
+  }
+
+  await driver.findElement(By.id('report-prepare')).click();
+  await driver.wait(until.elementLocated(By.id('report-text')), 10000);
+
   await driver.findElement(By.id('start-over')).click();
+  await verifyRetainedReport('after-investigation-reset');
   await empty();
+  reportEvidence.completedFilePreservedAfterReset = true;
+  passed(
+    `${authority}: Start over erases an unsaved preview while preserving the completed browser download`,
+    { reportExport: { completedFilePreservedAfterReset: true } },
+  );
   await capture('before');
   await capture('after');
   assert.equal(
@@ -251,6 +304,8 @@ export async function checkInvestigation({
     await driver
       .findElement(By.css('input[name="page-assessment"][value="better"]'))
       .click();
+    await driver.findElement(By.id('report-prepare')).click();
+    await driver.wait(until.elementLocated(By.id('report-text')), 10000);
     assert.equal(await revokeManagement(), true);
     await driver.wait(
       async () =>
@@ -267,5 +322,11 @@ export async function checkInvestigation({
     await driver.switchTo().window(handle);
     await driver.close();
   }
+  await verifyRetainedReport('after-investigation-owner-close');
+  reportEvidence.completedFilePreservedAfterOwnerClose = true;
+  passed(
+    `${authority}: the completed report remains exact at its original download path after investigation closure`,
+    { reportExport: { completedFilePreservedAfterOwnerClose: true } },
+  );
   await driver.switchTo().window(popupWindow);
 }

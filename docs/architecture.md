@@ -98,6 +98,54 @@ page identity. No coordinator, storage, collector or new permission is added.
 [Evidence](evidence/2026-10-26-phase2-page-error-comparison.md) separates the
 prerequisite candidate, production source fixtures, native UI and remaining gaps.
 
+## Approved report export ownership
+
+The [report export plan](plans/phase3-report-export.md) adds a report derived from
+one investigation's existing observations. `lib/investigation-report.ts` is a
+pure serializer. It reuses the existing ID-based inventory comparison without
+writing identifier fields to the report, escapes allowed text as literal values
+and checks the complete UTF-8 output against the 1 MiB bound without truncation.
+It reads no browser API or environment context.
+
+`lib/report-export.ts` is the owning-view controller. It binds the preview
+to the exact investigation snapshot reference and its reset generation. An
+operation ticket invalidates pending preparation/download work. Before and after
+asynchronous own-tab and permission checks, it verifies that the ticket,
+snapshot reference and generation are still current. `tabs.getCurrent()` must
+report `incognito: false`. `permissions.contains()` checks management, plus
+scripting only when timing or error data is attached. A never-granted scripting
+permission therefore does not block an inventory-only report. Invalid current
+grants reset the investigation under its existing data boundary.
+
+The controller subscribes to investigation changes and discards previews when
+their source snapshot changes. It accepts a synchronous download callback;
+there is no await between the final validity check and callback invocation. The
+callback receives only the immutable preview string. The last subscriber leaving
+or explicit disposal clears controller state and invalidates pending work.
+Preparation and download add no inventory or page collection.
+
+`lib/report-download.ts` requests an ordinary download using a UTF-8 Markdown
+Blob and a temporary anchor with the generic filename. Its finally blocks remove
+the anchor and synchronously revoke its object URL. It reports no browser
+acceptance or completed-file status and retains no download owner.
+
+The revised candidate gate passed, including ESR, before product wiring.
+`entrypoints/investigation/main.tsx` creates the controller once for its owning
+investigation and passes it through `App.tsx` to `ReportExport.tsx`. The component
+subscribes to export state, shows a read-only textarea containing the exact
+Markdown and offers Prepare report, Cancel and Download report. Successful
+preparation focuses the preview. `pagehide` disposes the exporter before the
+investigation resets, within its existing document lifetime.
+
+Q12 distinguishes a download request from browser acceptance. The UI asks the
+user to keep the view open until the browser shows the download and warns that
+close/reload can cancel a pending request. Accepted bytes/files can outlive the
+view; no background owner, broader permission or longer diagnostic retention is
+added. The [candidate evidence](evidence/2026-10-27-report-export-feasibility.md)
+preserves the original immediate-owner-close failures separately from the passed
+revised candidate gate. Full product/browser/native qualification and signed
+delivery remain pending.
+
 ## Future diagnostics
 
 Introduce a background coordinator only when the approved workflow requires a longer session. Define the session lifetime, navigation behavior, event bounds, stop/clear behavior, and revocation handling before building a collector. Event pages can be suspended, so durable session behavior needs deliberate design and a privacy review.

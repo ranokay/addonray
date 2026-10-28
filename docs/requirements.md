@@ -86,6 +86,40 @@ The evidence separates candidate feasibility, production source fixtures, native
 observations, clean builds and hosted qualification. Private-build delivery does
 not close the remaining release gates.
 
+## Approved previewed investigation report export
+
+On 2026-10-27 the user accepted Q1 through Q11, then Q12's revised lifetime
+boundary, for [P3A-01 through P3A-18](plans/phase3-report-export.md). Authorization
+includes feasibility-first implementation, tests, independent review and signed
+private delivery to `main`.
+One investigation with two successful inventory captures may prepare a report
+while idle. Assessment and diagnostic attachments remain optional and their
+absence stays explicit. Use existing observations only, including both
+inventories/changes, allowed extension names/versions/states, the assessment,
+optional timing/error summaries and their limits. Exclude extension-ID fields,
+internal labels/identifiers, extra context, timestamps and user notes.
+
+The user reviews the exact read-only Markdown text before choosing Download
+report. The complete UTF-8 document is limited to 1 MiB without truncation.
+Preview preparation and download check the current observation revision, reset
+generation, permission state and verified normal-window context; private and
+unknown contexts fail closed. Changed observations require a new preview.
+Never-granted scripting does not block an inventory-only report. Actual optional
+permission revocation resets the investigation and its unsaved preview.
+
+The browser controls a generic `.md` download under the existing permission
+budget and may save automatically. Request dispatch is not browser acceptance.
+Keep the investigation open until the browser shows the download; closing or
+reloading may cancel an unaccepted request. AddonRay reports no final disk
+completion and cannot recall browser-accepted bytes or files. Preview state keeps
+the existing owning-view memory lifetime. No history, new collection, remote
+transmission, support expansion or publication is authorized. Firefox's
+local-export declaration rationale and pending qualification are recorded in
+[privacy](privacy.md#approved-report-export). Implementation and browser evidence
+for this new path are pending. The original immediate-owner-close candidate
+failures remain failed; revised feasibility, including ESR, must pass before
+product wiring.
+
 ## Out of scope for Phase 0
 
 Continuous recording, network collection, page-world instrumentation, console interception, automatic culprit ranking, automated extension state changes, theme management, report export, persistent history, mobile support, additional Chromium browsers, accounts, sync, AMO publication, and a native companion implementation.

@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { browser } from 'wxt/browser';
 import { getBrowserContext } from '../../lib/browser-target';
 import { createInvestigation } from '../../lib/investigation';
+import { createReportExport } from '../../lib/report-export';
+import { requestReportDownload } from '../../lib/report-download';
 import { installInvestigationTimingHandoff } from '../../lib/timing-handoff';
 import { installInvestigationErrorHandoff } from '../../lib/page-error-handoff';
 import { App } from './App';
@@ -12,6 +14,11 @@ const root = document.getElementById('root');
 if (!root) throw new Error('Missing investigation root');
 const context = getBrowserContext(import.meta.env.BROWSER);
 const investigation = createInvestigation(browser, context);
+const exporter = createReportExport(
+  browser,
+  investigation,
+  requestReportDownload,
+);
 const removeTimingHandoff = installInvestigationTimingHandoff(
   browser,
   investigation,
@@ -25,6 +32,7 @@ const removeErrorHandoff = installInvestigationErrorHandoff(
 window.addEventListener(
   'pagehide',
   () => {
+    exporter.dispose();
     removeTimingHandoff();
     removeErrorHandoff();
     investigation.startOver();
@@ -34,6 +42,6 @@ window.addEventListener(
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
-    <App investigation={investigation} />
+    <App investigation={investigation} exporter={exporter} />
   </React.StrictMode>,
 );

@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useSyncExternalStore, type ReactNode } from 'react';
 import type { BrowserContext } from '../../lib/browser-target';
 import {
   compareInventories,
@@ -10,6 +10,8 @@ import type { Result } from '../../lib/inspector';
 import type { Investigation } from '../../lib/investigation';
 import { TimingComparison } from './TimingComparison';
 import { PageErrorComparison } from './PageErrorComparison';
+import { ReportExportSection } from './ReportExport';
+import type { ReportExport } from '../../lib/report-export';
 
 type InvestigationState = ReturnType<Investigation['getSnapshot']>;
 
@@ -91,6 +93,7 @@ export function InvestigationView({
   onCaptureAfter,
   onStartOver,
   onAssessment,
+  report,
 }: {
   state: InvestigationState;
   context: BrowserContext;
@@ -99,6 +102,7 @@ export function InvestigationView({
   onCaptureAfter: () => Promise<void>;
   onStartOver: () => void;
   onAssessment: (value: PageAssessment) => void;
+  report?: ReactNode;
 }) {
   const before = state.before?.status === 'success' ? state.before.value : null;
   const after = state.after?.status === 'success' ? state.after.value : null;
@@ -300,11 +304,18 @@ export function InvestigationView({
           </p>
         </section>
       )}
+      {report}
     </main>
   );
 }
 
-export function App({ investigation }: { investigation: Investigation }) {
+export function App({
+  investigation,
+  exporter,
+}: {
+  investigation: Investigation;
+  exporter: ReportExport;
+}) {
   const state = useSyncExternalStore(
     investigation.subscribe,
     investigation.getSnapshot,
@@ -318,6 +329,16 @@ export function App({ investigation }: { investigation: Investigation }) {
       onCaptureAfter={investigation.captureAfter}
       onStartOver={investigation.startOver}
       onAssessment={investigation.setAssessment}
+      report={
+        <ReportExportSection
+          exporter={exporter}
+          eligible={
+            state.busy === null &&
+            state.before?.status === 'success' &&
+            state.after?.status === 'success'
+          }
+        />
+      }
     />
   );
 }

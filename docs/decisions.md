@@ -160,3 +160,63 @@ tests, independent review and a signed push to private ranokay/addonray on
 2026-10-24. Essential new handoff and lifetime behavior must pass browser
 feasibility before product wiring. A failed essential gate returns to a revised
 plan without new permissions, storage, a background process or a collector.
+
+## Report export interview
+
+On 2026-10-27 the user selected previewed, minimized export as the next slice
+and accepted the following decisions. The [report plan](plans/phase3-report-export.md)
+defines P3A-01 through P3A-18. Implementation and export qualification are pending.
+
+| Question | Accepted answer                                                                                                                                                                                                                                       |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q1       | Plan previewed, minimized report export next, while existing release checks remain open.                                                                                                                                                              |
+| Q2       | Prepare one human-readable Before/After investigation report for someone helping troubleshoot. Popup inventories and standalone checks are outside this export slice.                                                                                 |
+| Q3       | Include both inventories, their changes, the manual assessment and optional attached timing/error summaries from existing observations only. Preserve explicit missing states and observation limits.                                                 |
+| Q4       | Include extension names and versions, with enabled states needed by the inventories. Omit extension-ID fields and internal tab/transfer identifiers or labels. Names and versions remain potentially identifying.                                     |
+| Q5       | Download a Markdown `.md` file only after an exact preview. Other formats and clipboard actions remain separate.                                                                                                                                      |
+| Q6       | Show read-only exact Markdown with explicit download and Cancel controls, plus a warning that extension names and versions are included. Q10 names the download action.                                                                               |
+| Q7       | Require two successful inventory captures and an idle investigation. Assessment and diagnostic attachments may be absent and must be labelled accordingly.                                                                                            |
+| Q8       | Require a fresh preview after assessment or attachment changes. Reset, actual permission revocation, close and reload erase unsaved preview data. A downloaded file remains outside AddonRay on disk.                                                 |
+| Q9       | Allow report preparation and download only in verified normal windows. Private/incognito and unclassifiable contexts fail closed.                                                                                                                     |
+| Q10      | Use the browser's normal download with unchanged permissions and the action label Download report. The browser may auto-save. AddonRay makes no completed-save claim and cannot retract a handed-off file, including a pending download, after reset. |
+| Q11      | Confirm the complete scope, including a 1 MiB UTF-8 document limit with no truncation, and authorize the plan, feasibility-first implementation, checks, independent review and signed private delivery to `main`.                                    |
+
+The report preserves measured-only timing differences and adds no error
+differences, rates or culprit verdict. Its preparation and download validate the
+source observation revision and reset generation across asynchronous context and
+permission checks. Never-granted scripting does not block an inventory-only
+report; actual removal retains the existing whole-investigation reset. No new
+context, timestamps, notes, collection, history or longer session is authorized.
+
+The accepted local-only download keeps a generic filename and the existing
+permission budget. [Privacy](privacy.md#approved-report-export) records the
+Firefox declaration reassessment and its limited rationale. Essential browser
+download or lifetime failure requires a revised plan rather than broader
+permissions or retention. Tests, native observations, packaged browser results
+and final delivery evidence must be reported separately.
+
+### Accepted Q12 lifetime revision after candidate failure
+
+An essential initial Firefox 158 candidate gate failed. Small and 1 MiB exact
+downloads passed for both Blob and data URLs, but closing the owning tab in the
+same task immediately after `anchor.click()` could preempt the request and leave
+no file. Firefox 140 repeated the Blob failure, while Chrome for Testing
+156.0.8078.47 passed the same six candidate cases. ESR was not run. The failed
+lifetime assertions remain failed; no production behavior is qualified. See the
+[feasibility record](evidence/2026-10-27-report-export-feasibility.md).
+
+Q11 remains the original accepted approval. The user accepted Q12 on 2026-10-27.
+The revised contract distinguishes requesting a download from the browser
+accepting it. Tell the user to keep the investigation open until the browser
+shows the download and warn that close/reload can cancel an unaccepted request.
+Browser-accepted bytes or files can still remain after clearing. Permissions and
+the investigation's memory lifetime remain unchanged. P3A-14 and P3A-16 now
+state this revised boundary explicitly; the original immediate-close failures
+are not converted into passes.
+
+Product wiring stopped under the approved essential-gate rule. Draft serializer
+tests passed 32 tests with 128 assertions and draft controller tests passed 22
+tests with 85 assertions; their unwired, uncommitted code is not product
+qualification. The lifetime decision is settled, but renewed candidate
+qualification, including the missing ESR run, is still required before wiring
+resumes.

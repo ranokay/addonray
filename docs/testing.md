@@ -217,3 +217,85 @@ and unchanged product launcher, then verifies a bound ready check without starti
 observation. This setup does not qualify native toolbar scrolling or launch
 usability. Start, reproduction and attachment interactions must be recorded
 separately. No product hook or permission is added.
+
+## Report export checks
+
+The export contract distinguishes request dispatch, browser acceptance and final
+disk completion. An anchor click establishes only the request. Under accepted
+Q12, keep the investigation open until the browser shows the download; closing
+or reloading can cancel an unaccepted request. Do not restore the original
+immediate-owner-close requirement or relabel its failed receipts as passing.
+The [feasibility record](evidence/2026-10-27-report-export-feasibility.md) records
+the final six-check revised candidate on all four pinned local targets, with
+the first five source blocks unchanged and the sixth checking an exact 1 MiB
+file at its original download path through owner closure.
+
+Focused model/view/adapter checks cover allowlisted report content, omitted ID
+fields and internal labels, literal names/versions, exact UTF-8 limits, explicit
+missing values, current snapshot reference/reset generation, async normal-window
+and permission checks, initial scripting absence, actual revocation, cancellation
+and failures. Run the four focused files with
+`mise exec -- bun test tests/investigation-report.test.ts tests/report-export.test.ts tests/report-download.test.ts tests/report-export-view.test.tsx`.
+These tests do not establish a browser download or native usability. Run the full
+shared gate and source rebuild tasks separately for delivery.
+
+### Packaged browser UI
+
+`scripts/report-export-checks.mjs` is integrated into the shared investigation
+protocol for Firefox and Chrome. It uses Selenium to operate the packaged React
+controls and reads the exact read-only textarea value. Existing runner authority
+supplies retained or labelled pre-granted inventory access; this helper does not
+observe a new optional-permission prompt. At this writing the new packaged export
+checks are pending execution, not qualified results.
+
+Use the existing exact-version packaged Firefox and Chrome tasks with disposable
+profiles. Their test-only download preferences or download behavior select an
+owned empty directory and automatic MIME handling. The external process observes
+file creation. Those settings do not qualify default browser prompts, native
+Save As, cancellation or retail installation.
+
+The helper checks explicit preparation without a download, read-only exact
+Markdown, Cancel preserving the investigation, assessment changes invalidating
+the preview and Download report creating exactly the reviewed UTF-8 bytes under
+`addonray-investigation.md`. Inspect the raw JSON's `reportExport` details for
+`reviewedMarkdown`, `downloadedMarkdown`, byte counts, SHA-256 digests,
+`exactUtf8Match`, omitted fixture ID/internal label, stage and observed directory
+entries. Keep partial file observations reachable when an assertion fails.
+Direct byte equality is required; matching lengths alone are insufficient.
+
+The shared investigation protocol additionally prepares a new preview and
+resets, verifying unsaved text is erased while the completed file remains exact
+at its original path. It checks the same file after owner tabs close. The
+Firefox actual-management-revocation path prepares a preview before removing
+the grant, then verifies erased preview and disabled preparation. Keep these
+product checks distinct from the candidate fixture's lifecycle results. The
+standalone helper itself leaves the owner open until file completion and makes
+no immediate-close or reload-survival claim.
+
+### Native preview and download
+
+The helper `scripts/report-export-native.mjs` opens visible unmodified
+product sessions. Invoke it with
+`mise exec -- bun scripts/report-export-native.mjs firefox` or `chrome`, with
+`snapshot`, `verify-download`, `revoke-management` and `finish` controls. The
+[dated export evidence](evidence/2026-10-28-report-export.md) separates observed
+native controls from the helper's API assertions.
+
+Use a disposable profile and record exact browser/driver/OS, source and artifact
+identities. Capture the pair through the actual product, prepare the report,
+inspect keyboard access, focus and the full read-only text, Cancel, and prepare
+again. The helper discloses automatic-download settings and an owned destination.
+Observe the browser's download indication without treating button activation as
+a completed file. Default settings, Save As and cancellation need separately
+controlled observations and are not qualified by this helper's preset flow.
+
+When a file completes, use `verify-download` according to the helper's prompt to
+compare its raw UTF-8 bytes with the reviewed preview. Keep the file at its
+browser-chosen path for any claimed reset/owner-close retention observation.
+Record user cancellation separately if exercised; product code has no final
+completion/cancellation API. Use `snapshot` before actual management removal,
+verify erased report data after `revoke-management`, and `finish` to record
+cleanup and close only the owned session. Native human observations, helper API
+assertions and raw file equality JSON are separate evidence. Private/unknown
+guards, other OSs, default browser settings and Save As behavior remain gaps
+until explicitly observed.

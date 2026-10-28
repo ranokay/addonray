@@ -56,6 +56,14 @@ _Avoid_: Synchronized capture, causal evidence, error-rate measurement.
 The lifetime of the visible investigation and its temporary diagnostic data.
 _Avoid_: Browsing history, retained report.
 
+**Report**:
+A human-readable account of one investigation's existing observations and their limits, prepared for the user to review and download deliberately.
+_Avoid_: Diagnosis, automatic submission, saved investigation history.
+
+**Report preview**:
+The exact report text offered for the user's review before a download. It belongs to the current investigation and becomes outdated when its observations change.
+_Avoid_: Editable report, live recorder, completed download.
+
 **Companion**:
 An optional, separately installed local application whose capabilities require their own consent and evidence.
 _Avoid_: Privileged browser backdoor.

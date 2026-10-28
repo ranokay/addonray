@@ -30,6 +30,8 @@ import {
 await mkdir('.scratch', { recursive: true });
 // Chrome reads only controlled files in the system temp directory, not the user's Documents folder.
 const work = await mkdtemp(join(tmpdir(), 'addonray-chrome-'));
+const reportDirectory = join(work, 'report-downloads');
+await mkdir(reportDirectory);
 const productDirectory = join(work, 'product');
 const extension = await extractChromePackage(productDirectory);
 const productManifest = JSON.parse(
@@ -131,6 +133,11 @@ let session;
 try {
   session = await launchChrome();
   const { driver, cdp } = session;
+  // Fixture-only browser setting; default user download behavior remains separate.
+  await cdp.send('Browser.setDownloadBehavior', {
+    behavior: 'allow',
+    downloadPath: reportDirectory,
+  });
   report.browserVersion = session.version;
   report.driverVersion = session.driverVersion;
   const productId = await installChromeExtension(cdp, productDirectory);
@@ -306,6 +313,7 @@ try {
   );
   await checkInvestigation({
     driver,
+    reportDirectory,
     popupUrl: uiUrl,
     investigationUrl: uiInvestigationUrl,
     localUrl,
