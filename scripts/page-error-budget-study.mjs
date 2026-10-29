@@ -211,7 +211,7 @@ async function emit() {
 async function createSource(path) {
   await driver.switchTo().window(controlHandle);
   const before = new Set(await driver.getAllWindowHandles());
-  sourceUrl = `${localUrl.replace(/\/$/, '')}${path}`;
+  sourceUrl = `${localUrl.replace(/\/$/, '')}${path}?budget-study=1`;
   sourceTabId = await driver.executeAsyncScript((url, done) => {
     (globalThis.browser ?? globalThis.chrome).tabs
       .create({ url, active: true })
@@ -324,33 +324,28 @@ async function metric(token) {
 
 async function startWorker() {
   await switchSource();
-  const state = await driver.executeScript(() => {
-    globalThis.__addonrayBudgetWorkerStarted = false;
-    const source = "postMessage('started'); while (true) {}";
-    const worker = new Worker(
-      URL.createObjectURL(new Blob([source], { type: 'text/javascript' })),
-    );
-    worker.onmessage = () => {
-      globalThis.__addonrayBudgetWorkerStarted = true;
-    };
-    globalThis.__addonrayBudgetWorker = worker;
-    return {
-      created: true,
-      hardwareConcurrency: navigator.hardwareConcurrency ?? null,
-    };
-  });
+  const state = await driver.executeScript(() =>
+    window.startAddonrayBudgetWorker?.(),
+  );
+  assert.equal(state?.created, true, 'Budget worker helper missing');
+  assert.equal(state?.already, false, 'Budget worker already active');
   workerActive = true;
   await driver.wait(
     () =>
       driver.executeScript(
-        () => globalThis.__addonrayBudgetWorkerStarted === true,
+        () =>
+          document.documentElement.getAttribute(
+            'data-addonray-budget-worker',
+          ) === 'started',
       ),
     5000,
   );
   return {
     ...state,
     startedObserved: await driver.executeScript(
-      () => globalThis.__addonrayBudgetWorkerStarted === true,
+      () =>
+        document.documentElement.getAttribute('data-addonray-budget-worker') ===
+        'started',
     ),
   };
 }
@@ -358,23 +353,18 @@ async function startWorker() {
 async function stopWorker() {
   if (!workerActive) return { terminated: false, reason: 'not-active' };
   await switchSource();
-  const state = await driver.executeScript(() => {
-    const worker = globalThis.__addonrayBudgetWorker;
-    if (!worker) return { terminated: false, reason: 'missing' };
-    worker.terminate();
-    globalThis.__addonrayBudgetWorker = null;
-    globalThis.__addonrayBudgetWorkerStarted = false;
-    return {
-      terminated: true,
-      workerCleared: globalThis.__addonrayBudgetWorker === null,
-      startedCleared: globalThis.__addonrayBudgetWorkerStarted === false,
-    };
-  });
-  assert.equal(state.terminated, true, 'Busy worker missing at stop');
-  assert.equal(state.workerCleared, true);
-  assert.equal(state.startedCleared, true);
+  const state = await driver.executeScript(() =>
+    window.stopAddonrayBudgetWorker?.(),
+  );
+  assert.equal(state?.terminated, true, 'Busy worker missing at stop');
+  const cleared = await driver.executeScript(
+    () =>
+      document.documentElement.getAttribute('data-addonray-budget-worker') ===
+      null,
+  );
+  assert.equal(cleared, true, 'Busy worker marker remained after stop');
   workerActive = false;
-  return state;
+  return { ...state, markerCleared: cleared };
 }
 
 async function probeClock() {

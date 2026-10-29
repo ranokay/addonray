@@ -6,6 +6,7 @@ import {
   installErrorSupervisor,
   observeMainErrors,
 } from '../lib/page-error-observer.ts';
+import { budgetStudyWorkerScript } from './page-error-study-worker.ts';
 
 function replaceOnce(source, before, after) {
   assert.equal(
@@ -277,7 +278,8 @@ globalThis.checkFixture = {
 }
 
 export function pageErrorFixtureHandler(request, response) {
-  const path = new URL(request.url, 'http://fixture.invalid').pathname;
+  const url = new URL(request.url, 'http://fixture.invalid');
+  const path = url.pathname;
   if (!path.startsWith('/page-errors/')) return false;
   if (path === '/page-errors/csp')
     response.setHeader(
@@ -285,6 +287,7 @@ export function pageErrorFixtureHandler(request, response) {
       "default-src 'none'; script-src 'nonce-error-fixture'; frame-src 'self'; base-uri 'none'",
     );
   response.setHeader('Content-Type', 'text/html');
+  const budgetWorker = budgetStudyWorkerScript(url);
   const heavy =
     path === '/page-errors/heavy'
       ? '<div>' + '<span>Controlled node</span>'.repeat(10000) + '</div>'
@@ -324,6 +327,6 @@ document.querySelector('#error-emit').onclick = emitErrorPair;
 document.querySelector('#error-flood').onclick = () => {for(let i=0;i<101;i++)emitErrorPair();};
 document.querySelector('#error-excluded').onclick = () => {errorPositive.excluded++;console.error('PRIVATE_CONSOLE_SENTINEL');const image=new Image();image.onerror=()=>errorPositive.resourceFailures++;image.src='/page-errors/missing.svg';};
 document.querySelector('#error-late').onclick = () => {const deadline=performance.now()+31000;while(performance.now()<deadline){}window.reportError(Error('PRIVATE_LATE_SENTINEL'));};
-</script>`);
+</script>${budgetWorker}`);
   return true;
 }
