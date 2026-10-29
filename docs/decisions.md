@@ -220,3 +220,26 @@ tests with 85 assertions; their unwired, uncommitted code is not product
 qualification. The lifetime decision is settled, but renewed candidate
 qualification, including the missing ESR run, is still required before wiring
 resumes.
+
+## Expanded v1 approval
+
+On 2026-10-29 the user approved the private GitHub milestone `v1.0.0` as the
+finite expanded v1 target. It contains 45 tickets, #2 through #46: saved
+investigations and report exchange, guided manual comparisons, mutation and
+request-failure diagnostics, an optional Rust companion, brand assets,
+qualification and release work. The milestone description and ticket bodies are
+the scope record. [The v1 contract](v1-contract.md) records the support matrix,
+supersession map, release acceptance and exclusions.
+
+The approval fixes scope. It does not answer #4 (license, visibility,
+identities, publisher and pre-release route), #5 (saved and exchanged data
+rules), #13 (mutation and request-failure collector contracts) or #20 (companion
+capability). Those remain decision gates. It also does not authorize signing,
+publication, a license grant or a visibility change.
+
+The user also agreed in the same conversation that macOS arm64, Windows x64 and
+Linux x64 are the intended v1 operating-system and architecture targets. Exact
+OS versions remain a release-planning gate. Linux distribution selection and
+the exact release and OS combinations must be settled before candidate
+qualification. Existing macOS, Ubuntu and Windows Server evidence does not
+establish a minimum OS version or full-v1, native or retail qualification.

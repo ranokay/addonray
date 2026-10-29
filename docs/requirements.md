@@ -2,6 +2,12 @@
 
 Status: Phase 0 scope approved on 2026-10-22 and scaffold implemented. The user approved the [first Phase 1 slice](plans/phase1-inventory.md), layout A with a dark/black default theme, on 2026-10-23. See [decisions](decisions.md) and [observed evidence and gaps](evidence/2026-10-22-firefox.md).
 
+## Approved expanded v1 target
+
+On 2026-10-29 the user approved private milestone `v1.0.0`, tickets #2 through #46, as the finite v1 target. [The v1 contract](v1-contract.md) records the dated scope snapshot, intended support, existing exact evidence, supersession map, release acceptance and exclusions. This file describes implemented or individually approved behavior. It is not the complete v1 promise.
+
+Current runtime limits remain effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4, #5, #13 and #20 remain decision gates.
+
 ## User stories
 
 1. As a Firefox or Chrome user, I want to see which extensions the selected browser exposes so I can start investigating a problem.
@@ -123,6 +129,8 @@ product wiring.
 ## Out of scope for Phase 0
 
 Continuous recording, network collection, page-world instrumentation, console interception, automatic culprit ranking, automated extension state changes, theme management, report export, persistent history, mobile support, additional Chromium browsers, accounts, sync, AMO publication, and a native companion implementation.
+
+That list was the Phase 0 boundary. The later expanded v1 target approves report exchange, local saved investigations and an optional companion as future work under [the v1 contract](v1-contract.md). It does not approve their data rules, permissions or implementation.
 
 ## Important edge cases
 

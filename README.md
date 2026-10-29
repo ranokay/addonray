@@ -8,7 +8,9 @@ Product name and private repository identity `ranokay/addonray` were approved on
 
 Phase 0 is scaffolded. The approved first Phase 1 slice adds local inventory search, enabled-state filtering, permission explanations, and manual browser-controls guidance in a dark popup. The approved manual comparison adds a fresh investigation tab for one Before/After inventory pair and your assessment of the page. Its results live only while that tab remains loaded. The popup retains explicit consent, a minimal selected-page probe, and capability explanations. [Current status](docs/status.md) tracks implementation and qualification. [Earlier evidence](docs/evidence/2026-10-22-qualification.md) records minimum/release/ESR API and native-popup checks on macOS arm64. This is a private feasibility build; Store distribution remains a separate release gate.
 
-The approved builds are Firefox MV3 and Chrome MV3. Desktop targets are macOS, Linux, and Windows. Other browsers and MV2 remain deferred. [Chrome compatibility criteria](docs/plans/chrome-mv3.md) distinguish repeatable Chrome for Testing checks from retail installation and native usability. [Packaged-extension qualification](docs/evidence/2026-10-22-packaging.md) tracks unsigned XPI checks and the Linux/Windows API matrix separately from native-popup usability and signing. `mise run package` creates the XPI and source ZIP locally; it publishes nothing.
+The approved expanded v1 target is recorded in [the v1 contract](docs/v1-contract.md). That target adds saved investigations, report exchange, guided comparisons, bounded mutation and request-failure checks, an optional Rust companion, qualification and release work. The build described here remains the current runtime; the contract's limits and decision gates apply to future work.
+
+The approved builds are Firefox MV3 and Chrome MV3. Intended desktop targets are macOS arm64, Windows x64 and Linux x64; exact OS versions remain a release-planning gate. Other browsers and MV2 remain deferred. [Chrome compatibility criteria](docs/plans/chrome-mv3.md) distinguish repeatable Chrome for Testing checks from retail installation and native usability. [Packaged-extension qualification](docs/evidence/2026-10-22-packaging.md) tracks unsigned XPI checks and the Linux/Windows API matrix separately from native-popup usability and signing. `mise run package` creates the XPI and source ZIP locally; it publishes nothing.
 
 ## Run locally
 
@@ -40,6 +42,7 @@ For Chrome, use `mise exec -- bun run dev:chrome` or `mise run package-chrome`. 
 - [API limits](docs/api-limits.md) separates documented APIs from observed behavior.
 - [Privacy](docs/privacy.md) defines permission requests and data retention.
 - [Phases](docs/phases.md) provides delivery gates and explicit stop conditions.
+- [V1 contract](docs/v1-contract.md) fixes the expanded v1 scope, support matrix and release acceptance.
 - [Testing](docs/testing.md) distinguishes simulated tests from observed browser evidence.
 - [Toolchain](docs/toolchain.md) covers Bun, hk, jactionlint, setup, and rollback.
 - [Decisions](docs/decisions.md) records answers and open questions.

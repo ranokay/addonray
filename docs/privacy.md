@@ -2,6 +2,8 @@
 
 Approved on 2026-10-22: no telemetry, no cloud service, session-only diagnostics, and explicit consent before inventory or selected-page inspection.
 
+The boundaries below describe the implemented runtime. The expanded v1 target may replace specific limits only through [the v1 contract](v1-contract.md) and the named data contract. #5 (saved and exchanged data), #13 (mutation and request-failure collectors) and #20 (companion) are open decisions. Until each contract is approved, recorded and its feasibility gates pass, the current session-only, permission and export limits stay effective.
+
 ## Phase 0 and first Phase 1 slice data lifecycle
 
 | Data                                                                 | Trigger                                             | Retention                            | Destination                 |
@@ -24,6 +26,8 @@ The first inventory slice keeps search text, state filters, and expanded details
 - Optional `scripting` supports the minimal selected-page probe only after an inspect action.
 - No broad host access, network observer, persistent storage, or native messaging in Phase 0.
 - Declare Firefox data collection permission `none` for the local-only initial scope. Reassess that declaration before any export, native transmission, or new integration.
+
+The current runtime retains this budget. v1 changes require the explicit contract named in the [supersession map](v1-contract.md#supersession-map). No backlog item widens permissions by itself.
 
 ## Chrome permission disclosure
 
@@ -138,7 +142,7 @@ qualification remains pending, and any future transmission needs reassessment.
 
 ## Companion
 
-The optional companion needs a separate disclosure of local process access and data crossing the native messaging boundary. Its installation must never become a prerequisite for basic inventory or capability explanations.
+The optional companion is approved v1 scope under #20 to #28, not an implemented capability. It needs a separate disclosure of local process access and data crossing the native messaging boundary. #20 selects one read-only operation and its consent. #21 to #23 prove it per intended OS and architecture. #24 to #28 deliver, install, remove and upgrade it. Its installation must never become a prerequisite for basic inventory, capability explanations or extension-only inspection. The companion supplies no implicit browser authority.
 
 ## References
 

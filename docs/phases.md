@@ -1,6 +1,6 @@
 # Delivery phases
 
-Each phase ends with its own acceptance evidence. A later phase needs an explicit scope decision.
+Each phase ends with its own acceptance evidence. A later phase needs an explicit scope decision. The [expanded v1 contract](v1-contract.md) fixes the finite ticket set and final release acceptance. The phase descriptions below record the original delivery shape; the v1 notes show how the approved backlog extends them.
 
 ## Phase 0: prove the API boundary
 
@@ -43,12 +43,18 @@ Add previewed, minimized export and reproducible comparison records. Decide what
 
 Exit when export tests cover sensitive fields and a user can inspect exactly what leaves the session. Update the Firefox data declaration if the behavior requires it.
 
+The approved v1 backlog extends this phase through #5 to #12. #5 settles persistence and exchange rules before #6 to #11 implement them. #12 adds guided trials on top of the approved history contract.
+
 ## Phase 4: optional Rust companion feasibility
 
 Select a concrete capability ordinary WebExtensions cannot provide. Research supported OS/browser mechanisms and obtain approval for the additional access. Define protocol, extension allowlist, installer ownership, updates, failure modes, and uninstall behavior.
 
 Exit feasibility only with real OS/browser evidence and a narrow capability proposal. A working native message round trip alone does not qualify browser control.
 
+The approved v1 backlog makes this phase concrete through #20 to #28: select one operation, prove it per intended OS, deliver it, install and remove it, and handle upgrades.
+
 ## Distribution gate
 
 AMO and Chrome Web Store publication are separate from pushing source to the private repository. It requires a license decision, final extension identity, privacy review, current store policy checks for each target, browser/distribution qualification, packaging evidence, and approval to publish.
+
+The v1 release path is #4, #39 and #40 to #46. Backlog approval does not grant license, visibility, signing or publication authority.

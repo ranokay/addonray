@@ -1,5 +1,11 @@
 # Checklist and resumption
 
+## Expanded v1 target
+
+The user approved the private milestone [`v1.0.0`](https://github.com/ranokay/addonray/milestone/1) as the finite expanded v1 target on 2026-10-29. It contains tickets #2 through #46: saved investigations and report exchange, guided comparisons, mutation and request-failure diagnostics, an optional Rust companion, brand assets, qualification and release work. [The v1 contract](v1-contract.md) records the dated scope snapshot, intended support, existing evidence, supersession map, release acceptance and exclusions.
+
+The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4, #5, #13 and #20 are open decision gates. Backlog approval does not authorize signing, publication, licensing or visibility changes.
+
 ## Current state
 
 The user approved [previewed investigation report export](plans/phase3-report-export.md)
@@ -42,9 +48,11 @@ attempt and the unchanged passing retries. No cause or fix is established by
 those retries. Available unmodified macOS consent, keyboard preview/Cancel and
 download, reload and actual management-removal observations retain their
 native authority limits. Their 41 product-input hashes match `8091ad1`.
-A later documentation delivery head requires its own frozen check and hosted
-report verification. `.scratch/p3a-delivery.json` is the final local receipt for
-that exact delivered head; do not infer later-head success from this paragraph.
+A later documentation delivery head for that export requires its own frozen check
+and hosted report verification. `.scratch/p3a-delivery.json` is the final local
+receipt for that exact delivered head; do not infer later-head success from this
+paragraph.
+That receipt is absent in the current worktree; see [Historical delivery records](#historical-delivery-records).
 
 The prior attachment delivery is complete at signed `deeb3d8`. Its final local
 receipt is `.scratch/p2d-delivery-deeb3d8.json`, verified during read-only resumption
@@ -210,18 +218,45 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Complete independent export-core review with no material finding.
 - [x] Complete probe/native-helper/evidence review and fix material findings.
 - [x] Run the shared gate, source rebuilds and exact Firefox/Chrome implementation qualifications; observe available native flows and record gaps.
-- [x] Prepare reviewed evidence and deliver signed implementation privately to `main`. The final documentation head is complete only when `.scratch/p3a-delivery.json` verifies that exact head and its hosted reports.
+- [x] Prepare reviewed evidence and deliver signed implementation privately to `main` at `8091ad1`. The separate final documentation receipt is absent and remains unverified; see [Historical delivery records](#historical-delivery-records).
+
+## Expanded v1 contract checklist
+
+- [x] Read milestone `v1.0.0` and the bodies of tickets #2 through #46.
+- [x] Record the dated finite scope, intended support, existing exact evidence, decision gates and native dependencies in [the v1 contract](v1-contract.md).
+- [x] Record intended desktop architectures separately from exact OS versions and qualification evidence.
+- [x] Record the prospective supersession map and keep current runtime limits effective.
+- [x] Record final release acceptance, exclusions and the post-release support receipt.
+- [ ] Close the #4, #5, #13 and #20 decisions before their dependent implementation tickets.
+- [ ] Settle exact OS versions, Linux distribution and candidate release combinations before #39 candidate qualification.
 
 ## Next action
 
-Read `.scratch/p3a-delivery.json` against the current checkout head. If its frozen
-shared gate and all hosted browser/rebuild reports verify that exact signed,
-pushed head, the [report export slice](plans/phase3-report-export.md) is complete.
-Otherwise finish those delivery checks and retain the receipt. Stop after this
-phase. New product scope requires a fresh decision. Preserve the original failed assertions and distinguish
+Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
+is the current scope and support record. The next v1 action is to close the #4,
+#5, #13 and #20 decisions, then start executable work in dependency order. #32
+and #33 have no native blockers. #3 needs the user's visual selection. No
+full-v1 qualification exists.
+
+The pre-v1 stop condition is superseded by the approved [v1 contract](v1-contract.md).
+Start v1 work only in dependency order and only after the named contract and
+feasibility gates close. Preserve the original failed assertions and distinguish
 request dispatch, browser acceptance and final file completion. Console feeds,
-history, new collectors or targets, extension-state changes and the native
-companion remain separate decisions.
+new browser targets, automatic extension-state changes and causal verdicts remain
+excluded. Saved history, bounded collectors and the optional companion are
+approved v1 scope, not authorization to skip their contracts.
+
+## Historical delivery records
+
+The report export implementation is signed `8091ad1`; the documentation head
+inherited by this task is `a78e5d9`. The recorded test, browser and native
+evidence is unchanged. The separate final documentation delivery receipt
+`.scratch/p3a-delivery.json` is absent in this worktree. Treat that prior
+documentation delivery as explicitly unverified history, not a pass.
+Verify it only against the exact historical head and receipt it names. Do not
+apply it to a later documentation-only head, and do not rerun export browser
+probes merely because HEAD moved. This issue's proof is the frozen shared gate
+for its documentation commit, not browser, export or full-v1 qualification.
 
 The final `.scratch/p2d-delivery-deeb3d8.json` receipt closes the prior
 documentation head's required verification. Future export implementation and
@@ -243,6 +278,8 @@ records the completed matrix and report verification; the historical failure
 remains failed. Neither failure's cause is established, and no budget or product
 timing limit has changed.
 
+## Remaining release gates
+
 Native Linux/Windows usability, full accessibility, private/unknown-context native guards, retail installation/store and signed-distribution qualification remain release gates. Chrome's page-side observer is not tamper-proof. Production Firefox BFCache restoration remains unobserved; focused candidate restoration and production fresh-load outcomes are separate evidence. Follow the [desktop QA handoff](desktop-popup-qa.md) when an appropriate visible desktop becomes available.
 
 The user approved the private build while these release gates remain open. Licensing/public visibility remain undecided. The original inventory prototype remains on signed `36e4d24` outside `main`. Toolchain setup and pinning remain in [toolchain](toolchain.md).
@@ -253,11 +290,22 @@ The local check task ran successfully with 26 passing simulated tests, and depen
 
 For fresh revision-bound evidence, run `/Users/ranokay/.agents/tools/run gate_run -- mise run check` and then `/Users/ranokay/.agents/tools/run gate_run -- mise run test-firefox` from a clean checkout on this machine. On other machines, the plain mise tasks remain portable; the receipt helper is local tooling, not a project dependency. Receipts are private local files and must be inspected for the actual command result, source revision, and frozen state.
 
-## Unresolved future decisions
+## Open v1 decisions
 
-License, public visibility, final AMO identity/publication, remaining native OS
-and signed-distribution qualification, retail Chrome installation, longer
-investigation lifetime, diagnostic collectors and overhead budgets, saved
-history, report import/other formats and a concrete optional companion capability.
-These remain separate from the approved first export slice and completed
-inspection slices.
+Before the expanded v1 approval, the items below were recorded as unresolved future decisions. The approval moved them into the backlog and kept them as decision gates. They remain open:
+
+- #4: license and source visibility, final extension and companion identities,
+  publisher ownership, and the pre-release signing and limited-distribution
+  routes.
+- #5: saved-investigation and report-exchange data rules.
+- #13: mutation and request-failure collector contracts.
+- #20: the useful read-only companion capability.
+- Exact OS versions, Linux distribution and release combinations. The intended
+  architectures are macOS arm64, Windows x64 and Linux x64. Exact versions must
+  be settled before candidate qualification. Existing evidence does not set a
+  minimum OS version or qualify retail, native or full-v1 support.
+
+These are approval gates inside the approved backlog, not open scope questions.
+Current runtime limits remain effective until each contract and its applicable
+feasibility gates pass. Licensing, visibility, signing and publication still
+need their separate explicit approvals.
