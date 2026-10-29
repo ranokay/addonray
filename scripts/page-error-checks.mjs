@@ -62,7 +62,7 @@ export async function checkPageErrors({
     authority:
       'Named source fixture with production model, adapter, bootstrap and observer modules. Driver invokes actual toolbar action for activeTab. Fixture controls replace React UI; native user consent/usability is separate.',
     method:
-      'Page-owned button handlers generate genuine errors/rejections. Observer results are canonical fixed summaries. Synchronous operation measurements use explicitly hashed wrappers around production bodies; sample bookkeeping occurs outside the timed body. Each setup sample uses the maximum of the observer-installation and start-handling slots retained in that attempt; the supervisor setup array stores installation first and start handling second, while the page-world copy has one installation slot. Raw setup components are published separately without changing the gate. Worlds are qualified separately. Injection/driver latency, observation wall duration, and collector operations are separate.',
+      'Page-owned button handlers generate genuine errors/rejections. Observer results are canonical fixed summaries. Synchronous operation measurements use explicitly hashed wrappers around production bodies; sample bookkeeping occurs outside the timed body. Each setup sample uses the maximum of the observer-installation and start-handling slots retained in that attempt; the Firefox supervisor setup array stores installation first and start handling second, while the page-world copy has one installation slot. The Chrome page-world run also measures its isolated supervisor, whose setup is installation-only because the MAIN observer performs the observation. Raw setup components are published separately without changing the gate. Worlds are qualified separately. Injection/driver latency, observation wall duration, and collector operations are separate.',
     cpu: cpus()[0]?.model ?? null,
     summaryBudgetBytes: 1024,
     operationBudgetMs: 5,
@@ -469,7 +469,6 @@ export async function checkPageErrors({
       const supervisorSamples = { setup: [], finalization: [] };
       const supervisorClockSamples = [];
       const supervisorSetupInstallSamples = [];
-      const supervisorSetupStartSamples = [];
       const supervisorSetupSlotCounts = [];
       const observations = [];
       const endToEndMs = [];
@@ -516,7 +515,6 @@ export async function checkPageErrors({
             : [];
           supervisorSetupSlotCounts.push(supervisorSetupSlots.length);
           supervisorSetupInstallSamples.push(supervisorSetupSlots[0]);
-          supervisorSetupStartSamples.push(supervisorSetupSlots[1]);
           supervisorSamples.setup.push(Math.max(...supervisorMetrics.setup));
           supervisorSamples.finalization.push(
             ...supervisorMetrics.finalization,
@@ -549,7 +547,7 @@ export async function checkPageErrors({
                 rawOperationSamplesMs: supervisorSamples,
                 setupComponents: {
                   installationMs: supervisorSetupInstallSamples,
-                  startHandlingMs: supervisorSetupStartSamples,
+                  startHandlingMs: null,
                 },
                 setupSlotCounts: supervisorSetupSlotCounts,
                 operations: {},
@@ -582,17 +580,14 @@ export async function checkPageErrors({
         );
       if (measurement.isolatedSupervisor) {
         assert(
-          supervisorSetupSlotCounts.every((count) => count === 2),
-          'Unexpected supervisor setup measurement slots',
+          supervisorSetupSlotCounts.every((count) => count === 1),
+          'Unexpected isolated supervisor setup measurement slots',
         );
         assert(
           supervisorSetupInstallSamples.every(
             (value) => Number.isFinite(value) && value >= 0,
-          ) &&
-            supervisorSetupStartSamples.every(
-              (value) => Number.isFinite(value) && value >= 0,
-            ),
-          'Supervisor setup measurement missing or invalid',
+          ),
+          'Isolated supervisor installation measurement missing or invalid',
         );
       }
       assert(
