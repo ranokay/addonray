@@ -43,10 +43,13 @@ it('retains metrics and timings when a post-stop check throws', () => {
   });
   markStudyAttemptStage(attempt, 'post-stop-checking');
 
-  const error = new Error(
-    'Stopped measured observer still receives physical callbacks',
-  );
-  failStudyAttempt(attempt, attempt.stage, error);
+  try {
+    throw new Error(
+      'Stopped measured observer still receives physical callbacks',
+    );
+  } catch (error) {
+    failStudyAttempt(attempt, attempt.stage, error);
+  }
 
   expect(attempt.status).toBe('failed');
   expect(attempt.index).toBe(7);
