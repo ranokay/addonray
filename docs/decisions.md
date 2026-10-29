@@ -243,3 +243,23 @@ OS versions remain a release-planning gate. Linux distribution selection and
 the exact release and OS combinations must be settled before candidate
 qualification. Existing macOS, Ubuntu and Windows Server evidence does not
 establish a minimum OS version or full-v1, native or retail qualification.
+
+## Brand asset selection
+
+On 2026-10-29 the user selected **Aperture** from the three prototype directions
+(Aperture, Prism and Frame) after the inline picker review. The selected form is
+a broken lens ring around a solid center. The existing inventory prototype and
+the brand prototype remain preserved; the user has not authorized deletion of
+the authored exploration.
+
+The package icon is one static asset set for both Firefox and Chrome. It uses a
+mid-green primary (`#2f8f63`) and a mint accent center (`#b6e4ca`) rather than
+the prototype's theme-specific palettes. This keeps the toolbar mark legible on
+both light and dark chrome without theme-specific manifest entries, new
+permissions or session changes. The 16 px export uses an optical master with a
+heavier ring and larger accent center.
+
+Store and companion compositions in the kit are reusable material. This
+decision does not approve a companion package identity, store listing,
+publisher, license, publication or support claim. Those remain with #4 and the
+release tickets.

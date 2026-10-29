@@ -6,17 +6,24 @@ The user approved the private milestone [`v1.0.0`](https://github.com/ranokay/ad
 
 The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4, #5, #13 and #20 are open decision gates. Backlog approval does not authorize signing, publication, licensing or visibility changes.
 
-## Brand asset prototype
+## Brand asset kit
 
-Issue #3's prototype is ready for the user's direction selection. Three named
-directions, Aperture, Prism and Frame, are shown at toolbar, extension
-management, companion/distribution, store and monochrome sizes on light and dark
-panels. The self-contained picker is
-[docs/prototypes/brand-assets/index.html](prototypes/brand-assets/index.html);
-the scope and gates are in [the brand asset plan](plans/brand-assets.md). No
-direction is selected, no production asset is wired, and #3 remains open. The
-headless Chrome verification and its gaps are recorded in
-[prototype evidence](evidence/2026-10-29-brand-asset-prototype.md).
+The user selected Aperture on 2026-10-29. The reusable
+[brand asset kit](../assets/brand/README.md) now contains the editable masters,
+transparent raster exports, monochrome variants, lockups, a reusable store tile
+and the Firefox/Chrome package icons. Both manifests explicitly map
+`icons` and `action.default_icon` to 16, 32, 48, 96 and 128 px files; the
+source archives include `public/**`. The 16 px icon uses an optical master. One
+static palette keeps the package mark legible on light and dark browser chrome.
+Measured contrast, optical observations, package maps and source rebuild
+results are in [asset evidence](evidence/2026-10-29-brand-assets.md) and the
+[self-contained package proof](evidence/2026-10-29-aperture-package-proof.html).
+
+The prototype remains preserved at
+[docs/prototypes/brand-assets/index.html](prototypes/brand-assets/index.html)
+with its [prototype evidence](evidence/2026-10-29-brand-asset-prototype.md).
+Issue #3 remains open because cleanup still needs explicit user authorization.
+No store, licensing, publication or distribution qualification is claimed.
 
 ## Current state
 
@@ -247,10 +254,10 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Record three named directions, their axes and the user-selection gate.
 - [x] Build the self-contained prototype with toolbar, management, companion/distribution, store and monochrome contexts on light and dark backgrounds.
 - [x] Verify number, arrow and click selection, URL persistence, palette colors, wrapper spacing, transparency, overflow and console in headless Chrome for Testing 156.0.8078.47; retain local screenshots in ignored scratch.
-- [ ] Obtain the user's direction selection.
-- [ ] Test the selected mark for small-size legibility, contrast and monochrome silhouette.
-- [ ] Deliver vector masters, transparent raster exports and package icons; wire both extension targets and prove both source rebuilds.
-- [ ] Document canonical asset locations and usage rules without store qualification claims.
+- [x] Obtain the user's Aperture selection.
+- [x] Test the selected mark for small-size legibility, contrast and monochrome silhouette; record the static package palette and 16 px optical master.
+- [x] Deliver vector masters, transparent raster exports and package icons; wire both extension targets and prove both source rebuilds.
+- [x] Document canonical asset locations and usage rules without store qualification claims.
 - [ ] Obtain explicit authorization before removing the authored prototype exploration.
 
 ## Next action
@@ -258,8 +265,9 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
 is the current scope and support record. The next v1 action is to close the #4,
 #5, #13 and #20 decisions, then start executable work in dependency order. #32
-and #33 have no native blockers. #3's prototype awaits the user's direction
-selection, and no production asset is wired. No full-v1 qualification exists.
+and #33 have no native blockers. #3's Aperture kit and package icons are
+delivered; the issue remains open pending explicit authorization to remove the
+preserved prototype exploration. No full-v1 qualification exists.
 
 The pre-v1 stop condition is superseded by the approved [v1 contract](v1-contract.md).
 Start v1 work only in dependency order and only after the named contract and

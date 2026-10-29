@@ -1,8 +1,9 @@
 # Brand asset kit
 
-Status: prototype ready, awaiting the user's direction selection. Issue
-[#3](https://github.com/ranokay/addonray/issues/3) remains open. No production
-asset is wired and no direction is selected.
+Status: Aperture selected on 2026-10-29. The reusable kit and package icons are
+delivered. Issue [#3](https://github.com/ranokay/addonray/issues/3) remains open
+because the user has not authorized removal of the authored prototype
+exploration. No store, licensing or publication claim is made.
 
 ## Scope
 
@@ -79,3 +80,7 @@ untouched.
 
 - 2026-10-29: issue #3 implementation started from `ab8618a`. Three directions
   and the selection gate recorded. Prototype built and awaiting selection.
+- 2026-10-29: the user selected Aperture. The static package palette, optical
+  16 px master, transparent exports, monochrome variants, lockups, store tile,
+  manifest maps and source allowlist were delivered. The prototype remains
+  pending separate cleanup authorization.
