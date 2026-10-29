@@ -140,7 +140,7 @@ describe('brand asset kit', () => {
         expect(alpha.transparent).toBeGreaterThan(0);
         expect(alpha.opaque).toBeGreaterThan(0);
         const colors = [...visibleColors(png).keys()];
-        expect(colors).toContain(color === 'black' ? '#111111' : '#ffffff');
+        expect(colors).toContain(color === 'black' ? '#000000' : '#ffffff');
         expect(colors).not.toContain('#2f8f63');
       }
     }
