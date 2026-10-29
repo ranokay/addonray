@@ -19,11 +19,11 @@ Measured contrast, optical observations, package maps and source rebuild
 results are in [asset evidence](evidence/2026-10-29-brand-assets.md) and the
 [self-contained package proof](evidence/2026-10-29-aperture-package-proof.html).
 
-The prototype remains preserved at
-[docs/prototypes/brand-assets/index.html](prototypes/brand-assets/index.html)
-with its [prototype evidence](evidence/2026-10-29-brand-asset-prototype.md).
-Issue #3 remains open because cleanup still needs explicit user authorization.
-No store, licensing, publication or distribution qualification is claimed.
+The prototype HTML was removed after explicit user authorization. Its
+[prototype evidence](evidence/2026-10-29-brand-asset-prototype.md) and
+[historical GitHub blob](https://github.com/ranokay/addonray/blob/6b0f38eeff2081f9b869eb2e9794afcc98d7702e/docs/prototypes/brand-assets/index.html) retain the selection and correction history.
+Issue #3 remains open pending private PR delivery, not cleanup. No store,
+licensing, publication or distribution qualification is claimed.
 
 ## Current state
 
@@ -258,16 +258,16 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Test the selected mark for small-size legibility, contrast and monochrome silhouette; record the static package palette and 16 px optical master.
 - [x] Deliver vector masters, transparent raster exports and package icons; wire both extension targets and prove both source rebuilds.
 - [x] Document canonical asset locations and usage rules without store qualification claims.
-- [ ] Obtain explicit authorization before removing the authored prototype exploration.
+- [x] Obtain explicit authorization and remove only `docs/prototypes/brand-assets/index.html`; retain the kit, proof, evidence, plan and inventory prototype.
 
 ## Next action
 
 Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
 is the current scope and support record. The next v1 action is to close the #4,
 #5, #13 and #20 decisions, then start executable work in dependency order. #32
-and #33 have no native blockers. #3's Aperture kit and package icons are
-delivered; the issue remains open pending explicit authorization to remove the
-preserved prototype exploration. No full-v1 qualification exists.
+and #33 have no native blockers. #3's Aperture local implementation, proof and
+authorized prototype cleanup are complete; the issue remains open pending
+private PR delivery. No full-v1 qualification exists.
 
 The pre-v1 stop condition is superseded by the approved [v1 contract](v1-contract.md).
 Start v1 work only in dependency order and only after the named contract and

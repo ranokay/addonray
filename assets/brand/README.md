@@ -1,9 +1,10 @@
 # AddonRay brand assets
 
 The user selected **Aperture** on 2026-10-29. It is a broken lens ring around a
-solid center, drawn on a 32-unit grid. The prototype that produced the choice is
-preserved at [docs/prototypes/brand-assets](../../docs/prototypes/brand-assets/index.html);
-it is not a production input.
+solid center, drawn on a 32-unit grid. The prototype that produced the choice was
+removed after the 2026-10-29 cleanup authorization. Its
+[prototype evidence](../../docs/evidence/2026-10-29-brand-asset-prototype.md) and
+[historical GitHub blob](https://github.com/ranokay/addonray/blob/6b0f38eeff2081f9b869eb2e9794afcc98d7702e/docs/prototypes/brand-assets/index.html) are retained. It is not a production input.
 
 ## Canonical locations
 

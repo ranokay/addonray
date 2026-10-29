@@ -248,9 +248,11 @@ establish a minimum OS version or full-v1, native or retail qualification.
 
 On 2026-10-29 the user selected **Aperture** from the three prototype directions
 (Aperture, Prism and Frame) after the inline picker review. The selected form is
-a broken lens ring around a solid center. The existing inventory prototype and
-the brand prototype remain preserved; the user has not authorized deletion of
-the authored exploration.
+a broken lens ring around a solid center. The user later explicitly authorized
+removal of only `docs/prototypes/brand-assets/index.html`; that file was removed.
+The existing inventory prototype, asset kit, package proof, both evidence
+documents, the plan and all local scratch evidence remain preserved. The
+[historical GitHub blob](https://github.com/ranokay/addonray/blob/6b0f38eeff2081f9b869eb2e9794afcc98d7702e/docs/prototypes/brand-assets/index.html) pins the removed prototype at `6b0f38e`.
 
 The package icon is one static asset set for both Firefox and Chrome. It uses a
 mid-green primary (`#2f8f63`) and a mint accent center (`#b6e4ca`) rather than

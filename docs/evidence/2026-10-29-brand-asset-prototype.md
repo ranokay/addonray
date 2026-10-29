@@ -5,12 +5,17 @@ Base: `ab8618a8482512c3cd5e994031062812ecaeb080`.
 
 ## Artifact
 
-[docs/prototypes/brand-assets/index.html](../prototypes/brand-assets/index.html)
-is one self-contained HTML file with inline CSS, JavaScript and SVG marks. It
-uses no external fonts, scripts, images or media. The outer wrapper, `html` and
-`body` are transparent, and only the comparison panels set light or dark
-backgrounds. The wrapper has no side padding and no banner title, so an inline
-host can supply its own page chrome. Comparison panels keep their own padding.
+The prototype HTML was removed on 2026-10-29 after the user explicitly
+authorized removal of that one file. This evidence document and the local
+screenshots are retained. The historical file is pinned at the
+[GitHub blob](https://github.com/ranokay/addonray/blob/6b0f38eeff2081f9b869eb2e9794afcc98d7702e/docs/prototypes/brand-assets/index.html).
+
+The removed file was one self-contained HTML file with inline CSS, JavaScript
+and SVG marks. It used no external fonts, scripts, images or media. The outer
+wrapper, `html` and `body` were transparent, and only the comparison panels set
+light or dark backgrounds. The wrapper had no side padding and no banner title,
+so an inline host could supply its own page chrome. Comparison panels kept their
+own padding.
 
 The picker markup, styles and keyboard wiring follow the installed prototype
 skill's `PICKER.md`. The replay control is omitted because the marks are static.
@@ -98,6 +103,7 @@ environment remain unobserved. Hover and focus-visible appearance were not
 captured as images, though the wiring is present.
 
 The computed-style checks read paint values and rendered bounds. They do not
-sample screenshot pixels. No contrast measurement or small-size optical test
-exists yet; those follow the user's selection. No production asset, manifest icon or package icon is wired.
-Issue #3 remains open.
+sample screenshot pixels. Selection, contrast and small-size testing are
+recorded in [asset evidence](2026-10-29-brand-assets.md); this document remains
+the prototype history record. Issue #3 remains open pending private PR
+delivery.

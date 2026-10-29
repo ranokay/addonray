@@ -8,8 +8,9 @@ Prototype base: `ab8618a8482512c3cd5e994031062812ecaeb080`. Implementation base:
 
 The user selected **Aperture** after the inline prototype review. The prototype
 review and its two correction rounds are recorded in
-[prototype evidence](2026-10-29-brand-asset-prototype.md). That prototype is
-preserved; cleanup has not been authorized.
+[prototype evidence](2026-10-29-brand-asset-prototype.md). The prototype HTML
+was later removed after explicit authorization; the evidence and
+[historical GitHub blob](https://github.com/ranokay/addonray/blob/6b0f38eeff2081f9b869eb2e9794afcc98d7702e/docs/prototypes/brand-assets/index.html) are retained.
 
 The package uses one static icon set rather than theme-specific toolbar assets.
 The prototype's dark and light palettes were combined into a mid-green primary
@@ -120,6 +121,12 @@ center are clear. The 16 px optical master avoids a hairline accent.
   `.scratch/source-build-evidence-chrome.json`.
 - `mise exec -- bun run typecheck` passed 56 files.
 
+The authorized prototype cleanup after `6b0f38e` deletes one documentation file
+and edits documentation only. Documentation is outside the source allowlist, and
+the package icon bytes are unchanged. The clean source rebuild receipts at
+`6b0f38e` therefore remain bounded evidence for the same source inputs; they were
+not rerun at the cleanup head.
+
 ## Limits
 
 This is local asset and packaging evidence. It does not qualify native toolbars
@@ -127,6 +134,5 @@ on Firefox or Chrome, Linux or Windows rendering, store listings, signed
 distribution, screen readers or the final published identity. The static icon
 was rendered on representative chrome colors; the browser may composite icons
 differently on a platform. Store and companion compositions are reusable
-material, not submission assets. Issue #3 remains open until the user authorizes
-cleanup of the authored prototype or otherwise closes the remaining acceptance
-item.
+material, not submission assets. The authorized prototype cleanup is complete.
+Issue #3 remains open pending private PR delivery.
