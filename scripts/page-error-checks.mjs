@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { cpus } from 'node:os';
 import { By } from 'selenium-webdriver';
+import { createPageErrorOperations } from './page-error-operations.mjs';
 import { evaluateSynchronousBudget } from './synchronous-budget.ts';
 
 const counts = [
@@ -80,40 +81,26 @@ export async function checkPageErrors({
   let sourceTabId;
   let ownerHandle;
   let sourceUrl;
-  async function switchOwner() {
-    await driver.switchTo().window(ownerHandle);
-  }
-  async function switchSource() {
-    await driver.switchTo().window(sourceHandle);
-  }
-  async function debug() {
-    await switchOwner();
-    return driver.executeScript(() => globalThis.checkFixture?.debug());
-  }
-  async function waitPhase(phase, timeout = 12000) {
-    return driver.wait(async () => {
-      const state = await debug();
-      if (phase === 'observing' && state?.phase === 'finished')
-        throw new Error(`Observation failed: ${JSON.stringify(state.outcome)}`);
-      return state?.phase === phase && state;
-    }, timeout);
-  }
-  async function positive() {
-    await switchSource();
-    return driver.executeScript(() => ({ ...globalThis.errorPositive }));
-  }
-  async function emit() {
-    const before = await positive();
-    await driver.findElement(By.id('error-emit')).click();
-    return driver.wait(async () => {
-      const after = await positive();
-      return (
-        after.errors === before.errors + 1 &&
-        after.rejections === before.rejections + 1 &&
-        after
-      );
-    }, 10000);
-  }
+  const {
+    switchOwner,
+    switchSource,
+    debug,
+    waitPhase,
+    positive,
+    emit,
+    granted,
+    start,
+    reset,
+    stop,
+    metric,
+  } = createPageErrorOperations({
+    driver,
+    ownerHandle: () => ownerHandle,
+    sourceHandle: () => sourceHandle,
+    approveOptional,
+  });
+  const stopWithValidation = () => stop(validateSummary);
+
   async function createSource(path) {
     await driver.switchTo().window(controlHandle);
     const before = new Set(await driver.getAllWindowHandles());
@@ -165,48 +152,6 @@ export async function checkPageErrors({
     assert.equal((await debug()).outcome, null);
     assert.equal((await debug()).permissionRequests, 0);
   }
-  async function granted(name) {
-    await switchOwner();
-    return driver.executeAsyncScript((name, done) => {
-      (globalThis.browser ?? globalThis.chrome).permissions
-        .contains({ permissions: [name] })
-        .then(done);
-    }, name);
-  }
-  async function start() {
-    const alreadyGranted = await granted('scripting');
-    await driver.findElement(By.id('page-error-start')).click();
-    if (!alreadyGranted)
-      await approveOptional?.({ permissions: ['scripting'], ownerHandle });
-    return waitPhase('observing');
-  }
-  async function reset() {
-    await switchOwner();
-    await driver.findElement(By.id('page-error-reset')).click();
-    const state = await waitPhase('ready');
-    assert.equal(state.outcome, null);
-  }
-  async function stop() {
-    await switchOwner();
-    await driver.findElement(By.id('page-error-stop')).click();
-    const state = await waitPhase('finished');
-    assert.equal(state.outcome?.status, 'success', JSON.stringify(state));
-    validateSummary(state.outcome.value);
-    return state.outcome.value;
-  }
-  async function metric(token, kind) {
-    await switchSource();
-    return driver.executeScript(
-      (token, kind) =>
-        JSON.parse(
-          document.documentElement.getAttribute(
-            `data-addonray-error-metrics-${token}-${kind}`,
-          ) ?? 'null',
-        ),
-      token,
-      kind,
-    );
-  }
   async function closeOwner() {
     await switchOwner();
     await driver.close();
@@ -247,7 +192,7 @@ export async function checkPageErrors({
       return observed.excluded === 1 && observed.resourceFailures === 1;
     }, 10000);
     await emit();
-    const partial = await stop();
+    const partial = await stopWithValidation();
     assert.equal(partial.scriptErrors, 1);
     assert.equal(partial.unhandledRejections, 1);
     assert.equal(partial.total, 2);
@@ -260,7 +205,7 @@ export async function checkPageErrors({
 
     await reset();
     await start();
-    const zero = await stop();
+    const zero = await stopWithValidation();
     assert.equal(zero.total, 0);
     evidence.observations.zero = zero;
     passed(
@@ -480,7 +425,7 @@ export async function checkPageErrors({
         const startWall = performance.now();
         const state = await start();
         await emit();
-        const summary = await stop();
+        const summary = await stopWithValidation();
         assert.equal(summary.total, 2);
         const metrics = await metric(state.latestToken, selectedWorld);
         assert(metrics, 'Selected-world measurement record missing');
@@ -778,7 +723,7 @@ export async function checkPageErrors({
     await launch();
     await start();
     await emit();
-    assert.equal((await stop()).total, 2);
+    assert.equal((await stopWithValidation()).total, 2);
     await reset();
     await start();
     await switchSource();

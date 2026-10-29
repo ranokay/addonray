@@ -1,6 +1,5 @@
 /* global WebExtensionPolicy */
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { arch, cpus, platform, release } from 'node:os';
@@ -15,6 +14,7 @@ import {
   pageErrorFixtureHandler,
   preparePageErrorFixture,
 } from './page-error-fixture.mjs';
+import { createPageErrorOperations } from './page-error-operations.mjs';
 import {
   evaluateSynchronousBudget,
   nearestRankP95,
@@ -84,7 +84,15 @@ const reportPath = resolve(
 
 function gitValue(...args) {
   try {
-    return execFileSync('git', args, { encoding: 'utf8' }).trim();
+    const git = Bun.which('git');
+    if (!git) return null;
+    const result = Bun.spawnSync({
+      cmd: [git, ...args],
+      stdout: 'pipe',
+      stderr: 'ignore',
+    });
+    if (result.exitCode !== 0) return null;
+    return result.stdout.toString().trim();
   } catch {
     return null;
   }
@@ -158,8 +166,19 @@ let ownerHandle;
 let sourceTabId;
 let sourceUrl;
 let workerActive = false;
+let operations;
 const ownedHandles = new Set();
 let protocolFailure = null;
+
+const switchOwner = () => operations.switchOwner();
+const switchSource = () => operations.switchSource();
+const debug = () => operations.debug();
+const waitPhase = (phase, timeout) => operations.waitPhase(phase, timeout);
+const emit = () => operations.emit();
+const granted = (name) => operations.granted(name);
+const reset = () => operations.reset();
+const stop = (validate) => operations.stop(validate);
+const metric = (token) => operations.metric(token, 'supervisor');
 
 function normaliseFailure(error) {
   return studyErrorText(error);
@@ -175,46 +194,6 @@ function sampleSummary(samples) {
     p95Ms: nearestRankP95(samples),
     maximumMs: sorted.at(-1),
   };
-}
-
-async function switchOwner() {
-  await driver.switchTo().window(ownerHandle);
-}
-
-async function switchSource() {
-  await driver.switchTo().window(sourceHandle);
-}
-
-async function debug() {
-  await switchOwner();
-  return driver.executeScript(() => globalThis.checkFixture?.debug());
-}
-
-async function waitPhase(phase, timeout = 12000) {
-  return driver.wait(async () => {
-    const state = await debug();
-    if (phase === 'observing' && state?.phase === 'finished')
-      throw new Error(`Observation failed: ${JSON.stringify(state.outcome)}`);
-    return state?.phase === phase && state;
-  }, timeout);
-}
-
-async function positive() {
-  await switchSource();
-  return driver.executeScript(() => ({ ...globalThis.errorPositive }));
-}
-
-async function emit() {
-  const before = await positive();
-  await driver.findElement(By.id('error-emit')).click();
-  return driver.wait(async () => {
-    const after = await positive();
-    return (
-      after.errors === before.errors + 1 &&
-      after.rejections === before.rejections + 1 &&
-      after
-    );
-  }, 10000);
 }
 
 async function createSource(path) {
@@ -270,39 +249,15 @@ async function launch(controls) {
   await driver.executeScript(() => globalThis.checkFixture.measure(true));
 }
 
-async function granted(name) {
-  await switchOwner();
-  return driver.executeAsyncScript((permission, done) => {
-    (globalThis.browser ?? globalThis.chrome).permissions
-      .contains({ permissions: [permission] })
-      .then(done);
-  }, name);
-}
-
 async function start(controls) {
   const alreadyGranted = await granted('scripting');
   await driver.findElement(By.id('page-error-start')).click();
   if (!alreadyGranted)
-    await controls.approveOptional({
-      permissions: ['scripting'],
-      ownerHandle,
-    });
+    await controls.approveOptional({ permissions: ['scripting'], ownerHandle });
   return waitPhase('observing');
 }
 
-async function reset() {
-  await switchOwner();
-  await driver.findElement(By.id('page-error-reset')).click();
-  const state = await waitPhase('ready');
-  assert.equal(state.outcome, null);
-}
-
-async function stop() {
-  await switchOwner();
-  await driver.findElement(By.id('page-error-stop')).click();
-  const state = await waitPhase('finished');
-  assert.equal(state.outcome?.status, 'success', JSON.stringify(state));
-  const summary = state.outcome.value;
+function validateStudySummary(summary) {
   assert.deepEqual(
     Object.keys(summary).sort((left, right) => left.localeCompare(right)),
     ['finish', 'observedMs', 'scriptErrors', 'total', 'unhandledRejections'],
@@ -312,20 +267,6 @@ async function stop() {
   assert.equal(summary.unhandledRejections, 1);
   assert.equal(summary.finish, 'stop');
   assert(Number.isFinite(summary.observedMs) && summary.observedMs >= 0);
-  return summary;
-}
-
-async function metric(token) {
-  await switchSource();
-  return driver.executeScript(
-    (value) =>
-      JSON.parse(
-        document.documentElement.getAttribute(
-          `data-addonray-error-metrics-${value}-supervisor`,
-        ) ?? 'null',
-      ),
-    token,
-  );
 }
 
 async function startWorker() {
@@ -438,7 +379,7 @@ async function measureAttempt(index, controls, attempt, publish) {
     const stopStarted = performance.now();
     let summary;
     try {
-      summary = await stop();
+      summary = await stop(validateStudySummary);
     } finally {
       attempt.flowMs.stop = performance.now() - stopStarted;
     }
@@ -632,6 +573,12 @@ try {
     'moz:geckodriverVersion',
   );
   assert.equal(report.geckodriverVersion, '0.37.1');
+  operations = createPageErrorOperations({
+    driver,
+    ownerHandle: () => ownerHandle,
+    sourceHandle: () => sourceHandle,
+    approveOptional: undefined,
+  });
   for (const extension of [extensionArchive, fixtureDirectory])
     await installTemporaryExtension(driver, extension);
 
