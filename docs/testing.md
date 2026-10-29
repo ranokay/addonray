@@ -231,10 +231,10 @@ and invalid sample/clock inputs. There is no configurable quantile or threshold.
 The standard page-error report publishes `setupComponents.installationMs` and
 `setupComponents.startHandlingMs` next to the unchanged `rawOperationSamplesMs`
 and `setupSlotCounts`. The gate still uses the maximum of the two Firefox setup
-slots. The page-world copy and the Chrome isolated supervisor have one
-installation-only slot; the Chrome supervisor never starts an observation.
-Missing or unexpected slots fail the report visibly after the measurement is
-published. These labels clarify attribution from the existing per-attempt
+slots. The page-world copy has one combined observer-body slot. The Chrome
+isolated supervisor has one installation-only slot and never starts an
+observation. Missing or unexpected slots fail the report visibly after the
+measurement is published. These labels clarify attribution from the existing per-attempt
 `metrics.setup` arrays; they do not change the wrappers, sample counts, p95,
 clock guard or 5 ms limit.
 
@@ -264,6 +264,9 @@ partial report and exits 2. Exit 0 means the study completed with no budget
 failure; it is still diagnostic/instrumented authority, not independent
 qualification, native usability or a latency guarantee. The load worker is one
 controlled condition, not a reconstruction of the historical hosted scheduler.
+The study does not run on Chrome, Linux or Windows in this record; those
+diagnostic environments are unavailable. Its `attempts[].flowMs` includes
+driver/injection/IPC work and is not part of the synchronous gate.
 
 Read a study report's `blocks[].operations`, `setupComponents`, `clockSamplesMs`,
 `clockProbe`, `attempts[].flowMs` and `cleanup`. `rawOperationSamplesMs` remains

@@ -1,9 +1,9 @@
 # Collector budget variability
 
 Recorded on 2026-10-29 for issue #33. The implementation head is
-`031ebff451e99ef93bb029a2b0ddc3e587a07593`. The documentation head is the
-commit that adds this record; it is separate from the implementation head and
-does not move the browser evidence. The orchestration base was
+`031ebff451e99ef93bb029a2b0ddc3e587a07593`. The final documentation head is the
+last commit containing this record; it is separate from the implementation head
+and does not move the browser evidence. The orchestration base was
 `a708fb5896c47fba592d7ddee80502e50753a4e6`.
 
 The investigation changes no product collector, threshold, quantile, sample
@@ -22,8 +22,13 @@ part of this record.
 The existing source fixture uses explicitly hashed wrappers around unchanged
 production observer bodies. It is diagnostic/instrumented authority, not native
 usability, consent or independent qualification evidence. The standard
-packaged Firefox and Chrome runs are the separate qualification path. No new
-hosted run was made because the approved PR handoff has not happened.
+packaged Firefox and Chrome runs are a separate qualification protocol, not the
+new diagnostic study; both use the disclosed instrumented source fixture, so no
+uninstrumented collector measurement exists here. The retained hosted
+Linux/Windows reports are historical artifacts, not new executions. The new study
+ran only on macOS arm64 Firefox; local Linux/Windows and Chrome diagnostic study
+environments are unavailable in this record. No new hosted run was made because
+the approved PR handoff has not happened.
 
 ## Retained failures
 
@@ -105,7 +110,7 @@ p95 is 0–1 ms; the largest guarded Firefox value is 5 ms (Linux ESR
 finalization guard is about 1.0 ms. No budget assertion failed.
 
 The passing matrix shows the gate is tight but can pass at its 5 ms limit. It
-neither explains the two failures nor supplies a universal bound.
+neither explains the 7 ms and 13 ms failures nor supplies a universal bound.
 
 ## Measurement semantics
 
@@ -123,14 +128,16 @@ steps and Chrome about 0.1 ms in the retained and new runs.
 
 The standard report now publishes `setupComponents.installationMs` and
 `setupComponents.startHandlingMs` next to the unchanged `rawOperationSamplesMs`
-and `setupSlotCounts`. The Firefox supervisor has two slots. The page-world
-copy and the Chrome isolated supervisor have one installation-only slot; the
-Chrome isolated supervisor never starts the observation. Missing or unexpected
+and `setupSlotCounts`. The Firefox supervisor has two slots. The page-world copy
+has one combined observer-body slot. The Chrome isolated supervisor has one
+installation-only slot and never starts the observation. Missing or unexpected
 slot counts fail the report visibly after the measurement is published.
 
 `driverAndUserFlowSamplesMs` spans the driver/user Start, emit and Stop flow. It
 is not part of the synchronous budget. Browser injection/IPC and driver latency
-remain separate from the measured synchronous bodies.
+remain separate from the measured synchronous bodies. The study records phase
+flow times but no injection-only interval; injection/IPC/driver work is included
+in `flowMs` and is not used for the gate.
 
 ## Bounded controlled study
 
@@ -164,8 +171,8 @@ hosted CI scheduler and not proof of the historical cause.
 
 Clean study runs at `031ebff` used the unsigned XPI SHA-256
 `82b754a02dbaa3e7b7700567ce82d873dc023a3ba91a8fcf27cfcaecc08ec08a`, the same
-product artifact as the prior matrix. The fixture records five production input
-hashes, five transpiled output hashes and four observer-wrapper hashes; for
+product artifact as the #32 clean matrix. The fixture records five production
+input hashes, five transpiled output hashes and four observer-wrapper hashes; for
 example the supervisor observer input is
 `25ea16373f0fefd4402d4774ad14f1de5df4621378f640552b1fed3b3d72c67c` and the
 measured supervisor wrapper is

@@ -320,10 +320,11 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
 is the current scope and support record. The next v1 action is to close the #4,
 #5, #13 and #20 decisions, then start executable work in dependency order. #32 is
-implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7` and
-was merged as `a708fb5`. #33's bounded collector-budget investigation and
-standard local suites are recorded at implementation `031ebff`; its PR, hosted
-qualification and merge remain pending. #3's Aperture local implementation,
+implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
+current main includes the change at `a708fb5`. #33's bounded collector-budget
+investigation and standard local suites are recorded at implementation
+`031ebff`; its PR, hosted qualification and merge remain pending. #3's Aperture
+local implementation,
 proof and authorized prototype cleanup are complete; the issue remains open
 pending private PR delivery. No full-v1 qualification exists.
 
