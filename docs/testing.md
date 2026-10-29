@@ -294,6 +294,16 @@ records all known retained failures, including the separate `8091ad1` and
 disposition. Do not lower the gate, omit a scenario or treat a later pass as an
 explanation of an earlier failure.
 
+After the test-only shared-operations refactor at `14d8bb9`, clean packaged
+local suites pass 79 checks each on Firefox 140.0/153.5.1esr/158.0.1 and 73 on
+Chrome 156.0.8078.47. Hosted Check, all six Firefox jobs and both Chrome jobs
+passed at `14d8bb9` through the PR merge commit `8e23f32`; all eight raw reports
+name clean merged source, close owned tabs, keep the unchanged budgets and pass
+their source rebuilds. The `031ebff` two-version study reports remain the
+measurement evidence; the shared operational change did not trigger another
+720-attempt study. The final documentation head requires its own hosted run
+before merge.
+
 ## Report export checks
 
 The export contract distinguishes request dispatch, browser acceptance and final

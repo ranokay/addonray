@@ -5,9 +5,12 @@ head is `031ebff451e99ef93bb029a2b0ddc3e587a07593`. The later failure-path-only
 study corrections are `c58744f27401be3179b0dac54e6d8e4ea37275d2` (attempt
 registration and persistence) and `1d3593e97d15abdff8aea8f53b25eff22886ba81`
 (start-to-end total finalization); they change no successful measurement body or
-budget input and have no full-study rerun. The final documentation head is the
-last commit containing this record; it is separate from all implementation heads
-and does not move the browser evidence. The orchestration base was
+budget input and have no full-study rerun. The later test-only quality and
+shared-operations heads are `dd6062e4bdf30f7906e286031ec6a6718859aa2f` and
+`14d8bb9c20a67e2b423af62c59de2aa83580aaf8`; local and hosted packaged suites
+validate `14d8bb9` separately. The final documentation head is the last commit
+containing this record; it is separate from all implementation heads and does
+not move the browser evidence. The orchestration base was
 `a708fb5896c47fba592d7ddee80502e50753a4e6`.
 
 The investigation changes no product collector, threshold, quantile, sample
@@ -284,6 +287,57 @@ handler or finalization p95 than baseline in these runs. It did not reproduce
 the historical two-outlier pattern. The historical failures therefore remain
 unexplained as to the source of the second installation outlier; the data do
 not support a product-code cause or a concurrent-load cause.
+
+## Hosted qualification and test-only refactor
+
+The approved head `11dee65` initially failed SonarCloud with 6.7% duplication,
+D reliability and B security. The probe fixes at `dd6062e` addressed the
+reliability/security findings, and the shared page-error driver operations at
+`14d8bb9` reduced duplication. SonarCloud then passed at `14d8bb9`: 1.8%
+duplication on new code, 0 security hotspots, Quality Gate passed. CodeRabbit
+reviewed `14d8bb9` with no actionable comments and low merge/security risk.
+
+Clean packaged local suites at `14d8bb9` pass 79 checks each on Firefox 140.0,
+153.5.1esr and 158.0.1 and 73 on Chrome for Testing 156.0.8078.47. The reports
+name clean source `14d8bb9`, close owned tabs, and retain the unchanged 5 ms
+budget.
+
+The PR hosted checks at `14d8bb9` passed through GitHub's merge commit
+`8e23f32f113299b32a613852d0733a4e4d75c775` (parents `a708fb5` and `14d8bb9`).
+Check, all six Firefox jobs and both Chrome jobs passed. Each Firefox report has
+79 checks and each Chrome report 73; all eight reports name clean source
+`8e23f32`, the exact requested browser/driver versions, both page-error overhead
+entries, `ownedTabsClosed: true`, and source rebuilds that reproduced all 19
+packaged files. The largest guarded collector value in the hosted matrix is 4 ms
+(Windows Firefox). Linux Firefox reports use XPI SHA-256
+`82b754a02dbaa3e7b7700567ce82d873dc023a3ba91a8fcf27cfcaecc08ec08a`; Windows
+Firefox uses `af2a6a807f7c59e4bb41ad664f341fffdb19d6ae4e9ea3e92e567371335a80b2`;
+Chrome uses `09015daf4fae56b7d3539e537cd0bd447143722cb16d0852225fdf8313e1e22b`
+on Linux and `96ebe0d7c9182ef6543e347e0d27897ed680834566ededfb7e08a05671a40e94`
+on Windows. The per-OS differences are the recorded checkout line-ending
+conversion, not different reviewed sources.
+
+The two-version diagnostic study was not rerun after the test-only shared
+operations change. The `031ebff` study reports remain the measurement evidence;
+the `14d8bb9` packaged suites exercise the shared driver operations separately.
+No product collector, permission, browser target, duration/count/size limit or
+5 ms gate changed. The final documentation head requires its own hosted rerun
+before merge; this record does not claim that later run.
+
+| Additional report                 | Head      | Status    | SHA-256                                                            |
+| --------------------------------- | --------- | --------- | ------------------------------------------------------------------ |
+| local Firefox 140.0 suite         | `14d8bb9` | 79 checks | `74ffc4a36caa6833af0b888c8eb4681db4145cd005920c5c6d80f72f3b031a27` |
+| local Firefox 153.5.1esr suite    | `14d8bb9` | 79 checks | `01761dae37832fcccadbbf29ad9f0b009345964630a9dca5e72e8261f89006a7` |
+| local Firefox 158.0.1 suite       | `14d8bb9` | 79 checks | `da1a50f19ddc0369ee4ad188c8f8f84b00c72113d9160996b4b11f09dd0163b7` |
+| local Chrome suite                | `14d8bb9` | 73 checks | `d98415dd112d1009b9582829b46720844015d03f26059c5446a1c86812eb9934` |
+| hosted Linux Firefox 140.0        | `8e23f32` | 79 checks | `163c6b1b3d91c74854a97ce55f85c663ce4f5b739b6626b8c3812b2d6ef5028c` |
+| hosted Linux Firefox 153.5.1esr   | `8e23f32` | 79 checks | `930a3602c326bcb25fb9ec41510620d0b41d5f887b0837629ae11a3d3a65d812` |
+| hosted Linux Firefox 158.0.1      | `8e23f32` | 79 checks | `eb35be003b08e7028f68e30dbb55954d4ffd024b14ad0e9af046e4921e1fd3a0` |
+| hosted Windows Firefox 140.0      | `8e23f32` | 79 checks | `b17879ad66315045b07b1e1a6e6f17963c6d3840db2176210f8fb7c3e5823fca` |
+| hosted Windows Firefox 153.5.1esr | `8e23f32` | 79 checks | `08a2edc446accc620846fd03e9f806f14b16338f1c9a0ebb11e6cbff7f841792` |
+| hosted Windows Firefox 158.0.1    | `8e23f32` | 79 checks | `d3877ae111e9381dd99fa87eb4ec30c0b5c30600910f356e3253050008b3003d` |
+| hosted Linux Chrome               | `8e23f32` | 73 checks | `bba003b5de0db42ffacbd0a0039dffe25483362f4b0b2ef58e71ce647c8ad99d` |
+| hosted Windows Chrome             | `8e23f32` | 73 checks | `10247210e9d10f02db896af7d127720e3633c2186d7d20ef7d6d61f10197f5a6` |
 
 ## Reporting correction
 
