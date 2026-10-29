@@ -55,6 +55,10 @@ The Ubuntu Chrome job installs an AppArmor profile for only the exact pinned tes
 
 ChromeDriver must enable its documented `enableExtensionTargets` capability to list extension-created investigation tabs. Without it, the product opens the tab and DevTools/browser tab queries see it, but the driver omits that tab from its window handles. This is test-process introspection authority, not a product permission. See [ChromeDriver capabilities](https://developer.chrome.com/docs/chromedriver/capabilities).
 
+## Automatic pull request review
+
+`.coderabbit.yaml` asks CodeRabbit to review non-draft pull requests automatically and to run an incremental review on later pushes. It explicitly leaves automatic approvals disabled. The configuration cannot install the GitHub app: automatic review starts only after CodeRabbit is installed on `ranokay/addonray` and has access to the repository. A committed configuration is not evidence that a review occurred.
+
 ## Timing comparison qualification
 
 The approved optional timing comparison extends browser qualification through `timing-handoff-checks.mjs`. Firefox additionally prepares a named source-popup fixture with pinned `Bun.Transpiler`; only local test files receive compiled core modules. The source package remains the reviewed product input allowlist. When its private fixture is available, Firefox records 40 checks; Chrome records 34. These counts include explicitly different fixture authority and do not replace native unmodified popup qualification. See [testing](testing.md).
