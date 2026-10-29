@@ -64,10 +64,38 @@ _Avoid_: Diagnosis, automatic submission, saved investigation history.
 The exact report text offered for the user's review before a download. It belongs to the current investigation and becomes outdated when its observations change.
 _Avoid_: Editable report, live recorder, completed download.
 
+**Saved investigation**:
+An investigation the user explicitly stored locally and can reopen without collecting new observations or resuming collectors. It is separate from the temporary live session.
+_Avoid_: Automatic history, live session.
+
+**Report exchange**:
+User-initiated export or import of reviewed report content under an approved versioned schema. It is not sync or a sharing service.
+_Avoid_: Cloud sharing, automatic submission.
+
+**Mutation check**:
+A deliberate, bounded count of DOM mutation notifications for one selected source during an approved observation window. It does not retain DOM content or identify a cause.
+_Avoid_: Page recorder, conflict detector.
+
+**Request-failure check**:
+A deliberate, bounded count or summary of failed requests for one selected source during an approved observation window. It does not retain request details or attribute failure to an extension.
+_Avoid_: Network log, culprit evidence.
+
+**Support matrix**:
+The finite list of intended and qualified browser, distribution, operating-system and architecture combinations, each with its evidence state.
+_Avoid_: All-browser support claim.
+
+**Candidate**:
+The exact signed source and artifact set proposed for v1 release before publication. A changed source or artifact creates a new candidate.
+_Avoid_: Latest build, published release.
+
+**Release receipt**:
+The post-publication record that ties downloaded extension and companion artifacts to approved source, signatures, checksums, the support matrix and known limits.
+_Avoid_: Announcement, store listing.
+
 **Companion**:
 An optional, separately installed local application whose capabilities require their own consent and evidence.
 _Avoid_: Privileged browser backdoor.
 
 **Qualification**:
-Recorded evidence for named behaviors on an exact browser distribution, version, and operating system. A build alone does not establish it.
+Recorded evidence for named behaviors on an exact browser distribution, version, operating system and architecture. A build alone does not establish it.
 _Avoid_: Blanket browser support, feature detection as a passing result.

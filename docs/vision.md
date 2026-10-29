@@ -6,6 +6,8 @@ Firefox and Chrome users often know that a page is broken but cannot tell which 
 
 The first usable release serves Firefox and Chrome desktop power users. A user should be able to review the extensions their browser exposes, understand their declared access, and follow a manual comparison workflow. Developer profiling is a later option, not the initial product.
 
+The approved v1 target is finite. [The v1 contract](v1-contract.md) records it. It keeps the inspection-only product, adds local saved investigations and report exchange, guided comparisons, bounded mutation and request-failure checks, and an optional Rust companion, then qualifies and releases Firefox, Chrome and companion artifacts. No telemetry, accounts, sync or automatic extension changes are part of it.
+
 A successful investigation leaves the user with a reproducible comparison and an honest account of uncertainty. It does not promise automatic conflict detection.
 
 ## Principles

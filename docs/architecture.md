@@ -146,23 +146,29 @@ preserves the original immediate-owner-close failures separately from the passed
 revised candidate gate. Full product/browser/native qualification and signed
 delivery remain pending.
 
+## Expanded v1 target
+
+The finite target is [the v1 contract](v1-contract.md). The sections below describe implemented slices and the boundaries future work must change deliberately. Saved investigations and report exchange (#5 to #11), guided trials (#12), mutation and request-failure checks (#13 to #19) and the optional companion (#20 to #28) each need their approved contract and feasibility proof before they alter permission, storage, lifetime or native boundaries. The extension-only inspection path remains useful without the companion.
+
 ## Future diagnostics
 
 Introduce a background coordinator only when the approved workflow requires a longer session. Define the session lifetime, navigation behavior, event bounds, stop/clear behavior, and revocation handling before building a collector. Event pages can be suspended, so durable session behavior needs deliberate design and a privacy review.
 
 Page errors, timing, mutation counts, and request failures are observations. Each event needs an observation source, time, frame scope, collection method, and uncertainty. Other extensions' private worlds and internal consoles are outside ordinary visibility. A page-world bridge, if approved, must validate messages, resist spoofing, and explain its interference risk.
 
+The approved v1 tickets #13 to #19 define the next collector contracts. #33 characterizes existing budget variability without changing the agreed limits.
+
 ## Optional Rust companion
 
-This is a later feasibility project. Native messaging connects the extension to a separately installed local process with an explicit extension allowlist. It does not confer Firefox internal control. Define a versioned, bounded protocol and allowlisted read-only operations first. Require explicit installation and invocation, timeouts, cancellation, and safe handling of process failure.
+This was a later feasibility project. The approved v1 backlog now makes it concrete through #20 to #28. Native messaging connects the extension to a separately installed local process with an explicit extension allowlist. It does not confer Firefox internal control. #20 selects one versioned, bounded read-only operation and obtains a user verdict before implementation. #21 to #23 prove it per intended OS. #24 to #28 deliver, install, remove and upgrade it. Require explicit installation and invocation, timeouts, cancellation, and safe handling of process failure.
 
 Any proposal for browser control must identify a supported mechanism and obtain its own authorization. Profile database edits, hidden policy changes, and claims that native messaging bypasses browser permissions are outside the agreed design.
 
 ## Compatibility boundary
 
-The approved targets are Firefox desktop MV3 at minimum 140 and Chrome desktop MV3 at minimum 156. `lib/browser-target.ts` maps WXT's build-time browser value to a closed context passed through the session, adapters, and UI. Unknown targets fail; the product does not inspect user agents. Conditional manifests include Gecko settings and Firefox data consent only for Firefox, and `minimum_chrome_version` only for Chrome. No background process is needed for either build.
+The approved targets are Firefox desktop MV3 at minimum 140 and Chrome desktop MV3 at minimum 156. The v1 target keeps those distributions and intends macOS arm64, Windows x64 and Linux x64. Exact OS versions remain a release-planning gate. `lib/browser-target.ts` maps WXT's build-time browser value to a closed context passed through the session, adapters, and UI. Unknown targets fail; the product does not inspect user agents. Conditional manifests include Gecko settings and Firefox data consent only for Firefox, and `minimum_chrome_version` only for Chrome. No background process is needed for either build.
 
-The manifest minimum is a loading constraint, not proof of every release or OS. Exact distribution/version/OS evidence lives in dated reports. Edge, Safari, Android, and MV2 require separate decisions. The [test-authority ADR](adr/0002-test-authority-and-browser-qualification.md) distinguishes unmodified product consent from pre-granted Chrome UI fixtures.
+The manifest minimum is a loading constraint, not proof of every release or OS. Exact distribution/version/OS evidence lives in dated reports. Edge, Safari, Android, and MV2 require separate decisions, and v1 does not add them. The [test-authority ADR](adr/0002-test-authority-and-browser-qualification.md) distinguishes unmodified product consent from pre-granted Chrome UI fixtures.
 
 ## Sources
 
