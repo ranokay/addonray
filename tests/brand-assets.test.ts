@@ -6,7 +6,7 @@ import { inflateSync } from 'node:zlib';
 
 const markSizes = [16, 32, 48, 64, 96, 128, 256, 512];
 const packageSizes = [16, 32, 48, 96, 128];
-const monoRasterSizes = [16, 32, 48, 96, 128];
+const monoRasterSizes = [16, 32, 48, 96, 128, 256, 512];
 const root = process.cwd();
 const exportsDirectory = join(root, 'assets/brand/exports');
 const mastersDirectory = join(root, 'assets/brand/masters');
@@ -85,7 +85,7 @@ function visibleColors(png: Png) {
   const colors = new Map<string, number>();
   for (let index = 0; index < png.pixels.length; index += 4) {
     const alpha = png.pixels[index + 3]!;
-    if (alpha < 250) continue;
+    if (alpha !== 255) continue;
     const key = `#${[0, 1, 2]
       .map((channel) =>
         png.pixels[index + channel]!.toString(16).padStart(2, '0'),
@@ -140,8 +140,7 @@ describe('brand asset kit', () => {
         expect(alpha.transparent).toBeGreaterThan(0);
         expect(alpha.opaque).toBeGreaterThan(0);
         const colors = [...visibleColors(png).keys()];
-        expect(colors).toContain(color === 'black' ? '#000000' : '#ffffff');
-        expect(colors).not.toContain('#2f8f63');
+        expect(colors).toEqual([color === 'black' ? '#000000' : '#ffffff']);
       }
     }
   });

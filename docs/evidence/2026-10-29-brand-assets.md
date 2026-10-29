@@ -71,15 +71,26 @@ Selected hashes:
 ## Rendered verification
 
 `tests/brand-assets.test.ts` decodes each committed PNG and checks exact
-dimensions, RGBA transparency, opaque core colors, monochrome colors, and byte
-equality between package icons and canonical exports. It also rejects external
-references in the masters. The focused run passed 5 tests with 0 failures.
+dimensions, RGBA transparency, opaque core colors, and package/export byte
+equality. Every monochrome export from 16 through 512 px must contain exactly
+one opaque color, black or white. The test also rejects external references in
+the masters. The focused run passed 5 tests with 0 failures.
 
 The [self-contained package proof](2026-10-29-aperture-package-proof.html)
 embeds the actual package PNG bytes and shows them at 16 and 32 px in
 representative light (`#f9f9fb`) and dark (`#1c1b22`) toolbars, plus a 4× pixel
 view. Headless Chrome for Testing 156.0.8078.47 captured the proof on macOS
 arm64.
+
+A separate headless DOM check confirmed that all 12 embedded images and every
+ancestor through `html` compute to opacity 1; only the label spans under each
+image are muted at 0.9. The page uses transparent `html`, `body` and outer
+wrapper, has no outer banner or title, zero horizontal wrapper padding, and
+keeps the light and dark backgrounds inside the comparison panels. The outer
+text, table and notes use theme-aware colors. All 12 embedded data URLs
+hash-match the current `public/icon-*.png` files: six 16 px instances (two
+toolbar rows, two size rows and two 4× views), and two each of 32, 48 and
+128 px.
 
 Measured sRGB contrast from the opaque core colors:
 

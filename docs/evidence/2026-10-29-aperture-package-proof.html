@@ -6,16 +6,19 @@
     <title>Aperture package icon proof</title>
     <style>
       :root {
-        color-scheme: light;
+        color-scheme: light dark;
+        --proof-muted: color-mix(in srgb, currentColor 64%, transparent);
+        --proof-line: color-mix(in srgb, currentColor 16%, transparent);
+        --proof-surface: color-mix(in srgb, currentColor 4%, transparent);
       }
       html,
       body {
         margin: 0;
         padding: 0;
-        background: #f2f3ef;
+        background: transparent;
       }
       body {
-        color: #17211c;
+        color: var(--foreground, light-dark(#17211c, #f1f1f1));
         font-family:
           ui-sans-serif,
           -apple-system,
@@ -29,28 +32,15 @@
         box-sizing: border-box;
       }
       .sheet {
+        width: 100%;
         max-width: 980px;
         margin: 0 auto;
-        padding: 36px 24px 64px;
+        padding: 0 0 56px;
       }
-      .eyebrow {
-        margin: 0 0 10px;
-        font-size: 11px;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        color: #5d6b62;
-      }
-      h1 {
-        margin: 0;
-        font-size: 36px;
-        letter-spacing: -0.045em;
-        line-height: 1.05;
-      }
-      .lede {
-        max-width: 70ch;
-        margin: 14px 0 0;
-        color: #4c5a51;
-        font-size: 15px;
+      .proof-context {
+        margin: 18px 0 0;
+        color: var(--proof-muted);
+        font-size: 12px;
       }
       h2 {
         margin: 0 0 4px;
@@ -59,16 +49,17 @@
       }
       .meta {
         margin: 0;
-        color: rgba(23, 33, 28, 0.62);
+        color: color-mix(in srgb, currentColor 62%, transparent);
         font-size: 12px;
       }
       .panel {
-        margin-top: 22px;
+        margin-top: 16px;
         padding: 20px;
         border-radius: 16px;
       }
       .panel--light {
         background: #f9f9fb;
+        color: #17211c;
         border: 1px solid #e3e5df;
       }
       .panel--dark {
@@ -141,20 +132,23 @@
         gap: 7px;
         font-size: 11px;
         color: currentColor;
+      }
+      .cell > span {
         opacity: 0.9;
       }
       .cell img {
         display: block;
+        opacity: 1;
       }
       .magnified {
         image-rendering: pixelated;
       }
       .table-wrap {
-        margin-top: 22px;
+        margin-top: 20px;
         overflow-x: auto;
-        border: 1px solid #dfe3dc;
+        border: 1px solid var(--proof-line);
         border-radius: 14px;
-        background: #fff;
+        background: var(--proof-surface);
       }
       table {
         width: 100%;
@@ -165,15 +159,15 @@
       td {
         padding: 10px 12px;
         text-align: left;
-        border-bottom: 1px solid #e8ebe5;
+        border-bottom: 1px solid var(--proof-line);
         white-space: nowrap;
       }
       th {
+        color: var(--proof-muted);
+        background: color-mix(in srgb, currentColor 6%, transparent);
         font-size: 11px;
         letter-spacing: 0.06em;
         text-transform: uppercase;
-        color: #5d6b62;
-        background: #f7f8f4;
       }
       tr:last-child td {
         border-bottom: 0;
@@ -182,17 +176,17 @@
         display: inline-block;
         width: 14px;
         height: 14px;
-        border-radius: 4px;
-        vertical-align: -2px;
         margin-right: 7px;
-        border: 1px solid rgba(0, 0, 0, 0.12);
+        vertical-align: -2px;
+        border: 1px solid var(--proof-line);
+        border-radius: 4px;
       }
       .notes {
-        margin-top: 22px;
+        margin-top: 20px;
         padding: 18px 20px;
         border-left: 3px solid #2f8f63;
-        background: #e8f1eb;
         border-radius: 0 12px 12px 0;
+        background: color-mix(in srgb, #2f8f63 14%, transparent);
       }
       .notes h2 {
         margin-bottom: 8px;
@@ -206,7 +200,7 @@
       }
       .limit {
         margin-top: 18px;
-        color: #5d6b62;
+        color: var(--proof-muted);
         font-size: 12px;
       }
       code {
@@ -215,26 +209,20 @@
       }
       @media (max-width: 640px) {
         .sheet {
-          padding: 24px 14px 48px;
+          padding: 0 0 40px;
         }
-        h1 {
-          font-size: 30px;
+        .panel {
+          padding: 14px;
         }
       }
     </style>
   </head>
   <body>
     <main class="sheet">
-      <header>
-        <p class="eyebrow">AddonRay · package icon proof</p>
-        <h1>Aperture on browser chrome</h1>
-        <p class="lede">
-          The actual PNG bytes from <code>public/icon-*.png</code>, shown at
-          their real display sizes on representative light and dark toolbar
-          backgrounds. These files are the package inputs for both Firefox and
-          Chrome.
-        </p>
-      </header>
+      <p class="proof-context">
+        AddonRay Aperture · actual package PNG bytes at 16 and 32 px on light
+        and dark toolbar backgrounds
+      </p>
 
       <section class="panel panel--light" aria-labelledby="light-heading">
         <h2 id="light-heading">Light toolbar</h2>

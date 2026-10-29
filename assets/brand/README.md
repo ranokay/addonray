@@ -66,8 +66,10 @@ The masters are the source of truth. Raster exports were rendered from per-size
 SVG wrappers with macOS `sips` at the exact pixel dimensions. The 16 px export
 uses `addonray-mark-small.svg`; the package icon is a byte copy of that export.
 All other exports use the corresponding master. The committed PNGs are the
-reviewed artifacts. The package test checks their dimensions, alpha, core
-colors, and byte equality with `public/icon-*.png`.
+reviewed artifacts. The package test decodes every committed mark, monochrome,
+lockup and store PNG; checks dimensions, RGBA transparency and core colors;
+requires each monochrome export across 16 through 512 px to contain one opaque
+color; and checks byte equality with `public/icon-*.png`.
 
 The full-color store tile is a reusable composition. It does not define a store
 listing, companion package name, publisher, license or publication route. Those
@@ -76,8 +78,9 @@ decisions remain with #4 and the release tickets.
 ## Verification
 
 `tests/brand-assets.test.ts` decodes every committed PNG, checks dimensions,
-transparency, opaque core colors and package/export byte equality, and rejects
-external references in the masters. `scripts/check-manifest.mjs` checks both
+RGBA transparency, opaque core colors, the single-color monochrome sets across
+16 through 512 px, and package/export byte equality. It also rejects external
+references in the masters. `scripts/check-manifest.mjs` checks both
 target manifests and the actual package icon dimensions. `scripts/check-package.mjs`
 includes `public/**` in the source allowlist. Both source rebuilds must pass
 before delivery.
