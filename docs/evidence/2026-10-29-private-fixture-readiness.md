@@ -171,6 +171,48 @@ documentation head has its own frozen shared-check receipt under
 `.scratch/private-fixture-readiness/receipts/`. The three browser reports remain
 bound to `88e2dda`; they do not qualify a later source SHA.
 
+## Hosted qualification
+
+PR #49 ran at head `85d0ae78619798e530760fa1254928e82e71cbfc`. The Firefox and
+Chrome workflows check out GitHub's pull-request merge commit
+`bbde119c797ac039fdc1157f8860010585eca06e`, whose parents are current main
+`7a49eee` and PR head `85d0ae7`. The probe reports therefore name the merge
+commit; the extension source is the reviewed code at `88e2dda` plus
+documentation-only commits.
+
+The [Check run](https://github.com/ranokay/addonray/actions/runs/40863859453),
+[Firefox run](https://github.com/ranokay/addonray/actions/runs/40863859516) and
+[Chrome run](https://github.com/ranokay/addonray/actions/runs/40863859706) all
+passed. All six Firefox jobs passed with 79 checks each, both private checks,
+clean source, source rebuilds, exact control and receiver routes and
+`ownedTabsClosed: true`.
+
+| Job                    | Browser | Startup at handle                                      | Startup settled                      | Artifact SHA-256                                                   |
+| ---------------------- | ------- | ------------------------------------------------------ | ------------------------------------ | ------------------------------------------------------------------ |
+| Ubuntu 24.04 / 140.0   | 140.0   | `about:blank`, loading, delayed startup finished       | `about:privatebrowsing`, not loading | `82b754a02dbaa3e7b7700567ce82d873dc023a3ba91a8fcf27cfcaecc08ec08a` |
+| Ubuntu 24.04 / 153.5.1 | 153.5.1 | `about:blank`, not loading, delayed startup unfinished | `about:privatebrowsing`, not loading | `82b754a02dbaa3e7b7700567ce82d873dc023a3ba91a8fcf27cfcaecc08ec08a` |
+| Ubuntu 24.04 / 158.0.1 | 158.0.1 | `about:blank`, not loading, delayed startup unfinished | `about:privatebrowsing`, not loading | `82b754a02dbaa3e7b7700567ce82d873dc023a3ba91a8fcf27cfcaecc08ec08a` |
+| Windows 2025 / 140.0   | 140.0   | `about:privatebrowsing`, loading                       | `about:privatebrowsing`, not loading | `af2a6a807f7c59e4bb41ad664f341fffdb19d6ae4e9ea3e92e567371335a80b2` |
+| Windows 2025 / 153.5.1 | 153.5.1 | `about:privatebrowsing`, not loading                   | `about:privatebrowsing`, not loading | `af2a6a807f7c59e4bb41ad664f341fffdb19d6ae4e9ea3e92e567371335a80b2` |
+| Windows 2025 / 158.0.1 | 158.0.1 | `about:privatebrowsing`, loading                       | `about:privatebrowsing`, not loading | `af2a6a807f7c59e4bb41ad664f341fffdb19d6ae4e9ea3e92e567371335a80b2` |
+
+The Windows artifact hash differs from Linux and macOS through the previously
+recorded CRLF checkout conversion. Each Windows source rebuild reproduced all 19
+packaged files from the clean source archive. Both Chrome jobs passed 73 checks
+with clean source and passed source rebuilds; the change remains Firefox-only.
+
+CodeRabbit reviewed the first pushed head and reported one minor documentation
+finding about disambiguating the revision references. Commit `85d0ae7` fixed it.
+CodeRabbit then reviewed `85d0ae7`, confirmed the clarification and resolved the
+thread. SonarCloud reported Quality Gate passed, zero new issues and zero
+security hotspots. No required human approval applies to this private
+repository's unprotected `main`.
+
+Raw reports and the validation summary are in
+`.scratch/private-fixture-readiness/hosted-85d0ae7/`. A later documentation-only
+head needs its own workflows; those are inspected separately and do not move
+the hosted evidence away from the code at `88e2dda`.
+
 ## Authority and remaining gaps
 
 The private checks use the named source-popup fixture with compiled production

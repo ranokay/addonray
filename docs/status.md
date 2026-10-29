@@ -74,7 +74,9 @@ page before the exact control and receiver routes. The original 77-check
 private-control attempts and the unchanged 79-check retries remain recorded. The
 surviving reports carry text consistent with Firefox's private-browsing start
 page; they did not capture a URL. The exact historical route and cause remain
-unestablished. Hosted Linux/Windows verification is pending the PR handoff. See
+unestablished. PR #49's hosted Check, both Chrome jobs and all six Firefox jobs
+passed at head `85d0ae7`; each Firefox report has 79 checks, both private checks,
+settled startup, exact control and receiver routes and owned-tab cleanup. See
 the [readiness record](evidence/2026-10-29-private-fixture-readiness.md).
 
 The [export evidence](evidence/2026-10-28-report-export.md) preserves the initial
@@ -261,7 +263,8 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Run 36 controlled disposable-profile trials across the three pinned macOS Firefox versions; retain the nonreproduction and the separate delayed-startup reproduction.
 - [x] Add state-based private startup readiness and exact control/receiver route checks; no product, permission, preference or budget change.
 - [x] Pass the frozen shared gate and clean packaged Firefox 140/153/158 matrix with 79 checks each.
-- [ ] Verify hosted Linux/Windows reports through the PR handoff; keep unavailable or unreproduced paths unqualified.
+- [x] Verify hosted Linux/Windows reports through the PR handoff; keep unavailable or unreproduced paths unqualified.
+- [ ] Verify the final documentation head's workflows and merge PR #49.
 
 ## Expanded v1 contract checklist
 
@@ -289,11 +292,11 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
 is the current scope and support record. The next v1 action is to close the #4,
 #5, #13 and #20 decisions, then start executable work in dependency order. #32 is
-implemented locally at signed `88e2dda`; its hosted Linux/Windows reports await
-the private PR handoff. #33 remains open, and its collector-budget variability
-was not changed. #3's Aperture local implementation, proof and authorized
-prototype cleanup are complete; the issue remains open pending private PR
-delivery. No full-v1 qualification exists.
+implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, with
+final head verification and merge pending. #33 remains open, and its
+collector-budget variability was not changed. #3's Aperture local implementation,
+proof and authorized prototype cleanup are complete; the issue remains open
+pending private PR delivery. No full-v1 qualification exists.
 
 The pre-v1 stop condition is superseded by the approved [v1 contract](v1-contract.md).
 Start v1 work only in dependency order and only after the named contract and
