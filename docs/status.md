@@ -6,6 +6,18 @@ The user approved the private milestone [`v1.0.0`](https://github.com/ranokay/ad
 
 The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4, #5, #13 and #20 are open decision gates. Backlog approval does not authorize signing, publication, licensing or visibility changes.
 
+## Brand asset prototype
+
+Issue #3's prototype is ready for the user's direction selection. Three named
+directions, Aperture, Prism and Frame, are shown at toolbar, extension
+management, companion/distribution, store and monochrome sizes on light and dark
+panels. The self-contained picker is
+[docs/prototypes/brand-assets/index.html](prototypes/brand-assets/index.html);
+the scope and gates are in [the brand asset plan](plans/brand-assets.md). No
+direction is selected, no production asset is wired, and #3 remains open. The
+headless Chrome verification and its gaps are recorded in
+[prototype evidence](evidence/2026-10-29-brand-asset-prototype.md).
+
 ## Current state
 
 The user approved [previewed investigation report export](plans/phase3-report-export.md)
@@ -230,13 +242,24 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [ ] Close the #4, #5, #13 and #20 decisions before their dependent implementation tickets.
 - [ ] Settle exact OS versions, Linux distribution and candidate release combinations before #39 candidate qualification.
 
+## Brand asset checklist
+
+- [x] Record three named directions, their axes and the user-selection gate.
+- [x] Build the self-contained prototype with toolbar, management, companion/distribution, store and monochrome contexts on light and dark backgrounds.
+- [x] Verify number, arrow and click selection, URL persistence, transparency, overflow and console in headless Chrome for Testing 156.0.8078.47; retain local screenshots in ignored scratch.
+- [ ] Obtain the user's direction selection.
+- [ ] Test the selected mark for small-size legibility, contrast and monochrome silhouette.
+- [ ] Deliver vector masters, transparent raster exports and package icons; wire both extension targets and prove both source rebuilds.
+- [ ] Document canonical asset locations and usage rules without store qualification claims.
+- [ ] Obtain explicit authorization before removing the authored prototype exploration.
+
 ## Next action
 
 Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
 is the current scope and support record. The next v1 action is to close the #4,
 #5, #13 and #20 decisions, then start executable work in dependency order. #32
-and #33 have no native blockers. #3 needs the user's visual selection. No
-full-v1 qualification exists.
+and #33 have no native blockers. #3's prototype awaits the user's direction
+selection, and no production asset is wired. No full-v1 qualification exists.
 
 The pre-v1 stop condition is superseded by the approved [v1 contract](v1-contract.md).
 Start v1 work only in dependency order and only after the named contract and
