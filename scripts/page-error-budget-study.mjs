@@ -19,6 +19,13 @@ import {
   evaluateSynchronousBudget,
   nearestRankP95,
 } from './synchronous-budget.ts';
+import {
+  completeStudyAttempt,
+  createStudyAttempt,
+  failStudyAttempt,
+  markStudyAttemptStage,
+  recordStudyAttemptMeasurement,
+} from './budget-study-attempts.ts';
 
 // This is a bounded diagnostic study, not a qualification run. The 30-sample
 // block is the existing agreed measurement. Two exact versions, two fixtures,
@@ -413,41 +420,65 @@ async function closeSource() {
   sourceHandle = undefined;
 }
 
-async function measureAttempt(index, controls) {
-  if (index) await reset();
+async function measureAttempt(index, controls, attempt, publish) {
+  if (index) {
+    markStudyAttemptStage(attempt, 'resetting');
+    await reset();
+  }
+  markStudyAttemptStage(attempt, 'starting');
   const started = performance.now();
-  const state = await start(controls);
-  const startFlowMs = performance.now() - started;
+  let state;
+  try {
+    state = await start(controls);
+  } finally {
+    attempt.flowMs.start = performance.now() - started;
+  }
+  markStudyAttemptStage(attempt, 'emitting');
   const emitStarted = performance.now();
-  await emit();
-  const emitFlowMs = performance.now() - emitStarted;
+  try {
+    await emit();
+  } finally {
+    attempt.flowMs.emit = performance.now() - emitStarted;
+  }
+  markStudyAttemptStage(attempt, 'stopping');
   const stopStarted = performance.now();
-  const summary = await stop();
-  const stopFlowMs = performance.now() - stopStarted;
+  let summary;
+  try {
+    summary = await stop();
+  } finally {
+    attempt.flowMs.stop = performance.now() - stopStarted;
+  }
+  markStudyAttemptStage(attempt, 'reading-metrics');
   const metrics = await metric(state.latestToken, 'supervisor');
   assert(metrics, 'Selected-world measurement record missing');
   const setupSlots = Array.isArray(metrics.setup) ? metrics.setup : [];
   const callbacks = metrics.physicalCalls;
-  const postStopStarted = performance.now();
-  await emit();
-  const afterStop = await metric(state.latestToken, 'supervisor');
-  const postStopFlowMs = performance.now() - postStopStarted;
-  assert(
-    afterStop.physicalCalls === callbacks,
-    'Stopped measured observer still receives physical callbacks',
-  );
-  return {
-    index,
+  recordStudyAttemptMeasurement(attempt, {
     summary,
     metrics,
     setupSlots,
-    startFlowMs,
-    emitFlowMs,
-    stopFlowMs,
-    postStopFlowMs,
-    totalFlowMs: performance.now() - started,
-    postStopCallbacksStable: afterStop.physicalCalls === callbacks,
-  };
+    flowMs: {
+      ...attempt.flowMs,
+      total: performance.now() - started,
+    },
+  });
+  // Persist the available measurement before the post-Stop assertion can throw.
+  await publish();
+  markStudyAttemptStage(attempt, 'post-stop-checking');
+  const postStopStarted = performance.now();
+  try {
+    await emit();
+    const afterStop = await metric(state.latestToken, 'supervisor');
+    attempt.postStopCallbacksStable = afterStop.physicalCalls === callbacks;
+    assert(
+      attempt.postStopCallbacksStable,
+      'Stopped measured observer still receives physical callbacks',
+    );
+  } finally {
+    attempt.flowMs.postStop = performance.now() - postStopStarted;
+  }
+  markStudyAttemptStage(attempt, 'post-stop-complete');
+  return attempt;
 }
 
 function evaluateBlock(block) {
@@ -538,36 +569,36 @@ async function runBlock(plan, controls) {
     if (plan.condition === 'load') block.worker = await startWorker();
     block.clockProbe = await probeClock();
     for (let sample = 0; sample < samplesPerBlock; sample++) {
-      const attempt = await measureAttempt(sample, controls);
-      block.attempts.push({
-        index: sample,
-        summary: attempt.summary,
-        metrics: attempt.metrics,
-        flowMs: {
-          start: attempt.startFlowMs,
-          emit: attempt.emitFlowMs,
-          stop: attempt.stopFlowMs,
-          postStop: attempt.postStopFlowMs,
-          total: attempt.totalFlowMs,
-        },
-        postStopCallbacksStable: attempt.postStopCallbacksStable,
-      });
-      const setupSlots = attempt.metrics.setup;
-      block.setupSlotCounts.push(
-        Array.isArray(setupSlots) ? setupSlots.length : 0,
-      );
-      if (Array.isArray(setupSlots)) {
-        block.setupInstallSamples.push(setupSlots[0]);
-        block.setupStartSamples.push(setupSlots[1]);
-        block.operationSamples.setup.push(Math.max(...setupSlots));
-      } else {
-        block.setupInstallSamples.push(undefined);
-        block.setupStartSamples.push(undefined);
-        block.operationSamples.setup.push(Number.NaN);
+      const attempt = createStudyAttempt(sample);
+      block.attempts.push(attempt);
+      await persist();
+      try {
+        await measureAttempt(sample, controls, attempt, persist);
+        const setupSlots = attempt.metrics.setup;
+        block.setupSlotCounts.push(
+          Array.isArray(setupSlots) ? setupSlots.length : 0,
+        );
+        if (Array.isArray(setupSlots)) {
+          block.setupInstallSamples.push(setupSlots[0]);
+          block.setupStartSamples.push(setupSlots[1]);
+          block.operationSamples.setup.push(Math.max(...setupSlots));
+        } else {
+          block.setupInstallSamples.push(undefined);
+          block.setupStartSamples.push(undefined);
+          block.operationSamples.setup.push(Number.NaN);
+        }
+        block.operationSamples.handler.push(...attempt.metrics.handler);
+        block.operationSamples.finalization.push(
+          ...attempt.metrics.finalization,
+        );
+        block.clockSamplesMs.push(attempt.metrics.clock.minimumPositiveStep);
+        completeStudyAttempt(attempt);
+      } catch (error) {
+        failStudyAttempt(attempt, attempt.stage, error);
+        block.status = 'protocol-failed';
+        await persist();
+        throw error;
       }
-      block.operationSamples.handler.push(...attempt.metrics.handler);
-      block.operationSamples.finalization.push(...attempt.metrics.finalization);
-      block.clockSamplesMs.push(attempt.metrics.clock.minimumPositiveStep);
       await persist();
     }
     evaluateBlock(block);
