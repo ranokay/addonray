@@ -1,7 +1,7 @@
 # Private-window fixture startup readiness
 
 Recorded on 2026-10-29. This record covers issue #32, "Stabilize private-window
-fixture startup". The implementation is signed `02b84e81ed28ac29fa1831d7c839ee666211a6a6`.
+fixture startup". The implementation is signed `88e2dda25a4f8c6088233adb999962b21ca79c7d`.
 The initial orchestration base was `ab8618a8482512c3cd5e994031062812ecaeb080`;
 implementation and review use `7a49eeecf741c1966d449b9fe1c514592278260e`.
 It changes a Firefox probe fixture, not product code, permissions, preferences or
@@ -94,7 +94,7 @@ retained control above.
 
 ## Correction
 
-`scripts/timing-private-checks.mjs` at `02b84e8` now:
+`scripts/timing-private-checks.mjs` at `88e2dda` now:
 
 1. Verifies the new window is private and records its startup state at handle
    discovery.
@@ -115,49 +115,56 @@ fixture authority as before.
 A source-route gap still returns before either private check runs, so the
 report keeps 77 observed checks. A receiver-only gap after the source check
 retains that one passed check and fails the run, so its report has 78 observed
-checks and names the missing receiver check. Cleanup errors propagate; the
-cleanup success flag is set only after owned tabs close. All selected runs report
+checks and names the missing receiver check. On an unqualified control route the
+record distinguishes a failed startup wait from a failed exact route. Cleanup
+starts with `ownedTabsClosed: false`, closes owned handles, asserts that none
+remain and sets the flag only then. A cleanup error or leaked owned tab leaves
+the flag false and fails the run. All selected runs report
 `ownedTabsClosed: true`.
 
 ## Verification
 
-The clean shared gate at `02b84e8` passed 438 behavior tests across 25 files
+The clean shared gate at `88e2dda` passed 438 behavior tests across 25 files
 with no failures, native type checking of 56 files, formatting, linting, both
 packages and manifests, source allowlists and strict workflow lint. The frozen
 receipt is
-`20261029T103114Z-795549aff271.json`.
+`20261029T104840Z-f28df676eaa4.json`.
 
 Clean packaged Firefox runs used the unsigned XPI with SHA-256
 `82b754a02dbaa3e7b7700567ce82d873dc023a3ba91a8fcf27cfcaecc08ec08a` on macOS
 27.2 (build 26B5091g) arm64. They used geckodriver 0.37.1 and clean source
-`02b84e8`. Each passed 79 checks with `passed-with-qualification-gaps`.
+`88e2dda`. Each passed 79 checks with `passed-with-qualification-gaps`.
 
-| Firefox    | Startup at handle                    | Startup settled                      | Receipt                              |
-| ---------- | ------------------------------------ | ------------------------------------ | ------------------------------------ |
-| 140.0      | `about:blank`, not loading           | `about:privatebrowsing`, not loading | `20261029T103538Z-714de62982c6.json` |
-| 153.5.1esr | `about:privatebrowsing`, loading     | `about:privatebrowsing`, not loading | `20261029T103355Z-153361d2c3e8.json` |
-| 158.0.1    | `about:privatebrowsing`, not loading | `about:privatebrowsing`, not loading | `20261029T103144Z-7e033f7aea60.json` |
+| Firefox    | Startup at handle                                      | Startup settled                      | Receipt                              |
+| ---------- | ------------------------------------------------------ | ------------------------------------ | ------------------------------------ |
+| 140.0      | `about:blank`, not loading, delayed startup unfinished | `about:privatebrowsing`, not loading | `20261029T105227Z-f5b5d569f82e.json` |
+| 153.5.1esr | `about:blank`, loading                                 | `about:privatebrowsing`, not loading | `20261029T105041Z-fa9c4645a764.json` |
+| 158.0.1    | `about:privatebrowsing`, loading                       | `about:privatebrowsing`, not loading | `20261029T104901Z-1cfe342540a6.json` |
 
 All three reports record the exact `popup.html` and `investigation.html` routes
 with `readyState: complete`, both private checks passed, and owned-tab cleanup.
 They are copied to `.scratch/private-fixture-readiness/` as
-`firefox-evidence-<version>-xpi.json`. The 140.0 report is the case where the
-handle appeared while the window was still on `about:blank`; the readiness wait
-covered it before the route request.
+`firefox-evidence-<version>-xpi.json`. The 140.0 and 153.5.1esr reports are the
+cases where the handle appeared before the private window's startup document
+had loaded; the readiness wait covered them before the route request.
 
-Dirty iteration receipts are separate. The 158.0.1 and 153.5.1esr development
-runs passed 79 checks. The first dirty 140.0 iteration failed 54 checks at an
-unrelated existing page-error collector budget of 13 ms p95 plus two clock
-steps. Its report is
+Dirty iteration receipts are separate. During iteration at `02b84e8`, the
+158.0.1 and 153.5.1esr development runs passed 79 checks. The first dirty 140.0
+iteration at that snapshot failed 54 checks at an unrelated existing page-error
+collector budget of 13 ms p95 plus two clock steps. Its report is
 `.scratch/private-fixture-readiness/firefox-evidence-140.0-iteration-failed-budget.json`
 and its receipt is `20261029T102242Z-9e8393a8c418.json`. An unchanged retry
 passed 79 checks with receipt `20261029T102646Z-e7cfcb2be8c6.json`. No budget,
 sample, warmup or assertion changed; issue #33 remains out of scope. A later
-pass does not explain the failed budget sample.
+pass does not explain the failed budget sample. The final clean matrix above is
+at `88e2dda`, after the readiness and cleanup reporting corrections.
 
 The frozen receipt runner records exact clean HEAD, unchanged tracked contents,
 child exit 0 and `frozen_gate: true` for all four claims above. Raw reports and
-trial JSON are ignored `.scratch` data, not product evidence.
+trial JSON are ignored `.scratch` data, not product evidence. The final
+documentation head has its own frozen shared-check receipt under
+`.scratch/private-fixture-readiness/receipts/`. The three browser reports remain
+bound to `88e2dda`; they do not qualify a later source SHA.
 
 ## Authority and remaining gaps
 
