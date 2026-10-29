@@ -2,6 +2,57 @@
 import assert from 'node:assert/strict';
 import { By, until } from 'selenium-webdriver';
 
+const startupTimeout = 10000;
+const controlRouteTimeout = 5000;
+const receiverRouteTimeout = 10000;
+
+function readPrivateStartup(driver) {
+  return driver.executeScript(() => {
+    const target = gBrowser.selectedBrowser;
+    return {
+      uri: target.currentURI?.spec ?? '',
+      loading: target.webProgress?.isLoadingDocument ?? true,
+      delayedStartupFinished: Boolean(
+        window.gBrowserInit?.delayedStartupFinished,
+      ),
+    };
+  });
+}
+
+// A new private window exposes a tab handle before its own startup document has
+// committed. Requesting the fixture route during that window lets the pending
+// startup navigation replace it. Wait for the window's startup document itself.
+async function waitForPrivateStartup(driver) {
+  return driver.wait(async () => {
+    const state = await readPrivateStartup(driver);
+    return state.delayedStartupFinished &&
+      state.uri !== '' &&
+      state.uri !== 'about:blank' &&
+      !state.loading
+      ? state
+      : false;
+  }, startupTimeout);
+}
+
+async function waitForPrivateRoute(driver, url, id, selector, timeout) {
+  await driver.setContext('content');
+  await driver.get(url);
+  await driver.wait(
+    () =>
+      driver.executeScript(
+        (expectedUrl, extensionId, requiredSelector) =>
+          location.href === expectedUrl &&
+          document.readyState === 'complete' &&
+          globalThis.browser?.runtime?.id === extensionId &&
+          Boolean(document.querySelector(requiredSelector)),
+        url,
+        id,
+        selector,
+      ),
+    timeout,
+  );
+}
+
 export async function checkFirefoxPrivateHandoff({
   driver,
   id,
@@ -85,23 +136,54 @@ export async function checkFirefoxPrivateHandoff({
       ).PrivateBrowsingUtils.isWindowPrivate(window),
     );
     assert.equal(evidence.privateWindow, true);
-    await driver.setContext('content');
-    await driver.get(popupUrl);
+    evidence.startup = { atHandle: await readPrivateStartup(driver) };
     try {
-      await driver.wait(until.elementLocated(By.id('page')), 5000);
-    } catch {
+      evidence.startup.settled = await waitForPrivateStartup(driver);
+      await driver.setContext('content');
+      await driver.wait(
+        () => driver.executeScript(() => document.readyState === 'complete'),
+        startupTimeout,
+      );
+      await waitForPrivateRoute(
+        driver,
+        popupUrl,
+        id,
+        '#page',
+        controlRouteTimeout,
+      );
+    } catch (error) {
       evidence.stage = 'unqualified-private-control-route';
-      evidence.control = await driver.executeScript(() => ({
-        extensionApiAvailable: typeof browser !== 'undefined',
-        text: document.body?.innerText.slice(0, 1200) ?? '',
-      }));
-      evidence.source =
-        'Requested fixture control document was unavailable in the verified private window. No private-source or receiver guard verdict.';
+      evidence.routeFailure = String(error);
+      evidence.startup.settled ??= false;
+      try {
+        await driver.setContext('content');
+        evidence.control = await driver.executeScript(() => ({
+          url: location.href,
+          readyState: document.readyState,
+          extensionApiAvailable: typeof browser !== 'undefined',
+          text: document.body?.innerText.slice(0, 1200) ?? '',
+        }));
+      } catch (readError) {
+        evidence.control = { readFailure: String(readError) };
+      }
+      try {
+        await driver.setContext('chrome');
+        evidence.startup.last = await readPrivateStartup(driver);
+      } catch (readError) {
+        evidence.startup.last = { readFailure: String(readError) };
+      }
+      evidence.source = evidence.startup.settled
+        ? 'Requested fixture control document did not load at its exact route after the private startup document settled. No private-source or receiver guard verdict.'
+        : 'Requested fixture control document was not requested because the private startup document did not settle. No private-source or receiver guard verdict.';
       report.gaps.push(
-        'Private-window headless fixture control could not load; actual unmodified native private-source exclusion is required separately. Deterministic guards do not replace this observation.',
+        'Private-window headless fixture control could not load at its exact route; actual unmodified native private-source exclusion is required separately. Deterministic guards do not replace this observation.',
       );
       return evidence;
     }
+    evidence.controlRoute = await driver.executeScript(() => ({
+      url: location.href,
+      readyState: document.readyState,
+    }));
     const privateFlag = await driver.executeAsyncScript((done) =>
       browser.tabs.getCurrent().then((tab) => done(tab.incognito)),
     );
@@ -182,11 +264,17 @@ export async function checkFirefoxPrivateHandoff({
     );
     await driver.setContext('content');
     await driver.switchTo().window(privateControl);
-    await driver.get(investigationUrl);
-    await driver.wait(
-      until.elementLocated(By.id('investigation-label')),
-      10000,
+    await waitForPrivateRoute(
+      driver,
+      investigationUrl,
+      id,
+      '#investigation-label',
+      receiverRouteTimeout,
     );
+    evidence.receiverRoute = await driver.executeScript(() => ({
+      url: location.href,
+      readyState: document.readyState,
+    }));
     const receiver = await driver.executeAsyncScript(async (done) => {
       const tab = await browser.tabs.getCurrent();
       done({
@@ -222,6 +310,7 @@ export async function checkFirefoxPrivateHandoff({
     evidence.failure = String(error);
     throw error;
   } finally {
+    evidence.cleanup.ownedTabsClosed = false;
     await driver.setContext('content');
     for (const handle of owned) {
       if ((await driver.getAllWindowHandles()).includes(handle)) {
@@ -230,6 +319,12 @@ export async function checkFirefoxPrivateHandoff({
       }
     }
     const remaining = await driver.getAllWindowHandles();
+    const leaked = [...owned].filter((handle) => remaining.includes(handle));
+    assert.equal(
+      leaked.length,
+      0,
+      `Owned private tabs remain open: ${leaked.join(', ')}`,
+    );
     if (remaining.includes(origin)) await driver.switchTo().window(origin);
     else if (remaining.length) await driver.switchTo().window(remaining[0]);
     evidence.cleanup.ownedTabsClosed = true;

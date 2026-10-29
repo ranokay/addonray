@@ -217,6 +217,13 @@ initial private-page loading, but did not establish that gap caused the earlier
 results. `.scratch/private-fixture-diagnosis/result.json` retains the trials.
 No unrelated fixture change was made in this slice.
 
+Correction (2026-10-29): the retained reports' visible text is consistent with
+Firefox's private-browsing start page. Those reports did not capture
+`location.href`, so "welcome page" above is not a recorded URL or a diagnosed
+historical route. The 77-check results, failed private checks and authority gaps
+are unchanged. See the
+[private-fixture readiness record](2026-10-29-private-fixture-readiness.md).
+
 ## Delivery and release boundaries
 
 This dated record qualifies implementation `8091ad1`. Every later documentation

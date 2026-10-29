@@ -61,6 +61,24 @@ verified independently and by the coordinator. The selected largest guarded
 collector p95 is 3 ms locally and 4 ms hosted against the unchanged 5 ms limit.
 Independent production/probe/evidence review has no unresolved material finding.
 
+The private-window fixture startup is corrected in signed `88e2dda` from base
+`7a49eee`. The fixture now waits for the private window's own startup document
+to commit and finish loading, then requires the exact control and receiver
+routes, the fixture runtime ID and the private tab classification before its
+assertions. No product code, permission, preference or collector budget changed.
+The frozen shared gate passes 438 behavior tests and native type checking of 56
+files. Clean packaged macOS 27.2 arm64 runs on Firefox 140.0, 153.5.1esr and
+158.0.1 pass 79 checks each. The 140 and 153 reports record the handle before
+the startup document settled; all three then record the settled private start
+page before the exact control and receiver routes. The original 77-check
+private-control attempts and the unchanged 79-check retries remain recorded. The
+surviving reports carry text consistent with Firefox's private-browsing start
+page; they did not capture a URL. The exact historical route and cause remain
+unestablished. PR #49's hosted Check, both Chrome jobs and all six Firefox jobs
+passed at head `85d0ae7`; each Firefox report has 79 checks, both private checks,
+settled startup, exact control and receiver routes and owned-tab cleanup. See
+the [readiness record](evidence/2026-10-29-private-fixture-readiness.md).
+
 The [export evidence](evidence/2026-10-28-report-export.md) preserves the initial
 private-fixture qualification gaps, one failed 6 ms local collector-budget
 attempt and the unchanged passing retries. No cause or fix is established by
@@ -239,6 +257,15 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Run the shared gate, source rebuilds and exact Firefox/Chrome implementation qualifications; observe available native flows and record gaps.
 - [x] Prepare reviewed evidence and deliver signed implementation privately to `main` at `8091ad1`. The separate final documentation receipt is absent and remains unverified; see [Historical delivery records](#historical-delivery-records).
 
+## Private-window fixture checklist
+
+- [x] Inspect the retained 77-check failures and the surviving diagnosis without rewriting their results or inventing a captured URL.
+- [x] Run 36 controlled disposable-profile trials across the three pinned macOS Firefox versions; retain the nonreproduction and the separate delayed-startup reproduction.
+- [x] Add state-based private startup readiness and exact control/receiver route checks; no product, permission, preference or budget change.
+- [x] Pass the frozen shared gate and clean packaged Firefox 140/153/158 matrix with 79 checks each.
+- [x] Verify hosted Linux/Windows reports through the PR handoff; keep unavailable or unreproduced paths unqualified.
+- [ ] Verify the final documentation head's workflows and merge PR #49.
+
 ## Expanded v1 contract checklist
 
 - [x] Read milestone `v1.0.0` and the bodies of tickets #2 through #46.
@@ -264,10 +291,12 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 
 Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
 is the current scope and support record. The next v1 action is to close the #4,
-#5, #13 and #20 decisions, then start executable work in dependency order. #32
-and #33 have no native blockers. #3's Aperture local implementation, proof and
-authorized prototype cleanup are complete; the issue remains open pending
-private PR delivery. No full-v1 qualification exists.
+#5, #13 and #20 decisions, then start executable work in dependency order. #32 is
+implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, with
+final head verification and merge pending. #33 remains open, and its
+collector-budget variability was not changed. #3's Aperture local implementation,
+proof and authorized prototype cleanup are complete; the issue remains open
+pending private PR delivery. No full-v1 qualification exists.
 
 The pre-v1 stop condition is superseded by the approved [v1 contract](v1-contract.md).
 Start v1 work only in dependency order and only after the named contract and
