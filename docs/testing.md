@@ -250,13 +250,19 @@ FIREFOX_VERSION=153.5.1esr mise exec -- bun scripts/page-error-budget-study.mjs
 Each command predeclares 12 blocks: `/page-errors/empty` and
 `/page-errors/heavy` under `baseline` and one page-owned busy Web Worker, with
 three counterbalanced repetitions and 30 attempts per block. That is 360
-attempts per version and 720 across both, with no retries, extra samples or
-configurable limits. The order is recorded in the report. Every attempt is
-persisted to a unique `.scratch/collector-budget/study-firefox-*.json` with its
-raw setup components, handler/finalization samples, clock samples, summary,
-flow timings and post-Stop callback check. A sidecar `.sha256` binds the final
-file. The study records browser/driver/OS/host identity, the XPI digest and the
-fixture input/output hashes.
+attempts per version and 720 per two-version invocation, with no retries of
+failed samples, extra samples or configurable limits. The order is recorded in
+the report. This is a per-invocation bound, not an aggregate bound across source
+revisions: the #33 record retains 1,470 attempts (30 at `981f6f1`, 720 at
+`23a39d7`, 720 at `031ebff`). The two full runs are source-revision repetitions,
+not retries or failure selection; the second followed the Chrome probe
+reporting correction. Every attempt is registered before execution and persisted
+with its index, stage and status. Available raw setup components,
+handler/finalization samples, clock samples, summary and flow timings are
+published before the post-Stop assertion; a failure then retains the failed
+attempt and its error for exit 2. A sidecar `.sha256` binds the final file. The
+study records browser/driver/OS/host identity, the XPI digest and the fixture
+input/output hashes.
 
 A budget-failed block stays failed while remaining blocks run; the command exits
 1 if any budget block failed. A protocol or instrumentation failure keeps its
@@ -267,6 +273,11 @@ controlled condition, not a reconstruction of the historical hosted scheduler.
 The study does not run on Chrome, Linux or Windows in this record; those
 diagnostic environments are unavailable. Its `attempts[].flowMs` includes
 driver/injection/IPC work and is not part of the synchronous gate.
+`tests/budget-study-attempts.test.ts` is the focused failure-path regression:
+it supplies metrics, simulates a post-Stop throw and requires the failed attempt
+to retain its index, stage, error, summary, metrics, setup slots and timings
+through JSON persistence. The failure-path-only correction is at `c58744f`;
+successful measurement bodies and the `031ebff` study reports are unchanged.
 
 Read a study report's `blocks[].operations`, `setupComponents`, `clockSamplesMs`,
 `clockProbe`, `attempts[].flowMs` and `cleanup`. `rawOperationSamplesMs` remains
@@ -274,9 +285,10 @@ the gate input; `setupComponents` summarizes the raw `setupInstallSamples` and
 `setupStartSamples`; `startHandlingMs` is diagnostic and absent for
 installation-only worlds. The report must show all owned tabs, the worker, the
 browser and the server closed. The [dated evidence](evidence/2026-10-29-collector-budget-variability.md)
-records the retained failures, missing `028c29c` arrays, study results and
-release disposition. Do not lower the gate, omit a scenario or treat a later
-pass as an explanation of an earlier failure.
+records all known retained failures, including the separate `8091ad1` and
+`028c29c` 6 ms results, the missing `028c29c` arrays, study results and release
+disposition. Do not lower the gate, omit a scenario or treat a later pass as an
+explanation of an earlier failure.
 
 ## Report export checks
 

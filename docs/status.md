@@ -79,21 +79,28 @@ passed at head `85d0ae7`; each Firefox report has 79 checks, both private checks
 settled startup, exact control and receiver routes and owned-tab cleanup. See
 the [readiness record](evidence/2026-10-29-private-fixture-readiness.md).
 
-The #33 collector-budget investigation is recorded at implementation head
-`031ebff` and separately documents the final documentation head. A shared
+The #33 collector-budget investigation is recorded with browser evidence at
+implementation head `031ebff` and a failure-path-only study correction at
+`c58744f`; it separately documents the final documentation head. A shared
 fixed-budget helper and focused tests preserve the existing 30-sample,
 nearest-rank p95, two-clock-step and 5 ms gate. The page-error report now labels
 the existing installation and start-handling setup slots without changing the
-wrappers, maximum selection or assertion. A bounded 720-attempt study on clean
-packaged Firefox 140.0 and 153.5.1esr completed with no budget failures; all six
-load workers per version started and terminated. Handler and finalization stayed
-at 0–1 ms;
-the only samples above 2 ms were observer installations, with one per study
-block. The retained 7 ms and 13 ms failures each had two installation outliers;
-the 6 ms failure's raw arrays are absent. No product collector defect or
-concurrent-load cause is established. Clean packaged suites pass at `031ebff`:
-79 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 and 73 Chrome checks.
-Hosted qualification is deferred until the approved PR handoff. See the
+wrappers, maximum selection or assertion. The bounded study runs recorded 1,470
+attempts across three revisions: 30 at `981f6f1` (protocol failure at the
+worker control), 720 at `23a39d7`, and 720 at `031ebff`. Each two-version
+invocation was bounded at 720 attempts; the second full run followed the Chrome
+reporting correction and is a source-revision repetition, not a retry of a
+failed sample. At `031ebff`, both versions completed with no budget failures and
+all six load workers per version started and terminated. Handler and finalization
+stayed at 0–1 ms; the only samples above 2 ms were observer installations, with
+one per study block. The retained `8091ad1` 6 ms, `ab8618a` 7 ms and #32 13 ms
+failures each had two installation outliers; the separate hosted `028c29c` 6 ms
+failure's raw arrays are absent. The later `c58744f` study correction preserves
+a current failed attempt's index, stage, error and available metrics/timings; a
+focused test covers it and no full study was rerun. No product collector defect
+or concurrent-load cause is established. Clean packaged suites pass at
+`031ebff`: 79 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 and 73 Chrome
+checks. Hosted qualification is deferred until the approved PR handoff. See the
 [collector budget evidence](evidence/2026-10-29-collector-budget-variability.md).
 
 The [export evidence](evidence/2026-10-28-report-export.md) preserves the initial
@@ -261,10 +268,11 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 
 ## Collector budget variability checklist
 
-- [x] Inspect the retained `028c29c`, `ab8618a` and #32 failures; preserve the missing `028c29c` raw arrays and the failed assertions.
+- [x] Inspect the retained `8091ad1`, `028c29c`, `ab8618a` and #32 failures; preserve the missing `028c29c` raw arrays and every failed assertion.
 - [x] Extract the unchanged budget gate into one fixed helper and add focused independent tests for the 5 ms limit, nearest-rank p95, clock guard and invalid inputs.
 - [x] Publish installation and start-handling labels from the existing setup slots without changing the wrappers, maximum selection, sample counts or threshold.
-- [x] Run the bounded 720-attempt diagnostic study on clean packaged Firefox 140.0 and 153.5.1esr; retain all reports, include both load workers and cleanup, and record no budget failures.
+- [x] Register each study attempt before execution, persist available metrics/timings before post-Stop assertions, and add focused failed-attempt regression proof at `c58744f`.
+- [x] Run the bounded diagnostic study across the three source revisions: 30 attempts at `981f6f1`, 720 at `23a39d7` and 720 at `031ebff`, for 1,470 retained attempts; account for the source-revision repetition separately from retries or failure selection.
 - [x] Run clean packaged Firefox 140.0, 153.5.1esr and 158.0.1 and Chrome for Testing 156.0.8078.47 at implementation head `031ebff`; retain the failed `23a39d7` Chrome reporting attempt separately.
 - [x] Record the measurement protocol, retained evidence, unresolved causes and release disposition.
 - [ ] Push/PR and hosted qualification; deferred to the approved handoff.
@@ -322,9 +330,9 @@ is the current scope and support record. The next v1 action is to close the #4,
 #5, #13 and #20 decisions, then start executable work in dependency order. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
 current main includes the change at `a708fb5`. #33's bounded collector-budget
-investigation and standard local suites are recorded at implementation
-`031ebff`; its PR, hosted qualification and merge remain pending. #3's Aperture
-local implementation,
+investigation and standard local suites are recorded with browser evidence at
+`031ebff` and a failure-path-only study correction at `c58744f`; its PR, hosted
+qualification and merge remain pending. #3's Aperture local implementation,
 proof and authorized prototype cleanup are complete; the issue remains open
 pending private PR delivery. No full-v1 qualification exists.
 
