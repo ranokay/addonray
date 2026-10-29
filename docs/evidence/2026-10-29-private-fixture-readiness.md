@@ -148,16 +148,19 @@ They are copied to `.scratch/private-fixture-readiness/` as
 cases where the handle appeared before the private window's startup document
 had loaded; the readiness wait covered them before the route request.
 
-Dirty iteration receipts are separate. During iteration at `02b84e8`, the
-158.0.1 and 153.5.1esr development runs passed 79 checks. The first dirty 140.0
-iteration at that snapshot failed 54 checks at an unrelated existing page-error
-collector budget of 13 ms p95 plus two clock steps. Its report is
+Dirty iteration receipts are separate. During dirty iteration on base
+`7a49eee`, the 158.0.1 and 153.5.1esr development runs passed 79 checks. The
+first dirty 140.0 iteration in that sequence failed 54 checks at an unrelated
+existing page-error collector budget of 13 ms p95 plus two clock steps. Its
+report is
 `.scratch/private-fixture-readiness/firefox-evidence-140.0-iteration-failed-budget.json`
 and its receipt is `20261029T102242Z-9e8393a8c418.json`. An unchanged retry
 passed 79 checks with receipt `20261029T102646Z-e7cfcb2be8c6.json`. No budget,
 sample, warmup or assertion changed; issue #33 remains out of scope. A later
-pass does not explain the failed budget sample. The final clean matrix above is
-at `88e2dda`, after the readiness and cleanup reporting corrections.
+pass does not explain the failed budget sample. A later dirty 158.0.1 run at
+docs head `d1ca0d5` with the final reporting changes passed 79 checks with
+receipt `20261029T104610Z-fb6f0f025f98.json`. The final clean matrix above is at
+`88e2dda`, after those readiness and cleanup reporting corrections.
 
 The frozen receipt runner records exact clean HEAD, unchanged tracked contents,
 child exit 0 and `frozen_gate: true` for all four claims above. Raw reports and
