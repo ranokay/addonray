@@ -43,11 +43,11 @@ and 32 px. Each context appears on light and dark backgrounds.
 1. `assets/brand/masters/`: full-color SVG, monochrome SVG, an optical
    small-size SVG if 16 px needs it, and a horizontal lockup.
 2. `assets/brand/exports/`: transparent PNGs at 16, 32, 48, 64, 96, 128, 256 and
-   512 px for the mark; monochrome black and white at 16, 32, 48, 96 and 128 px;
-   256 and 512 px lockups.
-3. `public/icon-{16,32,48,96,128}.png`: package icons for both targets. WXT's
-   icon discovery is verified against its documentation and built manifest
-   before relying on it. A missing size uses an explicit manifest path.
+   512 px for the mark; monochrome black and white at 16, 32, 48, 96, 128, 256
+   and 512 px; lockups at 320 and 640 px; a reusable store tile at 300 and 512 px.
+3. `public/icon-{16,32,48,96,128}.png`: package icons for both targets. The
+   installed WXT icon discovery and built manifest were inspected; both targets
+   use explicit `icons` and `action.default_icon` paths.
 4. Manifest and package checks that assert the exact icon maps in both built
    `manifest.json` files, the archive contents, and the source archive allowlist.
 5. `assets/brand/README.md`: canonical paths, clearspace, minimum sizes, palette,
