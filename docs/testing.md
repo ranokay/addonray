@@ -218,6 +218,63 @@ observation. This setup does not qualify native toolbar scrolling or launch
 usability. Start, reproduction and attachment interactions must be recorded
 separately. No product hook or permission is added.
 
+## Collector budget variability study
+
+The agreed page-error gate is fixed in `scripts/synchronous-budget.ts`: at least
+30 synchronous-operation samples, nearest-rank p95 plus two observed clock
+steps at most 5 ms. `scripts/page-error-checks.mjs` and the diagnostic study
+both call that implementation. The focused tests in
+`tests/synchronous-budget.test.ts` use independent literals for the retained
+5, 6, 7 and 13 ms outcomes, the exact boundary, the 60-sample nearest-rank rule
+and invalid sample/clock inputs. There is no configurable quantile or threshold.
+
+The standard page-error report publishes `setupComponents.installationMs` and
+`setupComponents.startHandlingMs` next to the unchanged `rawOperationSamplesMs`
+and `setupSlotCounts`. The gate still uses the maximum of the two Firefox setup
+slots. The page-world copy and the Chrome isolated supervisor have one
+installation-only slot; the Chrome supervisor never starts an observation.
+Missing or unexpected slots fail the report visibly after the measurement is
+published. These labels clarify attribution from the existing per-attempt
+`metrics.setup` arrays; they do not change the wrappers, sample counts, p95,
+clock guard or 5 ms limit.
+
+`scripts/page-error-budget-study.mjs` is a bounded diagnostic, not a
+qualification pass. It requires a packaged XPI (`mise run package`) and accepts
+only Firefox `140.0` or `153.5.1esr`:
+
+```sh
+FIREFOX_VERSION=140.0 mise exec -- bun scripts/page-error-budget-study.mjs
+FIREFOX_VERSION=153.5.1esr mise exec -- bun scripts/page-error-budget-study.mjs
+```
+
+Each command predeclares 12 blocks: `/page-errors/empty` and
+`/page-errors/heavy` under `baseline` and one page-owned busy Web Worker, with
+three counterbalanced repetitions and 30 attempts per block. That is 360
+attempts per version and 720 across both, with no retries, extra samples or
+configurable limits. The order is recorded in the report. Every attempt is
+persisted to a unique `.scratch/collector-budget/study-firefox-*.json` with its
+raw setup components, handler/finalization samples, clock samples, summary,
+flow timings and post-Stop callback check. A sidecar `.sha256` binds the final
+file. The study records browser/driver/OS/host identity, the XPI digest and the
+fixture input/output hashes.
+
+A budget-failed block stays failed while remaining blocks run; the command exits
+1 if any budget block failed. A protocol or instrumentation failure keeps its
+partial report and exits 2. Exit 0 means the study completed with no budget
+failure; it is still diagnostic/instrumented authority, not independent
+qualification, native usability or a latency guarantee. The load worker is one
+controlled condition, not a reconstruction of the historical hosted scheduler.
+
+Read a study report's `blocks[].operations`, `setupComponents`, `clockSamplesMs`,
+`clockProbe`, `attempts[].flowMs` and `cleanup`. `rawOperationSamplesMs` remains
+the gate input; `setupComponents` summarizes the raw `setupInstallSamples` and
+`setupStartSamples`; `startHandlingMs` is diagnostic and absent for
+installation-only worlds. The report must show all owned tabs, the worker, the
+browser and the server closed. The [dated evidence](evidence/2026-10-29-collector-budget-variability.md)
+records the retained failures, missing `028c29c` arrays, study results and
+release disposition. Do not lower the gate, omit a scenario or treat a later
+pass as an explanation of an earlier failure.
+
 ## Report export checks
 
 The export contract distinguishes request dispatch, browser acceptance and final
