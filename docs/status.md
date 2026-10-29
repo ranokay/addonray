@@ -48,9 +48,11 @@ attempt and the unchanged passing retries. No cause or fix is established by
 those retries. Available unmodified macOS consent, keyboard preview/Cancel and
 download, reload and actual management-removal observations retain their
 native authority limits. Their 41 product-input hashes match `8091ad1`.
-A later documentation delivery head requires its own frozen check and hosted
-report verification. `.scratch/p3a-delivery.json` is the final local receipt for
-that exact delivered head; do not infer later-head success from this paragraph.
+A later documentation delivery head for that export requires its own frozen check
+and hosted report verification. `.scratch/p3a-delivery.json` is the final local
+receipt for that exact delivered head; do not infer later-head success from this
+paragraph.
+That receipt is absent in the current worktree; see [Historical delivery records](#historical-delivery-records).
 
 The prior attachment delivery is complete at signed `deeb3d8`. Its final local
 receipt is `.scratch/p2d-delivery-deeb3d8.json`, verified during read-only resumption
@@ -216,7 +218,7 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Complete independent export-core review with no material finding.
 - [x] Complete probe/native-helper/evidence review and fix material findings.
 - [x] Run the shared gate, source rebuilds and exact Firefox/Chrome implementation qualifications; observe available native flows and record gaps.
-- [x] Prepare reviewed evidence and deliver signed implementation privately to `main`. The final documentation head is complete only when `.scratch/p3a-delivery.json` verifies that exact head and its hosted reports.
+- [x] Prepare reviewed evidence and deliver signed implementation privately to `main` at `8091ad1`. The separate final documentation receipt is absent and remains unverified; see [Historical delivery records](#historical-delivery-records).
 
 ## Expanded v1 contract checklist
 
@@ -230,10 +232,11 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 
 ## Next action
 
-Read `.scratch/p3a-delivery.json` against the current checkout head. If its frozen
-shared gate and all hosted browser/rebuild reports verify that exact signed,
-pushed head, the [report export slice](plans/phase3-report-export.md) is complete.
-Otherwise finish those delivery checks and retain the receipt.
+Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
+is the current scope and support record. The next v1 action is to close the #4,
+#5, #13 and #20 decisions, then start executable work in dependency order. #32
+and #33 have no native blockers. #3 needs the user's visual selection. No
+full-v1 qualification exists.
 
 The pre-v1 stop condition is superseded by the approved [v1 contract](v1-contract.md).
 Start v1 work only in dependency order and only after the named contract and
@@ -242,6 +245,18 @@ request dispatch, browser acceptance and final file completion. Console feeds,
 new browser targets, automatic extension-state changes and causal verdicts remain
 excluded. Saved history, bounded collectors and the optional companion are
 approved v1 scope, not authorization to skip their contracts.
+
+## Historical delivery records
+
+The report export implementation is signed `8091ad1`; the documentation head
+inherited by this task is `a78e5d9`. Their recorded test, browser and native
+evidence is unchanged. The separate final documentation delivery receipt
+`.scratch/p3a-delivery.json` is absent in this worktree. Treat that prior
+documentation delivery as explicitly unverified history, not a pass.
+Verify it only against the exact historical head and receipt it names. Do not
+apply it to a later documentation-only head, and do not rerun export browser
+probes merely because HEAD moved. This issue's proof is the frozen shared gate
+for its documentation commit, not browser, export or full-v1 qualification.
 
 The final `.scratch/p2d-delivery-deeb3d8.json` receipt closes the prior
 documentation head's required verification. Future export implementation and
@@ -262,6 +277,8 @@ retains raw samples before budget assertions. The later `deeb3d8` delivery recei
 records the completed matrix and report verification; the historical failure
 remains failed. Neither failure's cause is established, and no budget or product
 timing limit has changed.
+
+## Remaining release gates
 
 Native Linux/Windows usability, full accessibility, private/unknown-context native guards, retail installation/store and signed-distribution qualification remain release gates. Chrome's page-side observer is not tamper-proof. Production Firefox BFCache restoration remains unobserved; focused candidate restoration and production fresh-load outcomes are separate evidence. Follow the [desktop QA handoff](desktop-popup-qa.md) when an appropriate visible desktop becomes available.
 
