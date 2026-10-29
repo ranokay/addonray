@@ -2,10 +2,12 @@
 
 Recorded on 2026-10-29. This record covers issue #32, "Stabilize private-window
 fixture startup". The implementation is signed `88e2dda25a4f8c6088233adb999962b21ca79c7d`.
-The initial orchestration base was `ab8618a8482512c3cd5e994031062812ecaeb080`;
-implementation and review use `7a49eeecf741c1966d449b9fe1c514592278260e`.
-It changes a Firefox probe fixture, not product code, permissions, preferences or
-runtime behavior.
+The initial orchestration base was `ab8618a8482512c3cd5e994031062812ecaeb080`.
+The implementation branch is based on current main
+`7a49eeecf741c1966d449b9fe1c514592278260e`; the full review diff is
+`7a49eee...88e2dda`. Later branch commits are documentation only. The fixture
+and all reported browser evidence are at `88e2dda`. It changes a Firefox probe
+fixture, not product code, permissions, preferences or runtime behavior.
 
 ## Retained failures
 
