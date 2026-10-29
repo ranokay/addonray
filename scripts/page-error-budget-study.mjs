@@ -536,8 +536,13 @@ async function runBlock(plan, controls) {
       }
       await persist();
     }
-    evaluateBlock(block);
-    block.status = block.budgetStatus;
+    try {
+      evaluateBlock(block);
+      block.status = block.budgetStatus;
+    } catch (error) {
+      block.status = 'protocol-failed';
+      throw error;
+    }
   } finally {
     try {
       if (workerActive) {

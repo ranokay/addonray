@@ -358,8 +358,10 @@ before the post-Stop assertion, and finalize the start-to-end total after the
 post-Stop stage. A protocol failure now leaves the current attempt marked failed
 with its index, stage, error and all available data instead of retaining only
 previous attempts. The pre-assertion snapshot leaves `flowMs.total` unset; the
-outer finally updates it through the last executed stage, so completed attempts
-include postStop and failures retain a finalized total. `tests/budget-study-attempts.test.ts`
+outer finally updates it through the last measured stage, so completed attempts
+include postStop. The measured window starts after reset: a reset failure retains
+index, stage and error without a measurement total, because reset is a
+precondition rather than part of the measured window. `tests/budget-study-attempts.test.ts`
 supplies metrics, performs a post-Stop throw and verifies that the failed
 attempt and its finalized total survive JSON persistence. Successful
 measurement bodies, gate inputs and the 031ebff study reports are unchanged; no

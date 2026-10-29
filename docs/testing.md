@@ -262,8 +262,11 @@ handler/finalization samples, clock samples, summary and phase timings are
 published before the post-Stop assertion; a failure then retains the failed
 attempt and its error for exit 2. The pre-assertion snapshot leaves
 `flowMs.total` unset. The start-to-end total is finalized in the outer finally
-after the post-Stop stage, so a completed attempt includes postStop and a
-failure records the total through its last executed stage. A sidecar `.sha256` binds the final file. The
+after the post-Stop stage; the measured window starts after reset. A completed
+attempt includes postStop, and a failure after the window starts records the
+total through its last measured stage. A reset failure retains index, stage and
+error without a measurement total; reset is a precondition, not part of the
+measured window. A sidecar `.sha256` binds the final file. The
 study records browser/driver/OS/host identity, the XPI digest and the fixture
 input/output hashes.
 
@@ -283,11 +286,13 @@ through JSON persistence. The failure-path-only corrections are at `c58744f`
 and `1d3593e`; successful measurement bodies and the `031ebff` study reports are
 unchanged.
 
-Read a study report's `blocks[].operations`, `setupComponents`, `clockSamplesMs`,
-`clockProbe`, `attempts[].flowMs` and `cleanup`. `rawOperationSamplesMs` remains
-the gate input; `setupComponents` summarizes the raw `setupInstallSamples` and
-`setupStartSamples`; `startHandlingMs` is diagnostic and absent for
-installation-only worlds. The report must show all owned tabs, the worker, the
+Read a study report's `blocks[].operationSamples`, `setupComponents`,
+`clockSamplesMs`, `clockProbe`, `attempts[].flowMs` and `cleanup`. Each block
+stores the raw setup slots in `setupInstallSamples` and `setupStartSamples`;
+`setupComponents` summarizes them as `installation` and `startHandling`.
+`rawOperationSamplesMs`, `setupComponents.installationMs` and
+`setupComponents.startHandlingMs` belong to the standard qualification report,
+not to study reports. The report must show all owned tabs, the worker, the
 browser and the server closed. The [dated evidence](evidence/2026-10-29-collector-budget-variability.md)
 records all known retained failures, including the separate `8091ad1` and
 `028c29c` 6 ms results, the missing `028c29c` arrays, study results and release
