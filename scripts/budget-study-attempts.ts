@@ -87,6 +87,14 @@ export function completeStudyAttempt(
   return attempt;
 }
 
+export function finalizeStudyAttemptTotal(
+  attempt: StudyAttempt,
+  totalMs: number,
+): StudyAttempt {
+  attempt.flowMs.total = totalMs;
+  return attempt;
+}
+
 export function failStudyAttempt(
   attempt: StudyAttempt,
   stage: string,

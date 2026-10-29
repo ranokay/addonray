@@ -3,6 +3,7 @@ import {
   completeStudyAttempt,
   createStudyAttempt,
   failStudyAttempt,
+  finalizeStudyAttemptTotal,
   markStudyAttemptStage,
   recordStudyAttemptMeasurement,
 } from '../scripts/budget-study-attempts';
@@ -28,7 +29,7 @@ it('retains metrics and timings when a post-stop check throws', () => {
     emit: 20.25,
     stop: 30.75,
     postStop: null,
-    total: 31.5,
+    total: null,
   };
 
   expect(attempt.status).toBe('running');
@@ -41,6 +42,9 @@ it('retains metrics and timings when a post-stop check throws', () => {
     setupSlots: [1, 0],
     flowMs,
   });
+  expect(attempt.flowMs.total).toBeNull();
+  attempt.flowMs.postStop = 4;
+  finalizeStudyAttemptTotal(attempt, 35.5);
   markStudyAttemptStage(attempt, 'post-stop-checking');
 
   try {
@@ -58,13 +62,20 @@ it('retains metrics and timings when a post-stop check throws', () => {
   expect(attempt.summary).toEqual(summary);
   expect(attempt.metrics).toEqual(metrics);
   expect(attempt.setupSlots).toEqual([1, 0]);
-  expect(attempt.flowMs).toEqual(flowMs);
+  expect(attempt.flowMs).toEqual({
+    start: 10.5,
+    emit: 20.25,
+    stop: 30.75,
+    postStop: 4,
+    total: 35.5,
+  });
   expect(attempt.finishedAt).not.toBeNull();
   const persisted = JSON.parse(JSON.stringify(attempt));
   expect(persisted.status).toBe('failed');
   expect(persisted.stage).toBe('post-stop-checking');
   expect(persisted.metrics).toEqual(metrics);
   expect(persisted.summary).toEqual(summary);
+  expect(persisted.flowMs.total).toBe(35.5);
 });
 
 it('marks completed attempts without discarding their measurement', () => {
@@ -73,8 +84,9 @@ it('marks completed attempts without discarding their measurement', () => {
     summary: { total: 2 },
     metrics: { setup: [0, 0] },
     setupSlots: [0, 0],
-    flowMs: { start: 1, emit: 2, stop: 3, postStop: 4, total: 5 },
+    flowMs: { start: 1, emit: 2, stop: 3, postStop: null, total: null },
   });
+  finalizeStudyAttemptTotal(attempt, 5);
   completeStudyAttempt(attempt);
   expect(attempt.status).toBe('completed');
   expect(attempt.stage).toBe('complete');

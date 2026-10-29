@@ -23,6 +23,7 @@ import {
   completeStudyAttempt,
   createStudyAttempt,
   failStudyAttempt,
+  finalizeStudyAttemptTotal,
   markStudyAttemptStage,
   recordStudyAttemptMeasurement,
 } from './budget-study-attempts.ts';
@@ -427,58 +428,59 @@ async function measureAttempt(index, controls, attempt, publish) {
   }
   markStudyAttemptStage(attempt, 'starting');
   const started = performance.now();
-  let state;
   try {
-    state = await start(controls);
+    let state;
+    try {
+      state = await start(controls);
+    } finally {
+      attempt.flowMs.start = performance.now() - started;
+    }
+    markStudyAttemptStage(attempt, 'emitting');
+    const emitStarted = performance.now();
+    try {
+      await emit();
+    } finally {
+      attempt.flowMs.emit = performance.now() - emitStarted;
+    }
+    markStudyAttemptStage(attempt, 'stopping');
+    const stopStarted = performance.now();
+    let summary;
+    try {
+      summary = await stop();
+    } finally {
+      attempt.flowMs.stop = performance.now() - stopStarted;
+    }
+    markStudyAttemptStage(attempt, 'reading-metrics');
+    const metrics = await metric(state.latestToken, 'supervisor');
+    assert(metrics, 'Selected-world measurement record missing');
+    const setupSlots = Array.isArray(metrics.setup) ? metrics.setup : [];
+    const callbacks = metrics.physicalCalls;
+    recordStudyAttemptMeasurement(attempt, {
+      summary,
+      metrics,
+      setupSlots,
+      flowMs: { ...attempt.flowMs, total: null },
+    });
+    // Persist the available measurement before the post-Stop assertion can throw.
+    await publish();
+    markStudyAttemptStage(attempt, 'post-stop-checking');
+    const postStopStarted = performance.now();
+    try {
+      await emit();
+      const afterStop = await metric(state.latestToken, 'supervisor');
+      attempt.postStopCallbacksStable = afterStop.physicalCalls === callbacks;
+      assert(
+        attempt.postStopCallbacksStable,
+        'Stopped measured observer still receives physical callbacks',
+      );
+    } finally {
+      attempt.flowMs.postStop = performance.now() - postStopStarted;
+    }
+    markStudyAttemptStage(attempt, 'post-stop-complete');
+    return attempt;
   } finally {
-    attempt.flowMs.start = performance.now() - started;
+    finalizeStudyAttemptTotal(attempt, performance.now() - started);
   }
-  markStudyAttemptStage(attempt, 'emitting');
-  const emitStarted = performance.now();
-  try {
-    await emit();
-  } finally {
-    attempt.flowMs.emit = performance.now() - emitStarted;
-  }
-  markStudyAttemptStage(attempt, 'stopping');
-  const stopStarted = performance.now();
-  let summary;
-  try {
-    summary = await stop();
-  } finally {
-    attempt.flowMs.stop = performance.now() - stopStarted;
-  }
-  markStudyAttemptStage(attempt, 'reading-metrics');
-  const metrics = await metric(state.latestToken, 'supervisor');
-  assert(metrics, 'Selected-world measurement record missing');
-  const setupSlots = Array.isArray(metrics.setup) ? metrics.setup : [];
-  const callbacks = metrics.physicalCalls;
-  recordStudyAttemptMeasurement(attempt, {
-    summary,
-    metrics,
-    setupSlots,
-    flowMs: {
-      ...attempt.flowMs,
-      total: performance.now() - started,
-    },
-  });
-  // Persist the available measurement before the post-Stop assertion can throw.
-  await publish();
-  markStudyAttemptStage(attempt, 'post-stop-checking');
-  const postStopStarted = performance.now();
-  try {
-    await emit();
-    const afterStop = await metric(state.latestToken, 'supervisor');
-    attempt.postStopCallbacksStable = afterStop.physicalCalls === callbacks;
-    assert(
-      attempt.postStopCallbacksStable,
-      'Stopped measured observer still receives physical callbacks',
-    );
-  } finally {
-    attempt.flowMs.postStop = performance.now() - postStopStarted;
-  }
-  markStudyAttemptStage(attempt, 'post-stop-complete');
-  return attempt;
 }
 
 function evaluateBlock(block) {
