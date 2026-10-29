@@ -2,11 +2,12 @@
 
 Recorded on 2026-10-29 for issue #33. The browser-evidence implementation
 head is `031ebff451e99ef93bb029a2b0ddc3e587a07593`. The later failure-path-only
-study correction is `c58744f27401be3179b0dac54e6d8e4ea37275d2`; it changes no
-successful measurement body or budget input and has no full-study rerun. The
-final documentation head is the last commit containing this record; it is
-separate from both implementation heads and does not move the browser evidence.
-The orchestration base was
+study corrections are `c58744f27401be3179b0dac54e6d8e4ea37275d2` (attempt
+registration and persistence) and `1d3593e97d15abdff8aea8f53b25eff22886ba81`
+(start-to-end total finalization); they change no successful measurement body or
+budget input and have no full-study rerun. The final documentation head is the
+last commit containing this record; it is separate from all implementation heads
+and does not move the browser evidence. The orchestration base was
 `a708fb5896c47fba592d7ddee80502e50753a4e6`.
 
 The investigation changes no product collector, threshold, quantile, sample
@@ -247,9 +248,9 @@ sample, a failure-selection pass or a replacement for the earlier reports. It
 had no budget failure to retry; the `23a39d7` reports remain retained. The
 `981f6f1` run was a protocol/instrumentation failure, was fixed by the
 page-owned worker control, and is not a budget result. No further full study was
-run for this review. The later `c58744f` correction changes only failed-attempt
-bookkeeping; it has no new study report or browser rerun, and the 031ebff
-successful-path reports remain the measurement evidence.
+run for this review. The later `c58744f` and `1d3593e` corrections change only
+failed-attempt bookkeeping; they have no new study report or browser rerun, and
+the 031ebff successful-path reports remain the measurement evidence.
 
 ## Study results
 
@@ -297,14 +298,18 @@ as absent, and keeps the gate unchanged. The clean `031ebff` Chrome run passes
 73 checks. This was found by running the changed probe, not inferred from a
 later pass.
 
-The study failure-path correction at `c58744f` registers each attempt before
-execution and persists available summary, metrics and phase timings before the
-post-Stop assertion. A protocol failure now leaves the current attempt marked
-failed with its index, stage, error and all available data instead of retaining
-only previous attempts. `tests/budget-study-attempts.test.ts` supplies metrics,
-simulates a post-Stop throw and verifies that the failed attempt survives JSON
-persistence. Successful measurement bodies, gate inputs and the 031ebff study
-reports are unchanged; no full study was rerun for this correction.
+The study failure-path corrections at `c58744f` and `1d3593e` register each
+attempt before execution, persist available summary, metrics and phase timings
+before the post-Stop assertion, and finalize the start-to-end total after the
+post-Stop stage. A protocol failure now leaves the current attempt marked failed
+with its index, stage, error and all available data instead of retaining only
+previous attempts. The pre-assertion snapshot leaves `flowMs.total` unset; the
+outer finally updates it through the last executed stage, so completed attempts
+include postStop and failures retain a finalized total. `tests/budget-study-attempts.test.ts`
+supplies metrics, performs a post-Stop throw and verifies that the failed
+attempt and its finalized total survive JSON persistence. Successful
+measurement bodies, gate inputs and the 031ebff study reports are unchanged; no
+full study was rerun for these corrections.
 
 ## Release disposition
 

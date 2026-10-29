@@ -95,10 +95,11 @@ all six load workers per version started and terminated. Handler and finalizatio
 stayed at 0–1 ms; the only samples above 2 ms were observer installations, with
 one per study block. The retained `8091ad1` 6 ms, `ab8618a` 7 ms and #32 13 ms
 failures each had two installation outliers; the separate hosted `028c29c` 6 ms
-failure's raw arrays are absent. The later `c58744f` study correction preserves
-a current failed attempt's index, stage, error and available metrics/timings; a
-focused test covers it and no full study was rerun. No product collector defect
-or concurrent-load cause is established. Clean packaged suites pass at
+failure's raw arrays are absent. The later `c58744f` and `1d3593e` study
+corrections preserve a current failed attempt's index, stage, error and
+available metrics/timings and finalize the start-to-end total after the post-Stop
+stage; a focused test covers the failure path with no full study rerun. No
+product collector defect or concurrent-load cause is established. Clean packaged suites pass at
 `031ebff`: 79 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 and 73 Chrome
 checks. Hosted qualification is deferred until the approved PR handoff. See the
 [collector budget evidence](evidence/2026-10-29-collector-budget-variability.md).
@@ -271,7 +272,7 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Inspect the retained `8091ad1`, `028c29c`, `ab8618a` and #32 failures; preserve the missing `028c29c` raw arrays and every failed assertion.
 - [x] Extract the unchanged budget gate into one fixed helper and add focused independent tests for the 5 ms limit, nearest-rank p95, clock guard and invalid inputs.
 - [x] Publish installation and start-handling labels from the existing setup slots without changing the wrappers, maximum selection, sample counts or threshold.
-- [x] Register each study attempt before execution, persist available metrics/timings before post-Stop assertions, and add focused failed-attempt regression proof at `c58744f`.
+- [x] Register each study attempt before execution, persist available metrics/timings before post-Stop assertions, finalize the start-to-end total after the post-Stop stage, and add focused failed-attempt regression proof at `c58744f` and `1d3593e`.
 - [x] Run the bounded diagnostic study across the three source revisions: 30 attempts at `981f6f1`, 720 at `23a39d7` and 720 at `031ebff`, for 1,470 retained attempts; account for the source-revision repetition separately from retries or failure selection.
 - [x] Run clean packaged Firefox 140.0, 153.5.1esr and 158.0.1 and Chrome for Testing 156.0.8078.47 at implementation head `031ebff`; retain the failed `23a39d7` Chrome reporting attempt separately.
 - [x] Record the measurement protocol, retained evidence, unresolved causes and release disposition.

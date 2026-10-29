@@ -258,9 +258,12 @@ revisions: the #33 record retains 1,470 attempts (30 at `981f6f1`, 720 at
 not retries or failure selection; the second followed the Chrome probe
 reporting correction. Every attempt is registered before execution and persisted
 with its index, stage and status. Available raw setup components,
-handler/finalization samples, clock samples, summary and flow timings are
+handler/finalization samples, clock samples, summary and phase timings are
 published before the post-Stop assertion; a failure then retains the failed
-attempt and its error for exit 2. A sidecar `.sha256` binds the final file. The
+attempt and its error for exit 2. The pre-assertion snapshot leaves
+`flowMs.total` unset. The start-to-end total is finalized in the outer finally
+after the post-Stop stage, so a completed attempt includes postStop and a
+failure records the total through its last executed stage. A sidecar `.sha256` binds the final file. The
 study records browser/driver/OS/host identity, the XPI digest and the fixture
 input/output hashes.
 
@@ -276,8 +279,9 @@ driver/injection/IPC work and is not part of the synchronous gate.
 `tests/budget-study-attempts.test.ts` is the focused failure-path regression:
 it supplies metrics, simulates a post-Stop throw and requires the failed attempt
 to retain its index, stage, error, summary, metrics, setup slots and timings
-through JSON persistence. The failure-path-only correction is at `c58744f`;
-successful measurement bodies and the `031ebff` study reports are unchanged.
+through JSON persistence. The failure-path-only corrections are at `c58744f`
+and `1d3593e`; successful measurement bodies and the `031ebff` study reports are
+unchanged.
 
 Read a study report's `blocks[].operations`, `setupComponents`, `clockSamplesMs`,
 `clockProbe`, `attempts[].flowMs` and `cleanup`. `rawOperationSamplesMs` remains
