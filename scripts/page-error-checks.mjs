@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { cpus } from 'node:os';
 import { By } from 'selenium-webdriver';
+import { createPageErrorOperations } from './page-error-operations.mjs';
+import { evaluateSynchronousBudget } from './synchronous-budget.ts';
 
 const counts = [
   'scriptErrors',
@@ -47,30 +49,6 @@ function assertInterrupted(outcome) {
   );
 }
 
-function budget(samples, clock) {
-  assert(
-    samples.length >= 30,
-    'At least 30 synchronous-operation samples required',
-  );
-  assert(samples.every((value) => Number.isFinite(value) && value >= 0));
-  assert(
-    Number.isFinite(clock) && clock > 0 && clock <= 5,
-    'Clock cannot qualify the 5 ms budget',
-  );
-  const sorted = [...samples].sort((a, b) => a - b);
-  const p95 = sorted[Math.ceil(sorted.length * 0.95) - 1];
-  const guardedP95 = p95 + 2 * clock;
-  assert(
-    guardedP95 <= 5,
-    `Synchronous operation p95 plus two observed clock steps is ${guardedP95} ms`,
-  );
-  return {
-    samplesMs: samples,
-    p95Ms: p95,
-    quantizationGuardedP95Ms: guardedP95,
-  };
-}
-
 export async function checkPageErrors({
   driver,
   fixtureUrl,
@@ -85,7 +63,7 @@ export async function checkPageErrors({
     authority:
       'Named source fixture with production model, adapter, bootstrap and observer modules. Driver invokes actual toolbar action for activeTab. Fixture controls replace React UI; native user consent/usability is separate.',
     method:
-      'Page-owned button handlers generate genuine errors/rejections. Observer results are canonical fixed summaries. Synchronous operation measurements use explicitly hashed wrappers around production bodies; sample bookkeeping occurs outside the timed body. Each setup sample uses the maximum individual synchronous setup operation in that attempt, retaining the individual raw measurements. Worlds are qualified separately. Injection/driver latency, observation wall duration, and collector operations are separate.',
+      'Page-owned button handlers generate genuine errors/rejections. Observer results are canonical fixed summaries. Synchronous operation measurements use explicitly hashed wrappers around production bodies; sample bookkeeping occurs outside the timed body. Each setup sample uses the maximum of the observer-installation and start-handling slots retained in that attempt; the Firefox supervisor setup array stores installation first and start handling second, while the page-world copy has one installation slot. The Chrome page-world run also measures its isolated supervisor, whose setup is installation-only because the MAIN observer performs the observation. Raw setup components are published separately without changing the gate. Worlds are qualified separately. Injection/driver latency, observation wall duration, and collector operations are separate.',
     cpu: cpus()[0]?.model ?? null,
     summaryBudgetBytes: 1024,
     operationBudgetMs: 5,
@@ -103,40 +81,26 @@ export async function checkPageErrors({
   let sourceTabId;
   let ownerHandle;
   let sourceUrl;
-  async function switchOwner() {
-    await driver.switchTo().window(ownerHandle);
-  }
-  async function switchSource() {
-    await driver.switchTo().window(sourceHandle);
-  }
-  async function debug() {
-    await switchOwner();
-    return driver.executeScript(() => globalThis.checkFixture?.debug());
-  }
-  async function waitPhase(phase, timeout = 12000) {
-    return driver.wait(async () => {
-      const state = await debug();
-      if (phase === 'observing' && state?.phase === 'finished')
-        throw new Error(`Observation failed: ${JSON.stringify(state.outcome)}`);
-      return state?.phase === phase && state;
-    }, timeout);
-  }
-  async function positive() {
-    await switchSource();
-    return driver.executeScript(() => ({ ...globalThis.errorPositive }));
-  }
-  async function emit() {
-    const before = await positive();
-    await driver.findElement(By.id('error-emit')).click();
-    return driver.wait(async () => {
-      const after = await positive();
-      return (
-        after.errors === before.errors + 1 &&
-        after.rejections === before.rejections + 1 &&
-        after
-      );
-    }, 10000);
-  }
+  const {
+    switchOwner,
+    switchSource,
+    debug,
+    waitPhase,
+    positive,
+    emit,
+    granted,
+    start,
+    reset,
+    stop,
+    metric,
+  } = createPageErrorOperations({
+    driver,
+    ownerHandle: () => ownerHandle,
+    sourceHandle: () => sourceHandle,
+    approveOptional,
+  });
+  const stopWithValidation = () => stop(validateSummary);
+
   async function createSource(path) {
     await driver.switchTo().window(controlHandle);
     const before = new Set(await driver.getAllWindowHandles());
@@ -188,48 +152,6 @@ export async function checkPageErrors({
     assert.equal((await debug()).outcome, null);
     assert.equal((await debug()).permissionRequests, 0);
   }
-  async function granted(name) {
-    await switchOwner();
-    return driver.executeAsyncScript((name, done) => {
-      (globalThis.browser ?? globalThis.chrome).permissions
-        .contains({ permissions: [name] })
-        .then(done);
-    }, name);
-  }
-  async function start() {
-    const alreadyGranted = await granted('scripting');
-    await driver.findElement(By.id('page-error-start')).click();
-    if (!alreadyGranted)
-      await approveOptional?.({ permissions: ['scripting'], ownerHandle });
-    return waitPhase('observing');
-  }
-  async function reset() {
-    await switchOwner();
-    await driver.findElement(By.id('page-error-reset')).click();
-    const state = await waitPhase('ready');
-    assert.equal(state.outcome, null);
-  }
-  async function stop() {
-    await switchOwner();
-    await driver.findElement(By.id('page-error-stop')).click();
-    const state = await waitPhase('finished');
-    assert.equal(state.outcome?.status, 'success', JSON.stringify(state));
-    validateSummary(state.outcome.value);
-    return state.outcome.value;
-  }
-  async function metric(token, kind) {
-    await switchSource();
-    return driver.executeScript(
-      (token, kind) =>
-        JSON.parse(
-          document.documentElement.getAttribute(
-            `data-addonray-error-metrics-${token}-${kind}`,
-          ) ?? 'null',
-        ),
-      token,
-      kind,
-    );
-  }
   async function closeOwner() {
     await switchOwner();
     await driver.close();
@@ -270,7 +192,7 @@ export async function checkPageErrors({
       return observed.excluded === 1 && observed.resourceFailures === 1;
     }, 10000);
     await emit();
-    const partial = await stop();
+    const partial = await stopWithValidation();
     assert.equal(partial.scriptErrors, 1);
     assert.equal(partial.unhandledRejections, 1);
     assert.equal(partial.total, 2);
@@ -283,7 +205,7 @@ export async function checkPageErrors({
 
     await reset();
     await start();
-    const zero = await stop();
+    const zero = await stopWithValidation();
     assert.equal(zero.total, 0);
     evidence.observations.zero = zero;
     passed(
@@ -486,8 +408,13 @@ export async function checkPageErrors({
       await driver.executeScript(() => globalThis.checkFixture.measure(true));
       const operationSamples = { setup: [], handler: [], finalization: [] };
       const clockSamples = [];
+      const setupInstallSamples = [];
+      const setupStartSamples = [];
+      const setupSlotCounts = [];
       const supervisorSamples = { setup: [], finalization: [] };
       const supervisorClockSamples = [];
+      const supervisorSetupInstallSamples = [];
+      const supervisorSetupSlotCounts = [];
       const observations = [];
       const endToEndMs = [];
       const selectedWorld = fixtureUrl.startsWith('chrome-extension:')
@@ -498,10 +425,15 @@ export async function checkPageErrors({
         const startWall = performance.now();
         const state = await start();
         await emit();
-        const summary = await stop();
+        const summary = await stopWithValidation();
         assert.equal(summary.total, 2);
         const metrics = await metric(state.latestToken, selectedWorld);
         assert(metrics, 'Selected-world measurement record missing');
+        const setupSlots = Array.isArray(metrics.setup) ? metrics.setup : [];
+        setupSlotCounts.push(setupSlots.length);
+        setupInstallSamples.push(setupSlots[0]);
+        if (selectedWorld === 'supervisor')
+          setupStartSamples.push(setupSlots[1]);
         for (const operation of Object.keys(operationSamples))
           operationSamples[operation].push(
             ...(operation === 'setup'
@@ -523,6 +455,11 @@ export async function checkPageErrors({
             state.latestToken,
             'supervisor',
           );
+          const supervisorSetupSlots = Array.isArray(supervisorMetrics.setup)
+            ? supervisorMetrics.setup
+            : [];
+          supervisorSetupSlotCounts.push(supervisorSetupSlots.length);
+          supervisorSetupInstallSamples.push(supervisorSetupSlots[0]);
           supervisorSamples.setup.push(Math.max(...supervisorMetrics.setup));
           supervisorSamples.finalization.push(
             ...supervisorMetrics.finalization,
@@ -540,6 +477,12 @@ export async function checkPageErrors({
         clockSamplesMs: clockSamples,
         guardClockStepMs: clock,
         rawOperationSamplesMs: operationSamples,
+        setupComponents: {
+          installationMs: setupInstallSamples,
+          startHandlingMs:
+            selectedWorld === 'supervisor' ? setupStartSamples : null,
+        },
+        setupSlotCounts,
         operations: {},
         isolatedSupervisor:
           selectedWorld === 'main'
@@ -547,6 +490,11 @@ export async function checkPageErrors({
                 clockSamplesMs: supervisorClockSamples,
                 guardClockStepMs: Math.max(...supervisorClockSamples),
                 rawOperationSamplesMs: supervisorSamples,
+                setupComponents: {
+                  installationMs: supervisorSetupInstallSamples,
+                  startHandlingMs: null,
+                },
+                setupSlotCounts: supervisorSetupSlotCounts,
                 operations: {},
               }
             : null,
@@ -556,6 +504,37 @@ export async function checkPageErrors({
       };
       // Publish raw evidence before a qualification assertion can throw.
       evidence.overhead.push(measurement);
+      assert(
+        setupSlotCounts.every(
+          (count) => count === (selectedWorld === 'main' ? 1 : 2),
+        ),
+        'Unexpected setup measurement slots',
+      );
+      assert(
+        setupInstallSamples.every(
+          (value) => Number.isFinite(value) && value >= 0,
+        ),
+        'Observer installation measurement missing or invalid',
+      );
+      if (selectedWorld === 'supervisor')
+        assert(
+          setupStartSamples.every(
+            (value) => Number.isFinite(value) && value >= 0,
+          ),
+          'Start-handling measurement missing or invalid',
+        );
+      if (measurement.isolatedSupervisor) {
+        assert(
+          supervisorSetupSlotCounts.every((count) => count === 1),
+          'Unexpected isolated supervisor setup measurement slots',
+        );
+        assert(
+          supervisorSetupInstallSamples.every(
+            (value) => Number.isFinite(value) && value >= 0,
+          ),
+          'Isolated supervisor installation measurement missing or invalid',
+        );
+      }
       assert(
         clockSamples.every((value) => Number.isFinite(value) && value > 0),
       );
@@ -576,7 +555,10 @@ export async function checkPageErrors({
           world: selectedWorld,
           operation: name,
         };
-        measurement.operations[name] = budget(samples, clock);
+        measurement.operations[name] = evaluateSynchronousBudget(
+          samples,
+          clock,
+        );
       }
       if (measurement.isolatedSupervisor) {
         for (const [name, samples] of Object.entries(supervisorSamples)) {
@@ -584,10 +566,11 @@ export async function checkPageErrors({
             world: 'supervisor',
             operation: name,
           };
-          measurement.isolatedSupervisor.operations[name] = budget(
-            samples,
-            measurement.isolatedSupervisor.guardClockStepMs,
-          );
+          measurement.isolatedSupervisor.operations[name] =
+            evaluateSynchronousBudget(
+              samples,
+              measurement.isolatedSupervisor.guardClockStepMs,
+            );
         }
       }
       delete measurement.budgetEvaluation;
@@ -740,7 +723,7 @@ export async function checkPageErrors({
     await launch();
     await start();
     await emit();
-    assert.equal((await stop()).total, 2);
+    assert.equal((await stopWithValidation()).total, 2);
     await reset();
     await start();
     await switchSource();

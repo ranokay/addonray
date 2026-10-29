@@ -79,6 +79,39 @@ passed at head `85d0ae7`; each Firefox report has 79 checks, both private checks
 settled startup, exact control and receiver routes and owned-tab cleanup. See
 the [readiness record](evidence/2026-10-29-private-fixture-readiness.md).
 
+The #33 collector-budget investigation is recorded with study evidence at
+`031ebff` and later test-only corrections at `c58744f`, `1d3593e`, `dd6062e`
+and `14d8bb9`; it separately documents the final documentation head. A shared
+fixed-budget helper and focused tests preserve the existing 30-sample,
+nearest-rank p95, two-clock-step and 5 ms gate. The page-error report now labels
+the existing installation and start-handling setup slots without changing the
+wrappers, maximum selection or assertion. The bounded study runs recorded 1,470
+attempts across three revisions: 30 at `981f6f1` (protocol failure at the
+worker control), 720 at `23a39d7`, and 720 at `031ebff`. Each two-version
+invocation was bounded at 720 attempts; the second full run followed the Chrome
+reporting correction and is a source-revision repetition, not a retry of a
+failed sample. At `031ebff`, both versions completed with no budget failures and
+all six load workers per version started and terminated. Handler and finalization
+stayed at 0–1 ms; the only samples above 2 ms were observer installations, with
+one per study block. The retained `8091ad1` 6 ms, `ab8618a` 7 ms and #32 13 ms
+failures each had two installation outliers; the separate hosted `028c29c` 6 ms
+failure's raw arrays are absent. The later `c58744f` and `1d3593e` study
+corrections preserve a current failed attempt's index, stage, error and
+available metrics/timings and finalize the start-to-end total after the post-Stop
+stage; a focused test covers the failure path with no full study rerun.
+
+The original `031ebff` packaged suites passed 79 checks each on Firefox 140.0,
+153.5.1esr and 158.0.1 and 73 Chrome checks. After the test-only shared-operations
+refactor at `14d8bb9`, local suites pass the same counts; SonarCloud passes with
+1.8% duplication and zero security hotspots, and CodeRabbit reports no
+actionable finding. Hosted Check, all six Firefox jobs and both Chrome jobs
+passed at `14d8bb9` through merge commit `8e23f32`; all eight reports name clean
+merged source, close owned tabs, keep the unchanged budgets and pass their
+19-file source rebuilds. The final documentation head requires its own hosted
+rerun before merge. No product collector defect or concurrent-load cause is
+established. See the
+[collector budget evidence](evidence/2026-10-29-collector-budget-variability.md).
+
 The [export evidence](evidence/2026-10-28-report-export.md) preserves the initial
 private-fixture qualification gaps, one failed 6 ms local collector-budget
 attempt and the unchanged passing retries. No cause or fix is established by
@@ -242,6 +275,20 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Qualify the final standalone permission-retention correction, new native absence/consent/retry cases, six clean local reports and all 16 corrected-head hosted reports.
 - [x] Prepare reviewed evidence/status for signed private documentation delivery. Verify every later delivery head separately before reporting completion.
 
+## Collector budget variability checklist
+
+- [x] Inspect the retained `8091ad1`, `028c29c`, `ab8618a` and #32 failures; preserve the missing `028c29c` raw arrays and every failed assertion.
+- [x] Extract the unchanged budget gate into one fixed helper and add focused independent tests for the 5 ms limit, nearest-rank p95, clock guard and invalid inputs.
+- [x] Publish installation and start-handling labels from the existing setup slots without changing the wrappers, maximum selection, sample counts or threshold.
+- [x] Register each study attempt before execution, persist available metrics/timings before post-Stop assertions, finalize the start-to-end total after the post-Stop stage, and add focused failed-attempt regression proof at `c58744f` and `1d3593e`.
+- [x] Run the bounded diagnostic study across the three source revisions: 30 attempts at `981f6f1`, 720 at `23a39d7` and 720 at `031ebff`, for 1,470 retained attempts; account for the source-revision repetition separately from retries or failure selection.
+- [x] Run clean packaged Firefox 140.0, 153.5.1esr and 158.0.1 and Chrome for Testing 156.0.8078.47 at implementation head `031ebff`; retain the failed `23a39d7` Chrome reporting attempt separately.
+- [x] Fix SonarCloud reliability/security findings and deduplicate shared page-error operations at `dd6062e` and `14d8bb9`; final SonarCloud and CodeRabbit checks pass.
+- [x] Run local packaged suites at `14d8bb9` and hosted Check/Firefox/Chrome at `14d8bb9` through merge commit `8e23f32`; inspect all eight clean reports and 19-file source rebuilds.
+- [x] Record the measurement protocol, retained evidence, unresolved causes and release disposition.
+- [ ] Final documentation-head hosted rerun and merge; in progress.
+- [ ] No future collector, universal latency, new OS support or unrelated release gate is qualified by this investigation.
+
 ## Report export checklist
 
 - [x] Select previewed, minimized export and settle the Q1 through Q10 product choices.
@@ -292,9 +339,12 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
 is the current scope and support record. The next v1 action is to close the #4,
 #5, #13 and #20 decisions, then start executable work in dependency order. #32 is
-implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, with
-final head verification and merge pending. #33 remains open, and its
-collector-budget variability was not changed. #3's Aperture local implementation,
+implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
+current main includes the change at `a708fb5`. #33's bounded collector-budget
+investigation is in PR #50. Study evidence is at `031ebff`; test-only
+refinements through `14d8bb9` pass local suites and the hosted matrix at merge
+commit `8e23f32`. The final documentation-head hosted rerun and merge remain
+pending. #3's Aperture local implementation,
 proof and authorized prototype cleanup are complete; the issue remains open
 pending private PR delivery. No full-v1 qualification exists.
 
