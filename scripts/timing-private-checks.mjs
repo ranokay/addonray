@@ -154,6 +154,7 @@ export async function checkFirefoxPrivateHandoff({
     } catch (error) {
       evidence.stage = 'unqualified-private-control-route';
       evidence.routeFailure = String(error);
+      evidence.startup.settled ??= false;
       try {
         await driver.setContext('content');
         evidence.control = await driver.executeScript(() => ({
@@ -171,8 +172,9 @@ export async function checkFirefoxPrivateHandoff({
       } catch (readError) {
         evidence.startup.last = { readFailure: String(readError) };
       }
-      evidence.source =
-        'Requested fixture control document did not load at its exact route in the verified private window after the private startup document settled. No private-source or receiver guard verdict.';
+      evidence.source = evidence.startup.settled
+        ? 'Requested fixture control document did not load at its exact route after the private startup document settled. No private-source or receiver guard verdict.'
+        : 'Requested fixture control document was not requested because the private startup document did not settle. No private-source or receiver guard verdict.';
       report.gaps.push(
         'Private-window headless fixture control could not load at its exact route; actual unmodified native private-source exclusion is required separately. Deterministic guards do not replace this observation.',
       );
@@ -308,6 +310,7 @@ export async function checkFirefoxPrivateHandoff({
     evidence.failure = String(error);
     throw error;
   } finally {
+    evidence.cleanup.ownedTabsClosed = false;
     await driver.setContext('content');
     for (const handle of owned) {
       if ((await driver.getAllWindowHandles()).includes(handle)) {
@@ -316,6 +319,12 @@ export async function checkFirefoxPrivateHandoff({
       }
     }
     const remaining = await driver.getAllWindowHandles();
+    const leaked = [...owned].filter((handle) => remaining.includes(handle));
+    assert.equal(
+      leaked.length,
+      0,
+      `Owned private tabs remain open: ${leaked.join(', ')}`,
+    );
     if (remaining.includes(origin)) await driver.switchTo().window(origin);
     else if (remaining.length) await driver.switchTo().window(remaining[0]);
     evidence.cleanup.ownedTabsClosed = true;
