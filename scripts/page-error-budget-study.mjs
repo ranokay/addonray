@@ -26,6 +26,7 @@ import {
   finalizeStudyAttemptTotal,
   markStudyAttemptStage,
   recordStudyAttemptMeasurement,
+  studyErrorText,
 } from './budget-study-attempts.ts';
 
 // This is a bounded diagnostic study, not a qualification run. The 30-sample
@@ -161,7 +162,7 @@ const ownedHandles = new Set();
 let protocolFailure = null;
 
 function normaliseFailure(error) {
-  return error instanceof Error ? error.message : String(error);
+  return studyErrorText(error);
 }
 
 function sampleSummary(samples) {
@@ -302,13 +303,10 @@ async function stop() {
   const state = await waitPhase('finished');
   assert.equal(state.outcome?.status, 'success', JSON.stringify(state));
   const summary = state.outcome.value;
-  assert.deepEqual(Object.keys(summary).sort(), [
-    'finish',
-    'observedMs',
-    'scriptErrors',
-    'total',
-    'unhandledRejections',
-  ]);
+  assert.deepEqual(
+    Object.keys(summary).sort((left, right) => left.localeCompare(right)),
+    ['finish', 'observedMs', 'scriptErrors', 'total', 'unhandledRejections'],
+  );
   assert.equal(summary.total, 2);
   assert.equal(summary.scriptErrors, 1);
   assert.equal(summary.unhandledRejections, 1);
@@ -342,18 +340,14 @@ async function startWorker() {
     () =>
       driver.executeScript(
         () =>
-          document.documentElement.getAttribute(
-            'data-addonray-budget-worker',
-          ) === 'started',
+          document.documentElement.dataset.addonrayBudgetWorker === 'started',
       ),
     5000,
   );
   return {
     ...state,
     startedObserved: await driver.executeScript(
-      () =>
-        document.documentElement.getAttribute('data-addonray-budget-worker') ===
-        'started',
+      () => document.documentElement.dataset.addonrayBudgetWorker === 'started',
     ),
   };
 }
@@ -366,9 +360,7 @@ async function stopWorker() {
   );
   assert.equal(state?.terminated, true, 'Busy worker missing at stop');
   const cleared = await driver.executeScript(
-    () =>
-      document.documentElement.getAttribute('data-addonray-budget-worker') ===
-      null,
+    () => document.documentElement.dataset.addonrayBudgetWorker === undefined,
   );
   assert.equal(cleared, true, 'Busy worker marker remained after stop');
   workerActive = false;
@@ -451,7 +443,7 @@ async function measureAttempt(index, controls, attempt, publish) {
       attempt.flowMs.stop = performance.now() - stopStarted;
     }
     markStudyAttemptStage(attempt, 'reading-metrics');
-    const metrics = await metric(state.latestToken, 'supervisor');
+    const metrics = await metric(state.latestToken);
     assert(metrics, 'Selected-world measurement record missing');
     const setupSlots = Array.isArray(metrics.setup) ? metrics.setup : [];
     const callbacks = metrics.physicalCalls;
@@ -467,7 +459,7 @@ async function measureAttempt(index, controls, attempt, publish) {
     const postStopStarted = performance.now();
     try {
       await emit();
-      const afterStop = await metric(state.latestToken, 'supervisor');
+      const afterStop = await metric(state.latestToken);
       attempt.postStopCallbacksStable = afterStop.physicalCalls === callbacks;
       assert(
         attempt.postStopCallbacksStable,
@@ -610,7 +602,7 @@ async function runBlock(plan, controls) {
       if (workerActive) {
         const stopped = await stopWorker();
         report.cleanup.workerTerminated = stopped.terminated;
-        block.worker = { ...(block.worker ?? {}), ...stopped };
+        block.worker = { ...block.worker, ...stopped };
       }
     } finally {
       if (ownerHandle) await closeOwner();

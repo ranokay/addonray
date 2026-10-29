@@ -278,7 +278,7 @@ globalThis.checkFixture = {
 }
 
 export function pageErrorFixtureHandler(request, response) {
-  const url = new URL(request.url, 'http://fixture.invalid');
+  const url = new URL(request.url, 'https://fixture.invalid');
   const path = url.pathname;
   if (!path.startsWith('/page-errors/')) return false;
   if (path === '/page-errors/csp')

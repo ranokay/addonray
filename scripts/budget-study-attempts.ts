@@ -95,6 +95,12 @@ export function finalizeStudyAttemptTotal(
   return attempt;
 }
 
+export function studyErrorText(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return JSON.stringify(error) ?? 'unknown error';
+}
+
 export function failStudyAttempt(
   attempt: StudyAttempt,
   stage: string,
@@ -103,7 +109,7 @@ export function failStudyAttempt(
 ): StudyAttempt {
   attempt.status = 'failed';
   attempt.stage = stage;
-  attempt.error = error instanceof Error ? error.message : String(error);
+  attempt.error = studyErrorText(error);
   attempt.finishedAt = now();
   return attempt;
 }
