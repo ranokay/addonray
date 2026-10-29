@@ -249,7 +249,7 @@ approved v1 scope, not authorization to skip their contracts.
 ## Historical delivery records
 
 The report export implementation is signed `8091ad1`; the documentation head
-inherited by this task is `a78e5d9`. Their recorded test, browser and native
+inherited by this task is `a78e5d9`. The recorded test, browser and native
 evidence is unchanged. The separate final documentation delivery receipt
 `.scratch/p3a-delivery.json` is absent in this worktree. Treat that prior
 documentation delivery as explicitly unverified history, not a pass.
