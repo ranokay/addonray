@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 32 32" role="img" aria-labelledby="title">
+  <title id="title">AddonRay mark, optical 16 px</title>
+  <!-- Optical master for 16 px: slightly heavier ring and a larger accent center. -->
+  <g id="aperture-mark">
+    <path id="aperture-ring" d="M27.4 16A11.4 11.4 0 1 1 16 4.6" fill="none" stroke="#2f8f63" stroke-width="3.8" stroke-linecap="round"/>
+    <circle id="aperture-dot" cx="16" cy="16" r="4.2" fill="#2f8f63"/>
+    <circle id="aperture-dot-accent" cx="16" cy="16" r="2.8" fill="#b6e4ca"/>
+  </g>
+</svg>

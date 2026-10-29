@@ -19,6 +19,21 @@ assert.equal(manifest.optional_host_permissions?.length ?? 0, 0);
 assert.equal(manifest.content_scripts?.length ?? 0, 0);
 assert.equal(manifest.web_accessible_resources?.length ?? 0, 0);
 assert.equal(manifest.background, undefined);
+const expectedIcons = {
+  16: 'icon-16.png',
+  32: 'icon-32.png',
+  48: 'icon-48.png',
+  96: 'icon-96.png',
+  128: 'icon-128.png',
+};
+assert.deepEqual(manifest.icons, expectedIcons);
+assert.deepEqual(manifest.action?.default_icon, expectedIcons);
+for (const [size, file] of Object.entries(expectedIcons)) {
+  const bytes = await readFile(join(root, file));
+  assert.equal(bytes.subarray(1, 4).toString('ascii'), 'PNG');
+  assert.equal(bytes.readUInt32BE(16), Number(size));
+  assert.equal(bytes.readUInt32BE(20), Number(size));
+}
 if (browser === 'firefox') {
   assert.equal(
     manifest.browser_specific_settings.gecko.strict_min_version,

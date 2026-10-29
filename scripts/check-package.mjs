@@ -63,7 +63,7 @@ export async function checkPackage(browser = 'firefox') {
 
   const sources = await archiveFiles(sourceArchive);
   const expectedSources = new Map();
-  for (const directory of ['entrypoints', 'lib']) {
+  for (const directory of ['entrypoints', 'lib', 'public']) {
     for (const [path, bytes] of await directoryFiles(directory)) {
       expectedSources.set(`${directory}/${path}`, bytes);
     }
