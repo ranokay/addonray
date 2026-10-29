@@ -246,7 +246,7 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 
 - [x] Record three named directions, their axes and the user-selection gate.
 - [x] Build the self-contained prototype with toolbar, management, companion/distribution, store and monochrome contexts on light and dark backgrounds.
-- [x] Verify number, arrow and click selection, URL persistence, transparency, overflow and console in headless Chrome for Testing 156.0.8078.47; retain local screenshots in ignored scratch.
+- [x] Verify number, arrow and click selection, URL persistence, palette colors, wrapper spacing, transparency, overflow and console in headless Chrome for Testing 156.0.8078.47; retain local screenshots in ignored scratch.
 - [ ] Obtain the user's direction selection.
 - [ ] Test the selected mark for small-size legibility, contrast and monochrome silhouette.
 - [ ] Deliver vector masters, transparent raster exports and package icons; wire both extension targets and prove both source rebuilds.
