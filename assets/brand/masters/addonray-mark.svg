@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 32 32" role="img" aria-labelledby="title">
+  <title id="title">AddonRay mark</title>
+  <!-- 32-unit master. The static palette is chosen to hold on both light and dark browser chrome. -->
+  <g id="aperture-mark">
+    <path id="aperture-ring" d="M27.4 16A11.4 11.4 0 1 1 16 4.6" fill="none" stroke="#2f8f63" stroke-width="3.6" stroke-linecap="round"/>
+    <circle id="aperture-dot" cx="16" cy="16" r="4.2" fill="#2f8f63"/>
+    <circle id="aperture-dot-accent" cx="16" cy="16" r="2.2" fill="#b6e4ca"/>
+  </g>
+</svg>

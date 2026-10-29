@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aperture package icon proof</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --proof-muted: color-mix(in srgb, currentColor 64%, transparent);
+        --proof-line: color-mix(in srgb, currentColor 16%, transparent);
+        --proof-surface: color-mix(in srgb, currentColor 4%, transparent);
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+      }
+      body {
+        color: var(--foreground, light-dark(#17211c, #f1f1f1));
+        font-family:
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      .sheet {
+        width: 100%;
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 0 0 56px;
+      }
+      .proof-context {
+        margin: 18px 0 0;
+        color: var(--proof-muted);
+        font-size: 12px;
+      }
+      h2 {
+        margin: 0 0 4px;
+        font-size: 16px;
+        letter-spacing: -0.01em;
+      }
+      .meta {
+        margin: 0;
+        color: color-mix(in srgb, currentColor 62%, transparent);
+        font-size: 12px;
+      }
+      .panel {
+        margin-top: 16px;
+        padding: 20px;
+        border-radius: 16px;
+      }
+      .panel--light {
+        background: #f9f9fb;
+        color: #17211c;
+        border: 1px solid #e3e5df;
+      }
+      .panel--dark {
+        background: #1c1b22;
+        color: #f1f1f1;
+        border: 1px solid #34323c;
+      }
+      .panel--dark .meta {
+        color: rgba(241, 241, 241, 0.62);
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 42px;
+        margin-top: 16px;
+        padding: 0 12px;
+        border-radius: 9px;
+        border: 1px solid #dfe2e8;
+        background: #f9f9fb;
+      }
+      .panel--dark .toolbar {
+        border-color: #383641;
+        background: #1c1b22;
+      }
+      .toolbar__nav {
+        color: currentColor;
+        opacity: 0.5;
+        font-size: 15px;
+        letter-spacing: 3px;
+      }
+      .toolbar__address {
+        flex: 1;
+        min-width: 0;
+        height: 25px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: rgba(23, 33, 28, 0.08);
+        font-size: 11px;
+        line-height: 25px;
+        color: currentColor;
+        opacity: 0.72;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .panel--dark .toolbar__address {
+        background: rgba(255, 255, 255, 0.09);
+      }
+      .toolbar__glyph {
+        width: 15px;
+        height: 15px;
+        border: 1.5px solid currentColor;
+        border-radius: 50%;
+        opacity: 0.38;
+      }
+      .toolbar__glyph--square {
+        border-radius: 3px;
+      }
+      .row {
+        display: flex;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: 28px;
+        margin-top: 18px;
+      }
+      .cell {
+        display: grid;
+        justify-items: center;
+        gap: 7px;
+        font-size: 11px;
+        color: currentColor;
+      }
+      .cell > span {
+        opacity: 0.9;
+      }
+      .cell img {
+        display: block;
+        opacity: 1;
+      }
+      .magnified {
+        image-rendering: pixelated;
+      }
+      .table-wrap {
+        margin-top: 20px;
+        overflow-x: auto;
+        border: 1px solid var(--proof-line);
+        border-radius: 14px;
+        background: var(--proof-surface);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th,
+      td {
+        padding: 10px 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--proof-line);
+        white-space: nowrap;
+      }
+      th {
+        color: var(--proof-muted);
+        background: color-mix(in srgb, currentColor 6%, transparent);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      .swatch {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        margin-right: 7px;
+        vertical-align: -2px;
+        border: 1px solid var(--proof-line);
+        border-radius: 4px;
+      }
+      .notes {
+        margin-top: 20px;
+        padding: 18px 20px;
+        border-left: 3px solid #2f8f63;
+        border-radius: 0 12px 12px 0;
+        background: color-mix(in srgb, #2f8f63 14%, transparent);
+      }
+      .notes h2 {
+        margin-bottom: 8px;
+      }
+      .notes ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .notes li + li {
+        margin-top: 6px;
+      }
+      .limit {
+        margin-top: 18px;
+        color: var(--proof-muted);
+        font-size: 12px;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.95em;
+      }
+      @media (max-width: 640px) {
+        .sheet {
+          padding: 0 0 40px;
+        }
+        .panel {
+          padding: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sheet">
+      <p class="proof-context">
+        AddonRay Aperture · actual package PNG bytes at 16 and 32 px on light
+        and dark toolbar backgrounds
+      </p>
+
+      <section class="panel panel--light" aria-labelledby="light-heading">
+        <h2 id="light-heading">Light toolbar</h2>
+        <p class="meta">
+          #f9f9fb · 16 and 32 px actual size; 48 and 128 px reference
+        </p>
+        <div class="toolbar" aria-label="Representative light browser toolbar">
+          <span class="toolbar__nav" aria-hidden="true">‹ ›</span>
+          <span class="toolbar__address">example.test/article</span>
+          <span class="toolbar__glyph" aria-hidden="true"></span>
+          <img
+            class=""
+            src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABrElEQVQ4Ea1TTStEYRQ+596LjaHEQnYM0tSdkmJh4RdgYzfJ+EiRBb/AL7h3IWqSj2Rng19AWdhQ1CwGY2dFU2ZsZpg5znO5tzHdQpx673vO857vcy7RH4nD7GNOImpywziLdAvx1fXK1kaYHjCr+iG2OtFoNUfWRHhSPRvE+hW5V53vHcDYbIqcEnG/mj0JUYorlfNX4/WiOkgtH2SAyDAWkrMyFcbSywe5WuUwWYMReTVTQ0aF3Bvle9MrH8aaVT3e06sHJdxhZAD0GsZkCFPKN7bd5GxPtLeAAz7MGJjnAN2GgJpxI3JXW8f63MhoPQ54P5s+N9FuO9NZ25lZgK7nAMxPqU6sAWbuZJI4bDwHwnwLQQxjCDdqzj4+LG6eHJdwwAd9YHMQOko3+PyqiTFnosWipoyOuKVMRW32/p3nAJ7i7vSO+pvyxig6xs9J4A0EY5MjR0w8rLnuXi1vJ4EHe/D2XFjSRbK1vmFEsd0Zb5GghNJYaF7ZVhG5LOcLS8BBQQYQsI3BKutYgfkkQhVm2UMg7ceLj39x4IPVPxMwNLksxUPU7Ov82/0O8vK0sEjwoHQAAAAASUVORK5CYII="
+            width="16"
+            height="16"
+            alt="AddonRay package icon at 16 pixels"
+          />
+          <span
+            class="toolbar__glyph toolbar__glyph--square"
+            aria-hidden="true"
+          ></span>
+        </div>
+        <div class="row">
+          <span class="cell"
+            ><img
+              class=""
+              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABrElEQVQ4Ea1TTStEYRQ+596LjaHEQnYM0tSdkmJh4RdgYzfJ+EiRBb/AL7h3IWqSj2Rng19AWdhQ1CwGY2dFU2ZsZpg5znO5tzHdQpx673vO857vcy7RH4nD7GNOImpywziLdAvx1fXK1kaYHjCr+iG2OtFoNUfWRHhSPRvE+hW5V53vHcDYbIqcEnG/mj0JUYorlfNX4/WiOkgtH2SAyDAWkrMyFcbSywe5WuUwWYMReTVTQ0aF3Bvle9MrH8aaVT3e06sHJdxhZAD0GsZkCFPKN7bd5GxPtLeAAz7MGJjnAN2GgJpxI3JXW8f63MhoPQ54P5s+N9FuO9NZ25lZgK7nAMxPqU6sAWbuZJI4bDwHwnwLQQxjCDdqzj4+LG6eHJdwwAd9YHMQOko3+PyqiTFnosWipoyOuKVMRW32/p3nAJ7i7vSO+pvyxig6xs9J4A0EY5MjR0w8rLnuXi1vJ4EHe/D2XFjSRbK1vmFEsd0Zb5GghNJYaF7ZVhG5LOcLS8BBQQYQsI3BKutYgfkkQhVm2UMg7ceLj39x4IPVPxMwNLksxUPU7Ov82/0O8vK0sEjwoHQAAAAASUVORK5CYII="
+              width="16"
+              height="16"
+              alt="AddonRay package icon at 16 pixels"
+            /><span>16 px</span></span
+          >
+          <span class="cell"
+            ><img
+              class=""
+              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAIKADAAQAAAABAAAAIAAAAACshmLzAAADzElEQVRYCe1XT0iUQRR/86mbSAsRRZTZyQhRNCvREESCqEMgBJFBkK4duoWuWNQhCYISV68eyjVIMg+C0KWCgkBQjFJaWSJPqYUFJW2YbTrTe9+379v53M+vddlbDey+mffv996bNzO7AP/6EJkW4MCdwJ4thtgu48tfItcfLmbqJ+0AENDvy4VGIcRpAFWL1G+BqjUJcOFta/9gJkHk/s2otPOML8e/NSgM6AAQ2yx9PW6RYwBcRH72AygLNRcZQoxitpWegSr5wlPuIdRTcaiV9QSOIPhjVNilC5QCKUCNY9lf4lYsGBLeT7eHn+g6m5m7BmBmbhiTOrhSKo6O+36L+O1o64NPmwHx0k3pAdpzs+xa5gg+J5RomA7ee+PlLBNZSgBmw2l7TuCYdXW0LXtZ64E6toCOWr4PPnC3U9nXVmX1TMfAlG6UzbmjAnTOGTwB0ucBLkq6mopJL9oxMItEJWw2RRwBWJeMZU/dTg3n5q0i1HxWGUY3lm8vyct7W+aFlO3TwfAjN30vHt4h+lC1vKKj5tbtBA6GMUTg/vwCoI8ZCPJMGTtIk9oVoLs9eb0CWOc8xYtIZA7Hy6rgWMkhU+F59DU8i0wCyZAxjJ+U7SjvDdwQIOolqLv6tW1XgB4WJ5xacK4BaM85cwYnHZpzJbgvdNuK7uYTCN6JvHoEvF9265x9udkB6AbZnksD9id94tvhK9jJazuAX1J9ZaZFRaFzbXU71nY+trIMVHYeNCceyRIngkUJ6vSlY9k98O5K/8fynkCM+wAjq1vnhZaKup2akPZ8fHbGVCFwGqbMZf91X3i3xAjLNMAvuwIWQ4yxQIGoKek9v5vXTM2jJmUjV4IzB+S5HUPyQb7YHsO0MYhnV4AWGN0IVuAkzYUAI0/5ruL0Mq31kQAa5obzuojIB/lie8LgOVFs6uRwu4rxEarJ9BGqCLVUIvQEIuRZKGppJQ77cAtijGpHRgwSKKm6WIjV8CmhRt22gnU2ombp0RblCXCsMPrWwcnWEQAx1mI/Qlgm+9nFIIqwjBOlXU0HSZ7OoMzJhmxZn3ySb14zdWwBMzP9QUJZJ/rmElWP/WHDLkopqyLB8BzzmLoGQMJ0f5JZjkQhlrKOul1vOJKZ4EqdirT1v7J0nd8bBkBqaf8odfq0V1R2qVSDW+aslMMTN/r56dT3HUeLw8KX9xMzO4yHJt9NL5WnlrDhbuKet8xcG/yWKk9yPCuQVAPY+I+JpYXZ4tESY0hH4qswtL7bdV/6PO0AdCOa0/PNLyjd7QhoX6/rdf+vvSrwB58DmTT5KlZQAAAAAElFTkSuQmCC"
+              width="32"
+              height="32"
+              alt="AddonRay package icon at 32 pixels"
+            /><span>32 px</span></span
+          >
+          <span class="cell"
+            ><img
+              class=""
+              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAMKADAAQAAAABAAAAMAAAAADbN2wMAAAF/ElEQVRoBe0ZW2hcRfScezcWS6JpKWKxIkprW2vSL0EsqSBoKT7QjyJqJGli/BSySao/QsEf2+YBfhqSJhgo0g9FKsEqUg0VwfrRpLWtiiK0VrSYlSzVkr13PGf23ruzM3P37uOGCmZgd2fOOXMeM+ecOTMLsNpWV+D/vQKYlvmbRvfdug5bdqEvHgJ0tiKIjQKhBQHzvifGFgYnZ9OSpfJpzICD4LQ19z7juKJLAO4lZmtU5mFfgBB+wX/s3NDUqRCW1m+mXkYPjuzvdNF5ExDuB/qqtBKERcd1+0jWqXrlxc2r2YDth7u3NGXcCUToiGNqhQu4boU3CKzJgJ0j+58XiOOkfEstcgVAHgpiuJY51dJW2vkyHu1jvYMA4jC7QxnCGAgPBF4kpX8kVI78/yp6y+/OD733s0GaAiBBmaIEVp4Ij8TJ4yAFAR8Diun8jfynP71x/K842rThiQZIt3HwWOzKC3FyGbzsd9np82krVw2/igYUA9b5FhENnxdC/EPr/trCwOR4NYJWiqZiEAfZxlCeYiHnoffU+ez06ZVSrFq+Thwh53lbquSVLwAp33/zlWfd7QbQCSsPKYt17Db/FeVjDeDyoHjCahZQwN5sn9c0AmsMcG3D5YHaOFWS62RVWKX+9rHOjRnRRGUGQAGXv7/QP3O1En29uHItiQtXlevxtkVClBVm5Psn5rOTTycJah/pfhgc5xDRdYSpV54TAHPg+6/PD0x9ncSjFrwRA7Ik1pSXDOmQSmLcNtLTjejOkeK7Q+V5DvcljHBMk8SnFrxhgKznDQ7C4xPWACsAXnmH6iTSVrql6zhwz4Y75Yf7shGOaeQuKXMb6ZoxQJcRgyHVNonlQdFtJL+71m2Azkf2QOvaZskqdz0PM199AlcWr/F2ZOjCwy72qCFHA7Qf6tkKGRykOWt9zxu33SfMHaCblMaHyhxZmOngaMwBSwNZXvNqq8ozERvCsGgniDaYE/HQO+1HXr4XbsEz6MAr5H8vOhnn87bhnr06nWEAXwN1IhrnLLAIxNkm9Pm7198RrXxEQB02YhPhuDFtmKEkwPIl3KZXKZEUtzCYQ4dTv05qGKAT1Dqm3UqlkZEWTxCRQaEQwwAUsBQild9WpW90Oc8HqRIu//k7sM/rjWGM4ybPFJqj02hjQ6ZNN8MAupwbBw5t5WaNedkwOKTmGOj5PgXsyTIjwiBmXNDmkg42etXYEhJHvwi/Rv2gY2Yh4V+iLFFOh2LbfW/vu71iJqJDCijPc5a5svgHDM8ei3yeVz5SXkABBNFWaCyL+FiyIVzSp2ma0vY6+I1ORGHnNq9pftyElyB8wvpC9JF/FBjKCv9y7Tf5UZVnmqTTuCgL3RL3Ys9HOKPDDAMWxdJpCsQbOiHdc7sMmAagQm9KCK+DfPzLMCaYhPsSRjim0aaZQ4ss1ol104nJvc22c6znA1r1Z1UMK1EQXlu1V8d6i7kHRrt2ZNBdCNNySQfx4dn+yedK42LPjAGC+x5OOy6UGcAMm8AdJfQenYltHASpkRBstCqsKMN8+WCdVLqwb7gQIxbyEx/RvptpDvEJKsb6wslp/0reJMPgS7pInQxE/I2M3mP9tyz0tA/wzo6xrl02XCMw5sm8bTykLgchysEqjTUGAgJsH+39gphanhBFLs17MSufAfcExZ1xeFH0z81nJ3arSqt9qwsFBGK54PVS/rCczNjqCvezNNyJeTAvu/JiiXVQFdb7lXZA0q7UwxZnGxmwNp8nyZz16G7ywtmBo+/rSqvjRAOYOK2nRT5h5SHFeR7hSTNVllSjvD803z8xXILYe1UZwFPrfdwNxLaSoM30drqNT3W7KkUorzzRHKhGeZ5RtQFMXHpeN58aGd9o43hDKjWS3EaVU5MBPLHuPzhUqZY+ZxsO2AsHpn6woGNBNRsQcEJ6enyp9BdTLP9kBB1SnOfPDRydSSY2Keo1oMipyj/5dLFcmFG9P8vlgTxhYw4pfZ5t3JgBCse4v1mZhG9SfFEipS9yScxV5eXs8b+V6avd1RVYXYE6V+BfwTxgA7edglgAAAAASUVORK5CYII="
+              width="48"
+              height="48"
+              alt="AddonRay package icon at 48 pixels"
+            /><span>48 px</span></span
+          >
+          <span class="cell"
+            ><img
+              class=""
+              src="data:image/png;base64,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"
+              width="128"
+              height="128"
+              alt="AddonRay package icon at 128 pixels"
+            /><span>128 px</span></span
+          >
+          <span class="cell"
+            ><img
+              class="magnified"
+              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABrElEQVQ4Ea1TTStEYRQ+596LjaHEQnYM0tSdkmJh4RdgYzfJ+EiRBb/AL7h3IWqSj2Rng19AWdhQ1CwGY2dFU2ZsZpg5znO5tzHdQpx673vO857vcy7RH4nD7GNOImpywziLdAvx1fXK1kaYHjCr+iG2OtFoNUfWRHhSPRvE+hW5V53vHcDYbIqcEnG/mj0JUYorlfNX4/WiOkgtH2SAyDAWkrMyFcbSywe5WuUwWYMReTVTQ0aF3Bvle9MrH8aaVT3e06sHJdxhZAD0GsZkCFPKN7bd5GxPtLeAAz7MGJjnAN2GgJpxI3JXW8f63MhoPQ54P5s+N9FuO9NZ25lZgK7nAMxPqU6sAWbuZJI4bDwHwnwLQQxjCDdqzj4+LG6eHJdwwAd9YHMQOko3+PyqiTFnosWipoyOuKVMRW32/p3nAJ7i7vSO+pvyxig6xs9J4A0EY5MjR0w8rLnuXi1vJ4EHe/D2XFjSRbK1vmFEsd0Zb5GghNJYaF7ZVhG5LOcLS8BBQQYQsI3BKutYgfkkQhVm2UMg7ceLj39x4IPVPxMwNLksxUPU7Ov82/0O8vK0sEjwoHQAAAAASUVORK5CYII="
+              width="64"
+              height="64"
+              alt="AddonRay 16 pixel package icon magnified four times"
+            /><span>16 px, 4× pixels</span></span
+          >
+        </div>
+      </section>
+
+      <section class="panel panel--dark" aria-labelledby="dark-heading">
+        <h2 id="dark-heading">Dark toolbar</h2>
+        <p class="meta">
+          #1c1b22 · 16 and 32 px actual size; 48 and 128 px reference
+        </p>
+        <div class="toolbar" aria-label="Representative dark browser toolbar">
+          <span class="toolbar__nav" aria-hidden="true">‹ ›</span>
+          <span class="toolbar__address">example.test/article</span>
+          <span class="toolbar__glyph" aria-hidden="true"></span>
+          <img
+            class=""
+            src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABrElEQVQ4Ea1TTStEYRQ+596LjaHEQnYM0tSdkmJh4RdgYzfJ+EiRBb/AL7h3IWqSj2Rng19AWdhQ1CwGY2dFU2ZsZpg5znO5tzHdQpx673vO857vcy7RH4nD7GNOImpywziLdAvx1fXK1kaYHjCr+iG2OtFoNUfWRHhSPRvE+hW5V53vHcDYbIqcEnG/mj0JUYorlfNX4/WiOkgtH2SAyDAWkrMyFcbSywe5WuUwWYMReTVTQ0aF3Bvle9MrH8aaVT3e06sHJdxhZAD0GsZkCFPKN7bd5GxPtLeAAz7MGJjnAN2GgJpxI3JXW8f63MhoPQ54P5s+N9FuO9NZ25lZgK7nAMxPqU6sAWbuZJI4bDwHwnwLQQxjCDdqzj4+LG6eHJdwwAd9YHMQOko3+PyqiTFnosWipoyOuKVMRW32/p3nAJ7i7vSO+pvyxig6xs9J4A0EY5MjR0w8rLnuXi1vJ4EHe/D2XFjSRbK1vmFEsd0Zb5GghNJYaF7ZVhG5LOcLS8BBQQYQsI3BKutYgfkkQhVm2UMg7ceLj39x4IPVPxMwNLksxUPU7Ov82/0O8vK0sEjwoHQAAAAASUVORK5CYII="
+            width="16"
+            height="16"
+            alt="AddonRay package icon at 16 pixels"
+          />
+          <span
+            class="toolbar__glyph toolbar__glyph--square"
+            aria-hidden="true"
+          ></span>
+        </div>
+        <div class="row">
+          <span class="cell"
+            ><img
+              class=""
+              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABrElEQVQ4Ea1TTStEYRQ+596LjaHEQnYM0tSdkmJh4RdgYzfJ+EiRBb/AL7h3IWqSj2Rng19AWdhQ1CwGY2dFU2ZsZpg5znO5tzHdQpx673vO857vcy7RH4nD7GNOImpywziLdAvx1fXK1kaYHjCr+iG2OtFoNUfWRHhSPRvE+hW5V53vHcDYbIqcEnG/mj0JUYorlfNX4/WiOkgtH2SAyDAWkrMyFcbSywe5WuUwWYMReTVTQ0aF3Bvle9MrH8aaVT3e06sHJdxhZAD0GsZkCFPKN7bd5GxPtLeAAz7MGJjnAN2GgJpxI3JXW8f63MhoPQ54P5s+N9FuO9NZ25lZgK7nAMxPqU6sAWbuZJI4bDwHwnwLQQxjCDdqzj4+LG6eHJdwwAd9YHMQOko3+PyqiTFnosWipoyOuKVMRW32/p3nAJ7i7vSO+pvyxig6xs9J4A0EY5MjR0w8rLnuXi1vJ4EHe/D2XFjSRbK1vmFEsd0Zb5GghNJYaF7ZVhG5LOcLS8BBQQYQsI3BKutYgfkkQhVm2UMg7ceLj39x4IPVPxMwNLksxUPU7Ov82/0O8vK0sEjwoHQAAAAASUVORK5CYII="
+              width="16"
+              height="16"
+              alt="AddonRay package icon at 16 pixels"
+            /><span>16 px</span></span
+          >
+          <span class="cell"
+            ><img
+              class=""
+              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAIKADAAQAAAABAAAAIAAAAACshmLzAAADzElEQVRYCe1XT0iUQRR/86mbSAsRRZTZyQhRNCvREESCqEMgBJFBkK4duoWuWNQhCYISV68eyjVIMg+C0KWCgkBQjFJaWSJPqYUFJW2YbTrTe9+379v53M+vddlbDey+mffv996bNzO7AP/6EJkW4MCdwJ4thtgu48tfItcfLmbqJ+0AENDvy4VGIcRpAFWL1G+BqjUJcOFta/9gJkHk/s2otPOML8e/NSgM6AAQ2yx9PW6RYwBcRH72AygLNRcZQoxitpWegSr5wlPuIdRTcaiV9QSOIPhjVNilC5QCKUCNY9lf4lYsGBLeT7eHn+g6m5m7BmBmbhiTOrhSKo6O+36L+O1o64NPmwHx0k3pAdpzs+xa5gg+J5RomA7ee+PlLBNZSgBmw2l7TuCYdXW0LXtZ64E6toCOWr4PPnC3U9nXVmX1TMfAlG6UzbmjAnTOGTwB0ucBLkq6mopJL9oxMItEJWw2RRwBWJeMZU/dTg3n5q0i1HxWGUY3lm8vyct7W+aFlO3TwfAjN30vHt4h+lC1vKKj5tbtBA6GMUTg/vwCoI8ZCPJMGTtIk9oVoLs9eb0CWOc8xYtIZA7Hy6rgWMkhU+F59DU8i0wCyZAxjJ+U7SjvDdwQIOolqLv6tW1XgB4WJ5xacK4BaM85cwYnHZpzJbgvdNuK7uYTCN6JvHoEvF9265x9udkB6AbZnksD9id94tvhK9jJazuAX1J9ZaZFRaFzbXU71nY+trIMVHYeNCceyRIngkUJ6vSlY9k98O5K/8fynkCM+wAjq1vnhZaKup2akPZ8fHbGVCFwGqbMZf91X3i3xAjLNMAvuwIWQ4yxQIGoKek9v5vXTM2jJmUjV4IzB+S5HUPyQb7YHsO0MYhnV4AWGN0IVuAkzYUAI0/5ruL0Mq31kQAa5obzuojIB/lie8LgOVFs6uRwu4rxEarJ9BGqCLVUIvQEIuRZKGppJQ77cAtijGpHRgwSKKm6WIjV8CmhRt22gnU2ombp0RblCXCsMPrWwcnWEQAx1mI/Qlgm+9nFIIqwjBOlXU0HSZ7OoMzJhmxZn3ySb14zdWwBMzP9QUJZJ/rmElWP/WHDLkopqyLB8BzzmLoGQMJ0f5JZjkQhlrKOul1vOJKZ4EqdirT1v7J0nd8bBkBqaf8odfq0V1R2qVSDW+aslMMTN/r56dT3HUeLw8KX9xMzO4yHJt9NL5WnlrDhbuKet8xcG/yWKk9yPCuQVAPY+I+JpYXZ4tESY0hH4qswtL7bdV/6PO0AdCOa0/PNLyjd7QhoX6/rdf+vvSrwB58DmTT5KlZQAAAAAElFTkSuQmCC"
+              width="32"
+              height="32"
+              alt="AddonRay package icon at 32 pixels"
+            /><span>32 px</span></span
+          >
+          <span class="cell"
+            ><img
+              class=""
+              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAMKADAAQAAAABAAAAMAAAAADbN2wMAAAF/ElEQVRoBe0ZW2hcRfScezcWS6JpKWKxIkprW2vSL0EsqSBoKT7QjyJqJGli/BSySao/QsEf2+YBfhqSJhgo0g9FKsEqUg0VwfrRpLWtiiK0VrSYlSzVkr13PGf23ruzM3P37uOGCmZgd2fOOXMeM+ecOTMLsNpWV+D/vQKYlvmbRvfdug5bdqEvHgJ0tiKIjQKhBQHzvifGFgYnZ9OSpfJpzICD4LQ19z7juKJLAO4lZmtU5mFfgBB+wX/s3NDUqRCW1m+mXkYPjuzvdNF5ExDuB/qqtBKERcd1+0jWqXrlxc2r2YDth7u3NGXcCUToiGNqhQu4boU3CKzJgJ0j+58XiOOkfEstcgVAHgpiuJY51dJW2vkyHu1jvYMA4jC7QxnCGAgPBF4kpX8kVI78/yp6y+/OD733s0GaAiBBmaIEVp4Ij8TJ4yAFAR8Diun8jfynP71x/K842rThiQZIt3HwWOzKC3FyGbzsd9np82krVw2/igYUA9b5FhENnxdC/EPr/trCwOR4NYJWiqZiEAfZxlCeYiHnoffU+ez06ZVSrFq+Thwh53lbquSVLwAp33/zlWfd7QbQCSsPKYt17Db/FeVjDeDyoHjCahZQwN5sn9c0AmsMcG3D5YHaOFWS62RVWKX+9rHOjRnRRGUGQAGXv7/QP3O1En29uHItiQtXlevxtkVClBVm5Psn5rOTTycJah/pfhgc5xDRdYSpV54TAHPg+6/PD0x9ncSjFrwRA7Ik1pSXDOmQSmLcNtLTjejOkeK7Q+V5DvcljHBMk8SnFrxhgKznDQ7C4xPWACsAXnmH6iTSVrql6zhwz4Y75Yf7shGOaeQuKXMb6ZoxQJcRgyHVNonlQdFtJL+71m2Azkf2QOvaZskqdz0PM199AlcWr/F2ZOjCwy72qCFHA7Qf6tkKGRykOWt9zxu33SfMHaCblMaHyhxZmOngaMwBSwNZXvNqq8ozERvCsGgniDaYE/HQO+1HXr4XbsEz6MAr5H8vOhnn87bhnr06nWEAXwN1IhrnLLAIxNkm9Pm7198RrXxEQB02YhPhuDFtmKEkwPIl3KZXKZEUtzCYQ4dTv05qGKAT1Dqm3UqlkZEWTxCRQaEQwwAUsBQild9WpW90Oc8HqRIu//k7sM/rjWGM4ybPFJqj02hjQ6ZNN8MAupwbBw5t5WaNedkwOKTmGOj5PgXsyTIjwiBmXNDmkg42etXYEhJHvwi/Rv2gY2Yh4V+iLFFOh2LbfW/vu71iJqJDCijPc5a5svgHDM8ei3yeVz5SXkABBNFWaCyL+FiyIVzSp2ma0vY6+I1ORGHnNq9pftyElyB8wvpC9JF/FBjKCv9y7Tf5UZVnmqTTuCgL3RL3Ys9HOKPDDAMWxdJpCsQbOiHdc7sMmAagQm9KCK+DfPzLMCaYhPsSRjim0aaZQ4ss1ol104nJvc22c6znA1r1Z1UMK1EQXlu1V8d6i7kHRrt2ZNBdCNNySQfx4dn+yedK42LPjAGC+x5OOy6UGcAMm8AdJfQenYltHASpkRBstCqsKMN8+WCdVLqwb7gQIxbyEx/RvptpDvEJKsb6wslp/0reJMPgS7pInQxE/I2M3mP9tyz0tA/wzo6xrl02XCMw5sm8bTykLgchysEqjTUGAgJsH+39gphanhBFLs17MSufAfcExZ1xeFH0z81nJ3arSqt9qwsFBGK54PVS/rCczNjqCvezNNyJeTAvu/JiiXVQFdb7lXZA0q7UwxZnGxmwNp8nyZz16G7ywtmBo+/rSqvjRAOYOK2nRT5h5SHFeR7hSTNVllSjvD803z8xXILYe1UZwFPrfdwNxLaSoM30drqNT3W7KkUorzzRHKhGeZ5RtQFMXHpeN58aGd9o43hDKjWS3EaVU5MBPLHuPzhUqZY+ZxsO2AsHpn6woGNBNRsQcEJ6enyp9BdTLP9kBB1SnOfPDRydSSY2Keo1oMipyj/5dLFcmFG9P8vlgTxhYw4pfZ5t3JgBCse4v1mZhG9SfFEipS9yScxV5eXs8b+V6avd1RVYXYE6V+BfwTxgA7edglgAAAAASUVORK5CYII="
+              width="48"
+              height="48"
+              alt="AddonRay package icon at 48 pixels"
+            /><span>48 px</span></span
+          >
+          <span class="cell"
+            ><img
+              class=""
+              src="data:image/png;base64,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"
+              width="128"
+              height="128"
+              alt="AddonRay package icon at 128 pixels"
+            /><span>128 px</span></span
+          >
+          <span class="cell"
+            ><img
+              class="magnified"
+              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAEKADAAQAAAABAAAAEAAAAAA0VXHyAAABrElEQVQ4Ea1TTStEYRQ+596LjaHEQnYM0tSdkmJh4RdgYzfJ+EiRBb/AL7h3IWqSj2Rng19AWdhQ1CwGY2dFU2ZsZpg5znO5tzHdQpx673vO857vcy7RH4nD7GNOImpywziLdAvx1fXK1kaYHjCr+iG2OtFoNUfWRHhSPRvE+hW5V53vHcDYbIqcEnG/mj0JUYorlfNX4/WiOkgtH2SAyDAWkrMyFcbSywe5WuUwWYMReTVTQ0aF3Bvle9MrH8aaVT3e06sHJdxhZAD0GsZkCFPKN7bd5GxPtLeAAz7MGJjnAN2GgJpxI3JXW8f63MhoPQ54P5s+N9FuO9NZ25lZgK7nAMxPqU6sAWbuZJI4bDwHwnwLQQxjCDdqzj4+LG6eHJdwwAd9YHMQOko3+PyqiTFnosWipoyOuKVMRW32/p3nAJ7i7vSO+pvyxig6xs9J4A0EY5MjR0w8rLnuXi1vJ4EHe/D2XFjSRbK1vmFEsd0Zb5GghNJYaF7ZVhG5LOcLS8BBQQYQsI3BKutYgfkkQhVm2UMg7ceLj39x4IPVPxMwNLksxUPU7Ov82/0O8vK0sEjwoHQAAAAASUVORK5CYII="
+              width="64"
+              height="64"
+              alt="AddonRay 16 pixel package icon magnified four times"
+            /><span>16 px, 4× pixels</span></span
+          >
+        </div>
+      </section>
+
+      <div class="table-wrap">
+        <table>
+          <caption class="meta" style="text-align: left; padding: 12px 12px 0">
+            Measured sRGB contrast for the opaque core colors in the final PNGs
+          </caption>
+          <thead>
+            <tr>
+              <th>Role</th>
+              <th>Color</th>
+              <th>Light toolbar</th>
+              <th>Dark toolbar</th>
+              <th>White</th>
+              <th>Near black</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Ring and dot</td>
+              <td>
+                <span class="swatch" style="background: #2f8f63"></span
+                ><code>#2f8f63</code>
+              </td>
+              <td>3.82:1</td>
+              <td>4.25:1</td>
+              <td>4.02:1</td>
+              <td>4.99:1</td>
+            </tr>
+            <tr>
+              <td>Accent center</td>
+              <td>
+                <span class="swatch" style="background: #b6e4ca"></span
+                ><code>#b6e4ca</code>
+              </td>
+              <td>1.34:1</td>
+              <td>12.15:1</td>
+              <td>1.41:1</td>
+              <td>14.25:1</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <section class="notes">
+        <h2>Optical and silhouette notes</h2>
+        <ul>
+          <li>
+            The 16 px file uses the optical master: a 3.8-unit ring and a
+            2.8-unit accent center. The ring gap and center dot remain
+            recognizable at 1× on both backgrounds.
+          </li>
+          <li>
+            The ring and dot carry the silhouette with a 3.82:1 to 4.99:1
+            primary contrast. The mint center is a secondary fill; on light
+            chrome it is a subtle highlight, not the shape boundary.
+          </li>
+          <li>
+            The package uses one static icon. No per-theme toolbar assets,
+            <code>theme_icons</code>, new permissions or manifest target changes
+            are added.
+          </li>
+          <li>
+            Both manifests map <code>icons</code> and
+            <code>action.default_icon</code> to 16, 32, 48, 96 and 128 px files.
+          </li>
+        </ul>
+      </section>
+
+      <p class="limit">
+        This is an asset rendering proof, not store, native-OS, accessibility or
+        distribution qualification. Companion and store compositions remain
+        reusable material, not submission assets.
+      </p>
+    </main>
+  </body>
+</html>

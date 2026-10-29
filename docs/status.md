@@ -6,6 +6,25 @@ The user approved the private milestone [`v1.0.0`](https://github.com/ranokay/ad
 
 The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4, #5, #13 and #20 are open decision gates. Backlog approval does not authorize signing, publication, licensing or visibility changes.
 
+## Brand asset kit
+
+The user selected Aperture on 2026-10-29. The reusable
+[brand asset kit](../assets/brand/README.md) now contains the editable masters,
+transparent raster exports, monochrome variants, lockups, a reusable store tile
+and the Firefox/Chrome package icons. Both manifests explicitly map
+`icons` and `action.default_icon` to 16, 32, 48, 96 and 128 px files; the
+source archives include `public/**`. The 16 px icon uses an optical master. One
+static palette keeps the package mark legible on light and dark browser chrome.
+Measured contrast, optical observations, package maps and source rebuild
+results are in [asset evidence](evidence/2026-10-29-brand-assets.md) and the
+[self-contained package proof](evidence/2026-10-29-aperture-package-proof.html).
+
+The prototype HTML was removed after explicit user authorization. Its
+[prototype evidence](evidence/2026-10-29-brand-asset-prototype.md) and
+[historical GitHub blob](https://github.com/ranokay/addonray/blob/6b0f38eeff2081f9b869eb2e9794afcc98d7702e/docs/prototypes/brand-assets/index.html) retain the selection and correction history.
+Issue #3 remains open pending private PR delivery, not cleanup. No store,
+licensing, publication or distribution qualification is claimed.
+
 ## Current state
 
 The user approved [previewed investigation report export](plans/phase3-report-export.md)
@@ -230,13 +249,25 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [ ] Close the #4, #5, #13 and #20 decisions before their dependent implementation tickets.
 - [ ] Settle exact OS versions, Linux distribution and candidate release combinations before #39 candidate qualification.
 
+## Brand asset checklist
+
+- [x] Record three named directions, their axes and the user-selection gate.
+- [x] Build the self-contained prototype with toolbar, management, companion/distribution, store and monochrome contexts on light and dark backgrounds.
+- [x] Verify number, arrow and click selection, URL persistence, palette colors, wrapper spacing, transparency, overflow and console in headless Chrome for Testing 156.0.8078.47; retain local screenshots in ignored scratch.
+- [x] Obtain the user's Aperture selection.
+- [x] Test the selected mark for small-size legibility, contrast and monochrome silhouette; record the static package palette and 16 px optical master.
+- [x] Deliver vector masters, transparent raster exports and package icons; wire both extension targets and prove both source rebuilds.
+- [x] Document canonical asset locations and usage rules without store qualification claims.
+- [x] Obtain explicit authorization and remove only `docs/prototypes/brand-assets/index.html`; retain the kit, proof, evidence, plan and inventory prototype.
+
 ## Next action
 
 Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
 is the current scope and support record. The next v1 action is to close the #4,
 #5, #13 and #20 decisions, then start executable work in dependency order. #32
-and #33 have no native blockers. #3 needs the user's visual selection. No
-full-v1 qualification exists.
+and #33 have no native blockers. #3's Aperture local implementation, proof and
+authorized prototype cleanup are complete; the issue remains open pending
+private PR delivery. No full-v1 qualification exists.
 
 The pre-v1 stop condition is superseded by the approved [v1 contract](v1-contract.md).
 Start v1 work only in dependency order and only after the named contract and
