@@ -203,7 +203,7 @@ consent remains unqualified.
 
 ## Source and package rebuilds
 
-At the final local head, both source rebuild comparisons pass:
+At `4b9fcc6`, both source rebuild comparisons pass:
 
 ```sh
 mise run test-source-build
@@ -211,10 +211,13 @@ mise run test-source-build-chrome
 ```
 
 Each reports `Source archive rebuild matches every packaged extension file.` The
-evidence files are `.scratch/source-build-evidence.json` and
-`.scratch/source-build-evidence-chrome.json`. The shared gate independently
-packages and validates both targets and writes their SHA-256 identities. No
-signed distribution or retail installation is claimed.
+evidence files are `.scratch/source-build-evidence.json`
+(SHA-256 `98014eb1a3c73dec0341189974804afa4ecfa1329e125ed7229dc28ef8952d5f`)
+and `.scratch/source-build-evidence-chrome.json`
+(SHA-256 `522b444a5a41015081df92b4cc60d4b61fdc9cb929085b0e5f4029dd7685b66f`).
+The shared gate independently packages and validates both targets and writes
+their SHA-256 identities. No signed distribution or retail installation is
+claimed.
 
 ## Release boundary
 
