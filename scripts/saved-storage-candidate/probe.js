@@ -88,11 +88,19 @@ function readAll(database) {
 function putRawRecord(database, record) {
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(RECORDS, 'readwrite');
-    transaction.objectStore(RECORDS).put(record);
+    const request = transaction.objectStore(RECORDS).put(record);
+    let requestError = null;
+    request.onerror = () => {
+      requestError = request.error;
+    };
     transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error);
+    transaction.onerror = () => {
+      /* request.onerror and onabort retain the specific failure. */
+    };
     transaction.onabort = () =>
-      reject(transaction.error ?? new Error('Transaction aborted.'));
+      reject(
+        requestError ?? transaction.error ?? new Error('Transaction aborted.'),
+      );
   });
 }
 
@@ -586,6 +594,20 @@ const probe = {
   },
   async writePayload(recordId, bytes) {
     const record = { recordId, payload: 'x'.repeat(bytes) };
+    const serialized = serializedBytes(record);
+    await putRawRecord(probe.database, record);
+    return { status: 'saved', serialized };
+  },
+  async writeRandomPayload(recordId, bytes) {
+    let payload = '';
+    while (payload.length < bytes) {
+      const chunk = new Uint8Array(Math.min(65536, bytes - payload.length));
+      crypto.getRandomValues(chunk);
+      payload += [...chunk]
+        .map((value) => value.toString(16).padStart(2, '0'))
+        .join('');
+    }
+    const record = { recordId, payload };
     const serialized = serializedBytes(record);
     await putRawRecord(probe.database, record);
     return { status: 'saved', serialized };

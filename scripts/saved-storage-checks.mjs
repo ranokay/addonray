@@ -40,6 +40,7 @@ if (target === 'firefox') {
 
 const candidateDirectory = resolve('scripts/saved-storage-candidate');
 const contentFixtureDirectory = resolve('scripts/saved-content-fixture');
+const savedPopupDirectory = resolve('scripts/saved-popup-candidate');
 const candidateId = 'saved-storage-candidate@addonray.test';
 const contentFixtureId = 'saved-content-fixture@addonray.test';
 const candidateUuid = '3f2fdb1e-9f7a-4d8a-9f27-5f2f4e0c9a11';
@@ -73,6 +74,7 @@ const report = {
   },
   candidate: null,
   contentFixture: null,
+  popupCandidate: null,
   runner: null,
   profiles: [],
   checks: [],
@@ -192,6 +194,7 @@ const firefoxCheckList = [
   ['bound-refusal', 'bound refusal'],
   ['persistence-grant', 'persistence grant', undefined, false],
   ['quota-observation', 'quota observation', undefined, false],
+  ['quota-override', 'quota override', undefined, false],
   ['forced-clear', 'forced clear', undefined, false],
   ['content-script-boundary', 'content-script boundary'],
   ['deletion-epoch-barrier', 'deletion epoch barrier'],
@@ -199,6 +202,7 @@ const firefoxCheckList = [
   ['readiness-gate', 'readiness gate'],
   ['delete-expiry-unsupported', 'delete expiry unsupported'],
   ['private-context', 'private context'],
+  ['private-popup-route', 'private popup route', undefined, false],
   ['restart-persistence', 'restart persistence'],
   ['uninstall-behavior', 'uninstall behavior', undefined, false],
   ['negative-fixtures', 'negative fixtures'],
@@ -211,6 +215,7 @@ const chromeCheckList = [
   ['bound-refusal', 'bound refusal'],
   ['persistence-grant', 'persistence grant', undefined, false],
   ['quota-observation', 'quota observation', undefined, false],
+  ['quota-override', 'quota override', undefined, false],
   ['content-script-boundary', 'content-script boundary'],
   ['deletion-epoch-barrier', 'deletion epoch barrier'],
   ['epoch-fail-closed', 'epoch fail closed'],
@@ -220,8 +225,17 @@ const chromeCheckList = [
   ['uninstall-behavior', 'uninstall behavior', undefined, false],
   ['forced-clear', 'forced clear', undefined, false],
   ['private-context', 'private context'],
+  ['private-popup-route', 'private popup route', undefined, false],
   ['negative-fixtures', 'negative fixtures'],
 ];
+
+function chromeExtensionId(path) {
+  const digest = createHash('sha256').update(resolve(path)).digest();
+  return [...digest.subarray(0, 16)]
+    .flatMap((byte) => [byte >> 4, byte & 0x0f])
+    .map((nibble) => String.fromCharCode(97 + nibble))
+    .join('');
+}
 
 function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
@@ -266,6 +280,7 @@ async function identity() {
 await identity();
 report.candidate = await hashDirectory(candidateDirectory);
 report.contentFixture = await hashDirectory(contentFixtureDirectory);
+report.popupCandidate = await hashDirectory(savedPopupDirectory);
 report.runner = {
   path: 'scripts/saved-storage-checks.mjs',
   sha256: sha256(await readFile(new URL(import.meta.url))),
@@ -420,6 +435,7 @@ function assertPrivateRoute(route) {
 function assertContentBoundary(details) {
   assert.equal(details.fixturePage?.sentinelPresent, true);
   assert.equal(details.fixturePage?.sentinel, 'fixture-extension');
+  assert.equal(details.fixturePage?.readOnly, false);
   assert.equal(
     details.contentProbe?.runtimeId,
     details.fixturePage?.extensionId,
@@ -435,7 +451,19 @@ function assertContentBoundary(details) {
     details.contentProbe?.readSentinels?.includes('extension-candidate'),
     false,
   );
+  assert.equal(details.fixtureAfter?.readOnly, true);
+  assert.equal(details.fixtureAfter?.sentinel, 'fixture-extension');
+  assert.equal(details.fixtureAfter?.sentinelPresent, true);
+  assert.equal(details.extensionAfter?.fixture?.readOnly, true);
   assert.equal(details.extensionAfter?.fixture?.sentinelPresent, true);
+  assert.equal(
+    details.extensionAfter?.candidate?.recordId,
+    'candidate-sentinel',
+  );
+  assert.equal(
+    details.extensionAfter?.candidate?.payload,
+    'extension-candidate',
+  );
   assert.equal(details.extensionAfter?.candidate?.sentinelPresent, true);
 }
 
@@ -490,23 +518,40 @@ function assertDeleteExpiry(details) {
   );
 }
 
-async function openFreshProbe(baseUrl, dbName) {
+async function openFreshProbe(
+  baseUrl,
+  dbName,
+  observations = null,
+  key = 'open',
+) {
   const navigation = await ensurePage(
     `${baseUrl}?guardOnly=1&db=${encodeURIComponent(dbName)}`,
   );
   const opened = await callRaw('openNow');
+  if (observations)
+    observations[key] = {
+      navigation,
+      opened,
+    };
   assert.equal(opened?.status, 'ok', JSON.stringify(opened));
   assert.notEqual(opened.value?.status, 'error', JSON.stringify(opened));
   const state = await callRaw('status');
+  if (observations) observations[key].state = state;
   assert.equal(state?.status, 'ok', JSON.stringify(state));
   assert.equal(state.value?.ready, true);
   return { navigation, state: state.value };
 }
 
-async function saveExactRecords(records, limits = BOUNDS) {
+async function saveExactRecords(records, limits = BOUNDS, observations = null) {
   const saved = [];
+  if (observations) observations.savedReplies = [];
   for (const item of records) {
     const result = await callRaw('saveBoundedRecord', item.record, limits);
+    if (observations)
+      observations.savedReplies.push({
+        recordId: item.record.recordId,
+        result,
+      });
     assert.equal(result?.status, 'ok', JSON.stringify(result));
     assert.equal(result.value?.status, 'saved', JSON.stringify(result.value));
     saved.push(result.value);
@@ -523,7 +568,12 @@ function exactPlan(count, size, prefix = '') {
 }
 
 async function runExactCapacity(baseUrl, observations) {
-  const opened = await openFreshProbe(baseUrl, `exact-capacity-${stamp}`);
+  const opened = await openFreshProbe(
+    baseUrl,
+    `exact-capacity-${stamp}`,
+    observations,
+    'exactOpen',
+  );
   observations.open = opened;
   const plan = exactPlan(49, 100_000, 'é中');
   plan.push({
@@ -549,7 +599,7 @@ async function runExactCapacity(baseUrl, observations) {
     .filter((entry) => entry.record.payload.includes('é中'))
     .map((entry) => entry.record.recordId);
   assert(observations.nonAsciiRecordIds.length > 0);
-  await saveExactRecords(built.records);
+  await saveExactRecords(built.records, BOUNDS, observations);
   const read = await call('allWithBytes');
   observations.readCount = read.records.length;
   observations.readTotalBytes = read.totalBytes;
@@ -567,7 +617,7 @@ async function runExactCapacity(baseUrl, observations) {
   observations.oneMibExpectedBytes = 1_048_576;
   observations.oneMibBuiltBytes = one.bytes;
   assert.equal(one.bytes, 1_048_576);
-  const saved = await saveExactRecords([one]);
+  const saved = await saveExactRecords([one], BOUNDS, observations);
   observations.oneMibSaved = saved;
   const oneRead = await call('allWithBytes');
   observations.oneMibRead = oneRead.records[0];
@@ -579,11 +629,16 @@ async function runExactCapacity(baseUrl, observations) {
 
 async function runBoundRefusal(baseUrl, observations) {
   // 51st record at a full set.
-  await openFreshProbe(baseUrl, `refuse-count-${stamp}`);
+  await openFreshProbe(
+    baseUrl,
+    `refuse-count-${stamp}`,
+    observations,
+    'countOpen',
+  );
   const countPlan = exactPlan(49, 100_000, 'é');
   countPlan.push({ recordId: 'cap-large', bytes: 342_880 });
   const countBuilt = await call('makeExactRecords', countPlan);
-  await saveExactRecords(countBuilt.records);
+  await saveExactRecords(countBuilt.records, BOUNDS, observations);
   const fiftyFirst = await call('makeExactRecord', 'fifty-first', 200);
   const countRefused = await callRaw(
     'saveBoundedRecord',
@@ -607,12 +662,17 @@ async function runBoundRefusal(baseUrl, observations) {
   );
 
   // Total-byte overflow with 49 unexpired records.
-  await openFreshProbe(baseUrl, `refuse-total-${stamp}`);
+  await openFreshProbe(
+    baseUrl,
+    `refuse-total-${stamp}`,
+    observations,
+    'totalOpen',
+  );
   const totalPlan = exactPlan(48, 100_000, 'é');
   totalPlan.push({ recordId: 'cap-large', bytes: 442_780 });
   const totalBuilt = await call('makeExactRecords', totalPlan);
   assert.equal(totalBuilt.totalBytes, BOUNDS.totalBytes - 100);
-  await saveExactRecords(totalBuilt.records);
+  await saveExactRecords(totalBuilt.records, BOUNDS, observations);
   const over = await call('makeExactRecord', 'total-overflow', 101);
   const totalRefused = await callRaw('saveBoundedRecord', over.record, BOUNDS);
   observations.totalRefusal = totalRefused;
@@ -631,7 +691,12 @@ async function runBoundRefusal(baseUrl, observations) {
   );
 
   // Per-record overflow on an empty store.
-  await openFreshProbe(baseUrl, `refuse-per-record-${stamp}`);
+  await openFreshProbe(
+    baseUrl,
+    `refuse-per-record-${stamp}`,
+    observations,
+    'perRecordOpen',
+  );
   const tooBig = await call('makeExactRecord', 'too-big', 1_048_577);
   const perRefused = await callRaw('saveBoundedRecord', tooBig.record, BOUNDS);
   observations.perRecordRefusal = perRefused;
@@ -647,7 +712,12 @@ async function runBoundRefusal(baseUrl, observations) {
 }
 
 async function runEpochFailClosed(baseUrl, observations) {
-  await openFreshProbe(baseUrl, `epoch-invalid-${stamp}`);
+  await openFreshProbe(
+    baseUrl,
+    `epoch-invalid-${stamp}`,
+    observations,
+    'epochOpen',
+  );
   const seed = await callRaw('saveNow', 'record-a');
   observations.seed = seed;
   assert.equal(seed.value?.status, 'saved');
@@ -770,12 +840,164 @@ async function runEpochFailClosed(baseUrl, observations) {
   return observations;
 }
 
-async function runNegativeFixtures() {
+async function runFirefoxQuotaOverride(observations) {
+  const previousDriver = driver;
+  let quotaDriver = null;
+  try {
+    quotaDriver = await launchFirefox(null, {
+      'dom.quotaManager.testing': true,
+      'dom.quotaManager.temporaryStorage.fixedLimit': 2048,
+    });
+    driver = quotaDriver;
+    await installTemporaryExtension(driver, candidateDirectory);
+    const candidate = await firefoxExtensionInfo(candidateId, 'probe.html');
+    assert(candidate?.url);
+    await driver.get(`${candidate.url}?db=quota-override-${stamp}`);
+    await waitReady();
+    observations.fixedLimitKiB = 2048;
+    observations.authority =
+      'Test-only dom.quotaManager.temporaryStorage.fixedLimit pref in a fresh disposable profile; see StaticPrefList.yaml.';
+    observations.attempts = [];
+    let observedError = null;
+    for (let index = 0; index < 6; index += 1) {
+      const reply = await callRaw(
+        'writeRandomPayload',
+        `quota-override-${index}`,
+        1024 * 1024,
+      );
+      observations.attempts.push(reply);
+      if (reply.status !== 'ok') {
+        observedError = reply.error ?? {
+          name: 'Error',
+          message: String(reply.error),
+        };
+        break;
+      }
+    }
+    observations.quotaErrorObserved = /quota/i.test(
+      `${observedError?.name} ${observedError?.message}`,
+    );
+    observations.observedError = observedError;
+    observations.recordsBeforeRecovery = (await call('all')).length;
+    observations.cleared = await call('clearRecords');
+    observations.recovery = await callRaw(
+      'writePayload',
+      'quota-recovery',
+      65_536,
+    );
+    return observations;
+  } catch (error) {
+    observations.error = {
+      name: error?.name ?? 'Error',
+      message: String(error?.message ?? error),
+    };
+    return observations;
+  } finally {
+    try {
+      await quotaDriver?.quit();
+    } catch {
+      /* Preserve the report. */
+    }
+    driver = previousDriver;
+  }
+}
+
+async function runChromeQuotaOverride(observations, extensionId) {
+  await ensurePage(`chrome-extension://${extensionId}/probe.html`);
+  await waitReady();
+  const capabilities = await driver.getCapabilities();
+  const cdp = await browserProtocol(
+    capabilities.get('goog:chromeOptions').debuggerAddress,
+  );
+  const origin = `chrome-extension://${extensionId}`;
+  const quotaSize = 2_000_000;
+  let sessionId = null;
+  try {
+    const { targetInfos } = await cdp.send('Target.getTargets');
+    const target = targetInfos.find(
+      (entry) => entry.type === 'page' && entry.url.startsWith(origin),
+    );
+    if (!target) {
+      observations.error = 'quota-override-target-not-found';
+      return observations;
+    }
+    ({ sessionId } = await cdp.send('Target.attachToTarget', {
+      targetId: target.targetId,
+      flatten: true,
+    }));
+    await cdp.send(
+      'Storage.overrideQuotaForOrigin',
+      { origin, quotaSize },
+      sessionId,
+    );
+    observations.override = {
+      method: 'Storage.overrideQuotaForOrigin',
+      origin,
+      quotaSize,
+    };
+    observations.quotaAfterOverride = await cdp.send(
+      'Storage.getUsageAndQuota',
+      { origin },
+      sessionId,
+    );
+    observations.attempts = [];
+    let observedError = null;
+    for (let index = 0; index < 5; index += 1) {
+      const reply = await callRaw(
+        'writeRandomPayload',
+        `quota-override-${index}`,
+        1024 * 1024,
+      );
+      observations.attempts.push(reply);
+      if (reply.status !== 'ok') {
+        observedError = reply.error ?? {
+          name: 'Error',
+          message: String(reply.error),
+        };
+        break;
+      }
+    }
+    observations.quotaErrorObserved = /quota/i.test(
+      `${observedError?.name} ${observedError?.message}`,
+    );
+    observations.observedError = observedError;
+    await cdp.send('Storage.overrideQuotaForOrigin', { origin }, sessionId);
+    observations.reset = { method: 'Storage.overrideQuotaForOrigin' };
+    await driver.navigate().refresh();
+    await waitReady();
+    observations.recordsBeforeRecovery = (await call('all')).length;
+    observations.cleared = await call('clearRecords');
+    observations.recovery = await callRaw(
+      'writePayload',
+      'quota-recovery',
+      65_536,
+    );
+    return observations;
+  } catch (error) {
+    observations.error = {
+      name: error?.name ?? 'Error',
+      message: String(error?.message ?? error),
+    };
+    return observations;
+  } finally {
+    if (sessionId) {
+      try {
+        await cdp.send('Target.detachFromTarget', { sessionId });
+      } catch {
+        /* Preserve the report. */
+      }
+    }
+    cdp.close();
+  }
+}
+
+async function runNegativeFixtures(observations) {
   const validContent = {
     fixturePage: {
       extensionId: 'fixture',
       sentinel: 'fixture-extension',
       sentinelPresent: true,
+      readOnly: false,
     },
     contentProbe: {
       runtimeId: 'fixture',
@@ -783,11 +1005,25 @@ async function runNegativeFixtures() {
       error: null,
       readSentinels: ['page'],
     },
+    fixtureAfter: {
+      readOnly: true,
+      sentinel: 'fixture-extension',
+      sentinelPresent: true,
+    },
     extensionAfter: {
-      fixture: { sentinelPresent: true },
-      candidate: { sentinelPresent: true },
+      fixture: {
+        readOnly: true,
+        sentinel: 'fixture-extension',
+        sentinelPresent: true,
+      },
+      candidate: {
+        recordId: 'candidate-sentinel',
+        payload: 'extension-candidate',
+        sentinelPresent: true,
+      },
     },
   };
+  assertContentBoundary(validContent);
   const validRestart = {
     records: [{ recordId: 'restart-sentinel', payload: 'restart' }],
   };
@@ -813,6 +1049,7 @@ async function runNegativeFixtures() {
   };
   assertRestartPersistence(validRestart);
   const cases = [];
+  if (observations) observations.cases = cases;
   const reject = (name, fn) => {
     try {
       fn();
@@ -875,6 +1112,18 @@ async function runNegativeFixtures() {
       deleteUnsupported: { status: 'not-deleted' },
     }),
   );
+  reject('content-wrong-candidate-payload', () =>
+    assertContentBoundary({
+      ...validContent,
+      extensionAfter: {
+        ...validContent.extensionAfter,
+        candidate: {
+          ...validContent.extensionAfter.candidate,
+          payload: 'wrong',
+        },
+      },
+    }),
+  );
   reject('private-double-unwrap', () =>
     assertPrivateRoute({
       context: { value: { status: 'success', incognito: true } },
@@ -887,15 +1136,17 @@ async function runNegativeFixtures() {
       },
     }),
   );
-  assert.equal(cases.length, 10);
+  assert.equal(cases.length, 11);
   const popupOnly = classifyStoragePrompt({
     notifications: [],
+    notificationRoutePresent: true,
     popupNotifications: [
       {
         id: 'persistent-storage',
         message: 'Allow <> to store data in persistent storage?',
       },
     ],
+    popupRoutePresent: true,
     notificationsError: null,
     popupError: null,
   });
@@ -904,11 +1155,21 @@ async function runNegativeFixtures() {
   assert.equal(popupOnly.entries[0].route, 'popup-notifications');
   const inspectionUnavailable = classifyStoragePrompt({
     notifications: [],
+    notificationRoutePresent: true,
     popupNotifications: [],
+    popupRoutePresent: true,
     notificationsError: 'notification route unavailable',
     popupError: null,
   });
   assert.equal(inspectionUnavailable.available, false);
+  const missingRoute = classifyStoragePrompt({
+    notifications: [],
+    popupNotifications: [],
+    notificationRoutePresent: true,
+    popupRoutePresent: false,
+  });
+  assert.equal(missingRoute.available, false);
+  assert.equal(missingRoute.reason, 'missing-inspection-route');
   const synthetic = {
     id: 'synthetic-failure-retention',
     name: 'synthetic failure retention',
@@ -933,19 +1194,19 @@ async function runNegativeFixtures() {
   assert.equal(synthetic.details?.observedCounter, 42);
   assert.equal(synthetic.details?.stage, 'before-assertion');
   assert(synthetic.failureSnapshot);
-  return {
-    cases,
-    popupOnly,
-    inspectionUnavailable,
-    failureRetention: {
-      status: synthetic.status,
-      details: synthetic.details,
-      failureSnapshot: synthetic.failureSnapshot,
-    },
+  observations.cases = cases;
+  observations.popupOnly = popupOnly;
+  observations.inspectionUnavailable = inspectionUnavailable;
+  observations.missingRoute = missingRoute;
+  observations.failureRetention = {
+    status: synthetic.status,
+    details: synthetic.details,
+    failureSnapshot: synthetic.failureSnapshot,
   };
+  return observations;
 }
 
-async function launchFirefox(templateProfile = null) {
+async function launchFirefox(templateProfile = null, extraPrefs = {}) {
   const options = new firefox.Options().addArguments('-headless');
   if (templateProfile) options.setProfile(templateProfile);
   if (requestedVersion) options.setBrowserVersion(requestedVersion);
@@ -957,6 +1218,8 @@ async function launchFirefox(templateProfile = null) {
       [contentFixtureId]: contentFixtureUuid,
     }),
   );
+  for (const [key, value] of Object.entries(extraPrefs))
+    options.setPreference(key, value);
   const service = new firefox.ServiceBuilder()
     .addArguments('--allow-system-access')
     .addArguments('--profile-root', join(work, 'profiles'));
@@ -996,9 +1259,14 @@ async function firefoxPromptState() {
     return await driver.executeScript((extensionId) => {
       const notifications = [];
       let notificationsError = null;
+      let notificationRoutePresent = false;
       try {
         const box = gBrowser.getNotificationBox(gBrowser.selectedBrowser);
-        for (const notification of box?.allNotifications ?? []) {
+        if (!box) throw new Error('notification-box-missing');
+        if (!Array.isArray(box.allNotifications))
+          throw new Error('notification-list-missing');
+        notificationRoutePresent = true;
+        for (const notification of box.allNotifications) {
           notifications.push({
             id: notification.id ?? null,
             label: notification.label ?? null,
@@ -1031,27 +1299,32 @@ async function firefoxPromptState() {
       let popupNotifications = [];
       let popupPanelState = null;
       let popupError = null;
+      let popupRoutePresent = false;
       try {
         const chromeWindow = gBrowser.ownerDocument?.defaultView ?? globalThis;
         const popup = chromeWindow.PopupNotifications;
-        popupPanelState = popup?.panel?.state ?? null;
-        popupNotifications = (popup?._currentNotifications ?? []).map(
-          (entry) => ({
-            id: entry.id ?? null,
-            message: entry.message ?? null,
-            buttonCount: entry.buttonBox?.children?.length ?? null,
-          }),
-        );
+        if (!popup) throw new Error('popup-notifications-missing');
+        if (!Array.isArray(popup._currentNotifications))
+          throw new Error('popup-notification-list-missing');
+        popupRoutePresent = true;
+        popupPanelState = popup.panel?.state ?? null;
+        popupNotifications = popup._currentNotifications.map((entry) => ({
+          id: entry.id ?? null,
+          message: entry.message ?? null,
+          buttonCount: entry.buttonBox?.children?.length ?? null,
+        }));
       } catch (error) {
         popupError = String(error);
       }
       return {
         notifications,
         notificationsError,
+        notificationRoutePresent,
         storagePermissionState,
         popupNotifications,
         popupPanelState,
         popupError,
+        popupRoutePresent,
       };
     }, candidateId);
   } finally {
@@ -1064,6 +1337,17 @@ function classifyStoragePrompt(state) {
     return {
       available: false,
       reason: 'missing-state',
+      entries: [],
+    };
+  if (
+    state.notificationRoutePresent !== true ||
+    state.popupRoutePresent !== true ||
+    !Array.isArray(state.notifications) ||
+    !Array.isArray(state.popupNotifications)
+  )
+    return {
+      available: false,
+      reason: 'missing-inspection-route',
       entries: [],
     };
   if (state.notificationsError || state.popupError)
@@ -1294,29 +1578,25 @@ async function firefoxMain() {
     'Extension-origin IndexedDB opens and round-trips without a manifest permission',
     'Observed in the zero-permission candidate extension page.',
   );
-  await run(availability, 'open-and-round-trip', async () => {
-    const navigation = await ensurePage(session.candidate.url);
+  await run(availability, 'open-and-round-trip', async (observations) => {
+    observations.navigation = await ensurePage(session.candidate.url);
     await waitReady();
     await call('putRaw', {
       recordId: 'round-trip',
       payload: 'round-trip',
     });
-    const records = await pages();
-    assert.equal(records.length, 1);
-    assert.equal(records[0].payload, 'round-trip');
-    const manifest = JSON.parse(
+    observations.records = await pages();
+    observations.epoch = await call('status');
+    observations.promptState = await firefoxPromptState();
+    observations.manifest = JSON.parse(
       await readFile(join(candidateDirectory, 'manifest.json'), 'utf8'),
     );
-    assert.equal(manifest.permissions, undefined);
-    assert.equal(manifest.optional_permissions, undefined);
-    assert.equal(manifest.content_scripts, undefined);
-    return {
-      manifest,
-      records,
-      epoch: await call('status'),
-      promptState: await firefoxPromptState(),
-      navigation,
-    };
+    assert.equal(observations.records.length, 1);
+    assert.equal(observations.records[0].payload, 'round-trip');
+    assert.equal(observations.manifest.permissions, undefined);
+    assert.equal(observations.manifest.optional_permissions, undefined);
+    assert.equal(observations.manifest.content_scripts, undefined);
+    return observations;
   });
 
   const promptEntry = record(
@@ -1540,69 +1820,12 @@ async function firefoxMain() {
     return observations;
   });
 
-  const clearEntry = record(
-    'forced-clear',
-    'Forced browser-origin clearing removes candidate storage',
-    'Test-authority browser clear, not natural eviction.',
-    false,
-  );
-  await run(clearEntry, 'firefox-qms-clear', async () => {
-    await call('clearRecords');
-    await call('putRaw', { recordId: 'clear-me', payload: 'clear-me' });
-    await driver.setContext('chrome');
-    let cleared;
-    try {
-      cleared = await driver.executeAsyncScript((id, done) => {
-        (async () => {
-          try {
-            const policy = WebExtensionPolicy.getByID(id);
-            const qms = Services.qms;
-            if (typeof qms.clearStoragesForOrigin === 'function') {
-              await qms.clearStoragesForOrigin(policy.principal);
-              done({ cleared: true, method: 'clearStoragesForOrigin' });
-              return;
-            }
-            if (typeof qms.clear === 'function') {
-              await qms.clear();
-              done({ cleared: true, method: 'qms.clear' });
-              return;
-            }
-            done({
-              cleared: false,
-              error: 'No supported QMS clear method is exposed.',
-            });
-          } catch (error) {
-            done({ cleared: false, error: String(error) });
-          }
-        })();
-      }, candidateId);
-    } finally {
-      await driver.setContext('content');
-    }
-    await ensurePage(session.candidate.url);
-    await waitReady();
-    const records = await pages();
-    return { cleared, recordsAfter: records };
-  });
-  if (clearEntry.status === 'passed' && !clearEntry.details?.cleared?.cleared) {
-    clearEntry.status = 'unavailable';
-    report.gaps.push(
-      `Firefox forced browser-origin clearing could not be observed: ${clearEntry.details?.cleared?.error ?? 'no clear method'}.`,
-    );
-  } else if (clearEntry.status === 'passed') {
-    assert.equal(
-      clearEntry.details.recordsAfter.length,
-      0,
-      'Forced clear left records behind',
-    );
-  }
-
   const contentEntry = record(
     'content-script-boundary',
     'A same-extension content script cannot read extension-origin archives',
     'Controlled fixture extension with declared test-only host/content-script authority; kept out of product and candidate.',
   );
-  await run(contentEntry, 'content-boundary', async () => {
+  await run(contentEntry, 'content-boundary', async (observations) => {
     await driver.get(session.content.url);
     await driver
       .wait(until.elementLocated(By.css('h1')), 10000)
@@ -1641,8 +1864,27 @@ async function firefoxMain() {
       ),
     );
     await closeTab(pageHandle, candidateHandle);
-    const candidateAfter = await call('allWithBytes');
-    await driver.get(session.content.url);
+    observations.fixtureManifest = JSON.parse(
+      await readFile(join(contentFixtureDirectory, 'manifest.json'), 'utf8'),
+    );
+    observations.fixtureExtension = report.contentFixtureExtension;
+    observations.fixturePage = fixture;
+    observations.candidateRecordsBefore = candidateRecords.map((record) => ({
+      recordId: record.recordId,
+      payload:
+        typeof record.payload === 'string' && record.payload.length > 64
+          ? `${record.payload.length} chars`
+          : record.payload,
+    }));
+    observations.contentProbe = contentProbe;
+    observations.candidateAfter = (await call('all')).map((record) => ({
+      recordId: record.recordId,
+      payload:
+        typeof record.payload === 'string' && record.payload.length > 64
+          ? `${record.payload.length} chars`
+          : record.payload,
+    }));
+    await driver.get(`${session.content.url}?readOnly=1`);
     await driver.wait(
       async () =>
         (await driver.executeScript(
@@ -1650,36 +1892,28 @@ async function firefoxMain() {
         )) === true,
       10000,
     );
-    const fixtureAfter = await driver.executeScript(
+    observations.fixtureAfter = await driver.executeScript(
       () => window.contentFixtureProbe,
     );
-    const observations = {
-      fixtureManifest: JSON.parse(
-        await readFile(join(contentFixtureDirectory, 'manifest.json'), 'utf8'),
-      ),
-      fixtureExtension: report.contentFixtureExtension,
-      fixturePage: fixture,
-      candidateRecordsBefore: candidateRecords.map((record) => ({
-        recordId: record.recordId,
-        payload:
-          typeof record.payload === 'string' && record.payload.length > 64
-            ? `${record.payload.length} chars`
-            : record.payload,
-      })),
-      contentProbe,
-      extensionAfter: {
-        fixture: { sentinelPresent: fixtureAfter?.sentinelPresent === true },
-        candidate: {
-          sentinelPresent: candidateAfter.records.some(
-            (record) => record.recordId === 'candidate-sentinel',
-          ),
-        },
+    const candidateSentinel = observations.candidateAfter.find(
+      (record) => record.recordId === 'candidate-sentinel',
+    );
+    observations.extensionAfter = {
+      fixture: {
+        readOnly: observations.fixtureAfter?.readOnly === true,
+        sentinel: observations.fixtureAfter?.sentinel ?? null,
+        sentinelPresent: observations.fixtureAfter?.sentinelPresent === true,
       },
-      sameExtension:
-        contentProbe.runtimeId === fixture.extensionId
-          ? 'runtime-id-equals-extension-id'
-          : 'runtime-id-mismatch',
+      candidate: {
+        recordId: candidateSentinel?.recordId ?? null,
+        payload: candidateSentinel?.payload ?? null,
+        sentinelPresent: candidateSentinel?.payload === sentinel,
+      },
     };
+    observations.sameExtension =
+      contentProbe.runtimeId === fixture.extensionId
+        ? 'runtime-id-equals-extension-id'
+        : 'runtime-id-mismatch';
     assertContentBoundary(observations);
     return observations;
   });
@@ -1689,7 +1923,9 @@ async function firefoxMain() {
     'Focused negative fixtures reject wrong content, restart, uninstall and deletion observations',
     'Test-of-test only; no product claim.',
   );
-  await run(negativeFixtures, 'negative-fixtures', () => runNegativeFixtures());
+  await run(negativeFixtures, 'negative-fixtures', (observations) =>
+    runNegativeFixtures(observations),
+  );
 
   const epochFailClosed = record(
     'epoch-fail-closed',
@@ -1705,7 +1941,7 @@ async function firefoxMain() {
     'Pending saves cannot commit after a cross-view delete, including distinct record IDs and withheld notification',
     'Observed in the candidate with two tabs and no BroadcastChannel.',
   );
-  await run(epochEntry, 'epoch-races', async () => {
+  await run(epochEntry, 'epoch-races', async (observations) => {
     const url = session.candidate.url;
     await driver.get(url);
     await waitReady();
@@ -1716,35 +1952,47 @@ async function firefoxMain() {
     await waitReady();
     await driver.switchTo().window(tabA);
     const pending = await call('beginPendingSave', 'record-b');
+    observations.pending = pending;
     assert.equal(pending.status, 'pending');
     await driver.switchTo().window(tabB);
     const deleted = await callRaw('deleteRecord', 'record-a');
+    observations.deleted = deleted;
     assert.equal(deleted.status, 'ok');
     await driver.switchTo().window(tabA);
     const stale = await callRaw('releasePending');
+    observations.stale = stale;
     assert.equal(stale.status, 'ok');
     assert.equal(stale.value.status, 'stale');
     const afterStale = await pages();
+    observations.afterStale = afterStale;
     assert.equal(afterStale.length, 0);
     const idempotent = await callRaw('beginPendingSave', 'record-c');
+    observations.idempotent = idempotent;
     assert.equal(idempotent.status, 'ok');
     await driver.switchTo().window(tabB);
     const missingDelete = await callRaw('deleteRecord', 'already-missing');
+    observations.missingDelete = missingDelete;
     assert.equal(missingDelete.status, 'ok');
     await driver.switchTo().window(tabA);
     const staleIdempotent = await callRaw('releasePending');
+    observations.staleIdempotent = staleIdempotent;
     assert.equal(staleIdempotent.value.status, 'stale');
     const afterIdempotent = await pages();
+    observations.afterIdempotent = afterIdempotent;
     assert.equal(afterIdempotent.length, 0);
     const commitFirst = await callRaw('beginPendingSave', 'record-d');
+    observations.commitFirst = commitFirst;
     assert.equal(commitFirst.value.status, 'pending');
     const savedFirst = await callRaw('releasePending');
+    observations.savedFirst = savedFirst;
     assert.equal(savedFirst.value.status, 'saved');
     await driver.switchTo().window(tabB);
     const deleteAfter = await callRaw('deleteRecord', 'record-a');
+    observations.deleteAfter = deleteAfter;
     assert.equal(deleteAfter.status, 'ok');
     await driver.switchTo().window(tabA);
     const afterCommit = await pages();
+    observations.afterCommit = afterCommit;
     assert.equal(
       afterCommit.some((entry) => entry.recordId === 'record-d'),
       true,
@@ -1752,28 +2000,17 @@ async function firefoxMain() {
     const aborted = await callRaw('saveNow', 'record-e', {
       abortSynchronously: true,
     });
+    observations.aborted = aborted;
     assert.equal(aborted.value.status, 'aborted');
     const afterAbort = await pages();
+    observations.afterAbort = afterAbort;
     assert.equal(
       afterAbort.some((entry) => entry.recordId === 'record-e'),
       false,
     );
     await closeTab(tabB);
     await driver.switchTo().window(tabA);
-    return {
-      notification: 'withheld; no BroadcastChannel exists in the candidate',
-      pending,
-      deleted: deleted.value,
-      stale: stale.value,
-      afterStale,
-      idempotentDelete: missingDelete.value,
-      staleAfterIdempotentDelete: staleIdempotent.value,
-      commitFirst: savedFirst.value,
-      deleteAfterCommit: deleteAfter.value,
-      afterCommit,
-      synchronousAbort: aborted.value,
-      afterAbort,
-    };
+    return observations;
   });
 
   const readinessEntry = record(
@@ -1781,39 +2018,38 @@ async function firefoxMain() {
     'First-save connection delay cannot silently acquire a post-delete epoch',
     'Observed in the candidate: Save is unavailable until the guarded connection is ready.',
   );
-  await run(readinessEntry, 'readiness-race', async () => {
+  await run(readinessEntry, 'readiness-race', async (observations) => {
     await call('clearRecords');
     const first = `${session.candidate.url}?db=first-save&delayOpen=1200`;
     const delayed = await openTab(first);
     await driver.switchTo().window(delayed);
     const notReady = await callRaw('beginPendingSave', 'late-save');
+    observations.notReady = notReady;
     assert.equal(notReady.status, 'ok');
     assert.equal(notReady.value.status, 'not-ready');
     const other = await openTab(`${session.candidate.url}?db=first-save`);
     await waitReady();
     await call('saveNow', 'seed');
     const deleted = await callRaw('deleteRecord', 'seed');
+    observations.deleted = deleted;
     assert.equal(deleted.status, 'ok');
     await driver.switchTo().window(delayed);
     await waitReady();
     const begun = await callRaw('beginPendingSave', 'late-save');
+    observations.begun = begun;
     assert.equal(begun.value.status, 'pending');
     const released = await callRaw('releasePending');
+    observations.released = released;
     assert.equal(released.value.status, 'saved');
     const records = await pages();
+    observations.records = records;
     assert.equal(
       records.some((entry) => entry.recordId === 'late-save'),
       true,
     );
     await closeTab(other);
     await closeTab(delayed);
-    return {
-      beforeReady: notReady.value,
-      otherDelete: deleted.value,
-      afterReady: begun.value,
-      release: released.value,
-      records,
-    };
+    return observations;
   });
 
   const lazyEntry = record(
@@ -1994,12 +2230,99 @@ async function firefoxMain() {
       );
     }
   }
+
+  const quotaOverride = record(
+    'quota-override',
+    'Supported test-only low quota produces a real QuotaExceededError and recovery',
+    'Firefox fixedLimit test pref in a fresh disposable profile; not a product setting.',
+    false,
+  );
+  await run(quotaOverride, 'firefox-quota-override', (observations) =>
+    runFirefoxQuotaOverride(observations),
+  );
+
+  const clearEntry = record(
+    'forced-clear',
+    'Forced browser-origin clearing removes candidate storage',
+    'Test-authority browser clear, not natural eviction.',
+    false,
+  );
+  await run(clearEntry, 'firefox-qms-clear', async (observations) => {
+    observations.seed = await call('clearRecords');
+    observations.seeded = await call('putRaw', {
+      recordId: 'clear-me',
+      payload: 'clear-me',
+    });
+    observations.closedHandles = await call('close');
+    observations.navigatedAway = await ensurePage('about:blank');
+    observations.clearMethod =
+      'Services.qms.clearStoragesForPrincipal(principal)';
+    observations.clearAuthority =
+      'Test-only chrome-context call after closing candidate DB handles and navigating the candidate tab away.';
+    await driver.setContext('chrome');
+    let cleared;
+    try {
+      cleared = await driver.executeAsyncScript((id, done) => {
+        (async () => {
+          try {
+            const policy = WebExtensionPolicy.getByID(id);
+            const qms = Services.qms;
+            const methods = Object.getOwnPropertyNames(
+              Object.getPrototypeOf(qms),
+            ).filter((name) => /clear|reset/i.test(name));
+            const clearPrincipal = qms.clearStoragesForPrincipal;
+            if (typeof clearPrincipal !== 'function') {
+              done({
+                cleared: false,
+                error: 'clearStoragesForPrincipal unavailable',
+                methods,
+              });
+              return;
+            }
+            await clearPrincipal.call(qms, policy.principal);
+            done({
+              cleared: true,
+              method: 'clearStoragesForPrincipal',
+              methods,
+            });
+          } catch (error) {
+            done({ cleared: false, error: String(error) });
+          }
+        })();
+      }, candidateId);
+    } finally {
+      await driver.setContext('content');
+    }
+    await ensurePage(session.candidate.url);
+    await waitReady();
+    observations.cleared = cleared;
+    observations.recordsAfter = await pages();
+    return observations;
+  });
+  if (clearEntry.status === 'passed' && !clearEntry.details?.cleared?.cleared) {
+    clearEntry.status = 'unavailable';
+    report.gaps.push(
+      `Firefox forced browser-origin clearing could not be observed: ${clearEntry.details?.cleared?.error ?? 'no clear method'}.`,
+    );
+  } else if (clearEntry.status === 'failed') {
+    clearEntry.status = 'unavailable';
+    report.gaps.push(
+      `Firefox scoped clearStoragesForPrincipal was attempted after closing candidate handles and navigating away; the session was lost: ${clearEntry.error?.message}.`,
+    );
+  } else if (clearEntry.status === 'passed') {
+    assert.equal(
+      clearEntry.details.recordsAfter.length,
+      0,
+      'Forced clear left records behind',
+    );
+  }
 }
 
 async function chromeSession({
   userDataDir,
   headless = true,
   incognito = false,
+  loadExtension = null,
 }) {
   process.env.SE_DRIVER_VERSION = chromeVersion;
   const options = new chrome.Options()
@@ -2011,6 +2334,8 @@ async function chromeSession({
     );
   if (headless) options.addArguments('--headless=new');
   if (incognito) options.addArguments('--incognito');
+  if (loadExtension)
+    options.addArguments(`--load-extension=${resolve(loadExtension)}`);
   const service = new chrome.ServiceBuilder()
     .loggingTo(join(work, 'chromedriver.log'))
     .enableVerboseLogging();
@@ -2023,7 +2348,7 @@ async function chromeSession({
   return next;
 }
 
-async function chromeInstall(candidatePath, fixturePath) {
+async function chromeInstall(candidatePath, fixturePath, popupPath = null) {
   const capabilities = await driver.getCapabilities();
   const debuggerAddress =
     capabilities.get('goog:chromeOptions').debuggerAddress;
@@ -2034,11 +2359,264 @@ async function chromeInstall(candidatePath, fixturePath) {
   const fixture = await cdp.send('Extensions.loadUnpacked', {
     path: resolve(fixturePath),
   });
+  const popup = popupPath
+    ? await cdp.send('Extensions.loadUnpacked', { path: resolve(popupPath) })
+    : null;
   return {
     cdp,
     candidateId: candidate.id,
     contentFixtureId: fixture.id,
+    popupId: popup?.id ?? null,
   };
+}
+
+async function allowChromeIncognitoViaUI(extensionId) {
+  await driver.get(`chrome://extensions/?id=${extensionId}`);
+  await driver.wait(async () => {
+    return await driver.executeScript(() => {
+      const manager = document.querySelector('extensions-manager');
+      return Boolean(
+        manager?.shadowRoot
+          ?.querySelector('extensions-detail-view')
+          ?.shadowRoot?.querySelector('#allow-incognito'),
+      );
+    });
+  }, 10000);
+  const before = await driver.executeScript(() => {
+    const manager = document.querySelector('extensions-manager');
+    const detail = manager?.shadowRoot?.querySelector('extensions-detail-view');
+    const row = detail?.shadowRoot?.querySelector('#allow-incognito');
+    const toggle = row?.shadowRoot?.querySelector('cr-toggle');
+    return {
+      found: Boolean(row),
+      checked: toggle?.checked ?? null,
+      ariaChecked: toggle?.getAttribute('aria-checked') ?? null,
+    };
+  });
+  const clicked = await driver.executeScript(() => {
+    const manager = document.querySelector('extensions-manager');
+    const detail = manager?.shadowRoot?.querySelector('extensions-detail-view');
+    const row = detail?.shadowRoot?.querySelector('#allow-incognito');
+    const toggle =
+      row?.shadowRoot?.querySelector('cr-toggle') ??
+      row?.querySelector('cr-toggle');
+    if (!toggle) return { clicked: false, found: Boolean(row) };
+    if (toggle.checked === true) return { clicked: false, already: true };
+    toggle.click();
+    return { clicked: true, ariaChecked: toggle.getAttribute('aria-checked') };
+  });
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  const after = await driver.executeScript(() => {
+    const manager = document.querySelector('extensions-manager');
+    const detail = manager?.shadowRoot?.querySelector('extensions-detail-view');
+    const row = detail?.shadowRoot?.querySelector('#allow-incognito');
+    const toggle = row?.shadowRoot?.querySelector('cr-toggle');
+    return {
+      checked: toggle?.checked ?? null,
+      ariaChecked: toggle?.getAttribute('aria-checked') ?? null,
+    };
+  });
+  return { before, clicked, after };
+}
+
+function assertPopupGuard(report) {
+  assert.equal(report.allowed?.allowed, true);
+  assert.equal(report.active?.status, 'success');
+  assert.equal(report.active?.incognito, true);
+  assert.equal(report.guard?.status, 'blocked');
+  assert.equal(report.guard?.storageAccessed, false);
+  assert.notEqual(report.guard?.contextValue, false);
+  assert.equal(report.guard?.context?.status, 'unknown');
+  assert.equal(report.guard?.context?.tabFound, false);
+}
+
+async function popupProbeReport() {
+  return driver.executeAsyncScript(async (done) => {
+    try {
+      done({ status: 'ok', value: await window.popupProbe.report() });
+    } catch (error) {
+      done({ status: 'error', error: String(error) });
+    }
+  });
+}
+
+async function runChromePopupRoute(observations) {
+  const popupProfile = join(work, 'chrome-popup-profile');
+  await mkdir(popupProfile, { recursive: true });
+  const popupId = chromeExtensionId(savedPopupDirectory);
+  const previousDriver = driver;
+  let popupDriver = null;
+  observations.extensionId = popupId;
+  try {
+    popupDriver = await chromeSession({
+      userDataDir: popupProfile,
+      loadExtension: savedPopupDirectory,
+    });
+    driver = popupDriver;
+    const normalUrl = `chrome-extension://${popupId}/page.html?guardOnly=1`;
+    await driver.get(normalUrl);
+    const normalLoaded = await driver.executeScript(() =>
+      Boolean(window.popupProbe),
+    );
+    observations.normalPage = { url: normalUrl, loaded: normalLoaded };
+    if (!normalLoaded) {
+      observations.normalBody = await driver
+        .findElement(By.css('body'))
+        .getText()
+        .catch(() => null);
+      throw new Error('popup candidate page did not load in normal window');
+    }
+    const normal = await popupProbeReport();
+    observations.normal = normal.value ?? normal;
+    observations.allowanceUi = await allowChromeIncognitoViaUI(popupId);
+    await driver.quit();
+    popupDriver = null;
+    popupDriver = await chromeSession({
+      userDataDir: popupProfile,
+      loadExtension: savedPopupDirectory,
+    });
+    driver = popupDriver;
+    await driver.get(normalUrl);
+    observations.allowedAfterRestart = await driver.executeAsyncScript(
+      async (done) => {
+        try {
+          done({ status: 'ok', value: await window.popupProbe.allowed() });
+        } catch (error) {
+          done({ status: 'error', error: String(error) });
+        }
+      },
+    );
+    const beforeWindows = new Set(await driver.getAllWindowHandles());
+    observations.incognitoWindow = await driver.executeAsyncScript(
+      async (done) => {
+        try {
+          done({
+            status: 'ok',
+            value: await window.popupProbe.createIncognito(),
+          });
+        } catch (error) {
+          done({ status: 'error', error: String(error) });
+        }
+      },
+    );
+    const incognitoHandle = await driver.wait(async () => {
+      const handles = await driver.getAllWindowHandles();
+      return handles.find((handle) => !beforeWindows.has(handle)) ?? false;
+    }, 10000);
+    await driver.switchTo().window(incognitoHandle);
+    observations.incognitoTab = { url: await driver.getCurrentUrl() };
+
+    const popupRoute = {
+      route: 'action-popup',
+      url: `chrome-extension://${popupId}/popup.html`,
+    };
+    let cdp = null;
+    try {
+      const capabilities = await driver.getCapabilities();
+      cdp = await browserProtocol(
+        capabilities.get('goog:chromeOptions').debuggerAddress,
+      );
+      const { targetInfos } = await cdp.send('Target.getTargets');
+      observations.popupTargets = targetInfos.map((target) => ({
+        type: target.type ?? null,
+        url: target.url ?? null,
+        browserContextId: target.browserContextId ?? null,
+      }));
+      const filtered = await cdp.send('Target.getTargets', {
+        filter: [{ type: 'tab' }],
+      });
+      observations.tabTargets = filtered.targetInfos.map((target) => ({
+        type: target.type ?? null,
+        url: target.url ?? null,
+        browserContextId: target.browserContextId ?? null,
+      }));
+      const tab =
+        filtered.targetInfos.find((target) => target.url === 'about:blank') ??
+        filtered.targetInfos.find((target) => target.type === 'tab');
+      if (!tab)
+        throw new Error(
+          `incognito tab target not found: ${JSON.stringify(observations.popupTargets)}`,
+        );
+      await cdp.send('Extensions.triggerAction', {
+        id: popupId,
+        targetId: tab.targetId,
+      });
+      const popupTarget = await driver.wait(async () => {
+        const targets = await cdp.send('Target.getTargets');
+        return (
+          targets.targetInfos.find((target) => target.url === popupRoute.url) ??
+          false
+        );
+      }, 10000);
+      const { sessionId } = await cdp.send('Target.attachToTarget', {
+        targetId: popupTarget.targetId,
+        flatten: true,
+      });
+      const result = await cdp.send(
+        'Runtime.evaluate',
+        {
+          expression: 'window.popupProbe.report()',
+          awaitPromise: true,
+          returnByValue: true,
+        },
+        sessionId,
+      );
+      popupRoute.report = result.result?.value;
+      popupRoute.exception = result.exceptionDetails ?? null;
+      if (!popupRoute.exception) assertPopupGuard(popupRoute.report);
+      await cdp.send('Target.closeTarget', {
+        targetId: popupTarget.targetId,
+      });
+      await cdp.send('Target.detachFromTarget', { sessionId });
+    } catch (error) {
+      popupRoute.error = String(error);
+    } finally {
+      cdp?.close();
+    }
+    observations.popupRoute = popupRoute;
+    if (!popupRoute.report || popupRoute.error || popupRoute.exception) {
+      observations.popupError =
+        popupRoute.error ?? JSON.stringify(popupRoute.exception ?? null);
+    }
+    const pageRoute = {
+      route: 'popup-candidate-page',
+      url: normalUrl,
+    };
+    try {
+      await driver.get(normalUrl);
+      const pageLoaded = await driver.executeScript(() =>
+        Boolean(window.popupProbe),
+      );
+      pageRoute.loaded = pageLoaded;
+      if (pageLoaded) {
+        const page = await popupProbeReport();
+        pageRoute.report = page.value ?? page;
+      } else {
+        pageRoute.body = await driver
+          .findElement(By.css('body'))
+          .getText()
+          .catch(() => null);
+        pageRoute.outcome = 'browser-blocked-or-error-page';
+      }
+    } catch (error) {
+      pageRoute.error = String(error);
+    }
+    observations.pageRoute = pageRoute;
+    return observations;
+  } catch (error) {
+    observations.error = {
+      name: error?.name ?? 'Error',
+      message: String(error?.message ?? error),
+    };
+    return observations;
+  } finally {
+    try {
+      await popupDriver?.quit();
+    } catch {
+      /* Preserve the report. */
+    }
+    driver = previousDriver;
+  }
 }
 
 async function chromeMain() {
@@ -2056,7 +2634,14 @@ async function chromeMain() {
   const installed = await chromeInstall(
     candidateDirectory,
     contentFixtureDirectory,
+    savedPopupDirectory,
   );
+  report.popupCandidateExtension = {
+    id: installed.popupId,
+    url: installed.popupId
+      ? `chrome-extension://${installed.popupId}/popup.html`
+      : null,
+  };
   report.candidateExtension = {
     id: installed.candidateId,
     origin: `chrome-extension://${installed.candidateId}`,
@@ -2073,27 +2658,23 @@ async function chromeMain() {
     'Extension-origin IndexedDB opens and round-trips without a manifest permission',
     'Observed in the zero-permission candidate extension page.',
   );
-  await run(availability, 'open-and-round-trip', async () => {
-    const navigation = await ensurePage(candidateUrl);
+  await run(availability, 'open-and-round-trip', async (observations) => {
+    observations.navigation = await ensurePage(candidateUrl);
     await waitReady();
     await call('putRaw', {
       recordId: 'round-trip',
       payload: 'round-trip',
     });
-    const records = await pages();
-    assert.equal(records[0].payload, 'round-trip');
-    const manifest = JSON.parse(
+    observations.records = await pages();
+    observations.epoch = await call('status');
+    observations.manifest = JSON.parse(
       await readFile(join(candidateDirectory, 'manifest.json'), 'utf8'),
     );
-    assert.equal(manifest.permissions, undefined);
-    assert.equal(manifest.optional_permissions, undefined);
-    assert.equal(manifest.content_scripts, undefined);
-    return {
-      manifest,
-      records,
-      epoch: await call('status'),
-      navigation,
-    };
+    assert.equal(observations.records[0].payload, 'round-trip');
+    assert.equal(observations.manifest.permissions, undefined);
+    assert.equal(observations.manifest.optional_permissions, undefined);
+    assert.equal(observations.manifest.content_scripts, undefined);
+    return observations;
   });
 
   const rawHeadroom = record(
@@ -2221,7 +2802,7 @@ async function chromeMain() {
     'A same-extension content script cannot read extension-origin archives',
     'Controlled fixture extension with declared test-only host/content-script authority; kept out of product and candidate.',
   );
-  await run(contentEntry, 'content-boundary', async () => {
+  await run(contentEntry, 'content-boundary', async (observations) => {
     await driver.get(contentUrl);
     await driver.wait(async () => {
       return (
@@ -2257,8 +2838,26 @@ async function chromeMain() {
       ),
     );
     await closeTab(pageHandle, candidateHandle);
-    const candidateAfter = await call('allWithBytes');
-    await driver.get(contentUrl);
+    observations.fixtureManifest = JSON.parse(
+      await readFile(join(contentFixtureDirectory, 'manifest.json'), 'utf8'),
+    );
+    observations.fixturePage = fixture;
+    observations.candidateRecordsBefore = candidateRecords.map((record) => ({
+      recordId: record.recordId,
+      payload:
+        typeof record.payload === 'string' && record.payload.length > 64
+          ? `${record.payload.length} chars`
+          : record.payload,
+    }));
+    observations.contentProbe = contentProbe;
+    observations.candidateAfter = (await call('all')).map((record) => ({
+      recordId: record.recordId,
+      payload:
+        typeof record.payload === 'string' && record.payload.length > 64
+          ? `${record.payload.length} chars`
+          : record.payload,
+    }));
+    await driver.get(`${contentUrl}?readOnly=1`);
     await driver.wait(async () => {
       return (
         (await driver.executeScript(
@@ -2266,35 +2865,28 @@ async function chromeMain() {
         )) === true
       );
     }, 10000);
-    const fixtureAfter = await driver.executeScript(
+    observations.fixtureAfter = await driver.executeScript(
       () => window.contentFixtureProbe,
     );
-    const observations = {
-      fixtureManifest: JSON.parse(
-        await readFile(join(contentFixtureDirectory, 'manifest.json'), 'utf8'),
-      ),
-      fixturePage: fixture,
-      candidateRecordsBefore: candidateRecords.map((record) => ({
-        recordId: record.recordId,
-        payload:
-          typeof record.payload === 'string' && record.payload.length > 64
-            ? `${record.payload.length} chars`
-            : record.payload,
-      })),
-      contentProbe,
-      extensionAfter: {
-        fixture: { sentinelPresent: fixtureAfter?.sentinelPresent === true },
-        candidate: {
-          sentinelPresent: candidateAfter.records.some(
-            (record) => record.recordId === 'candidate-sentinel',
-          ),
-        },
+    const candidateSentinel = observations.candidateAfter.find(
+      (record) => record.recordId === 'candidate-sentinel',
+    );
+    observations.extensionAfter = {
+      fixture: {
+        readOnly: observations.fixtureAfter?.readOnly === true,
+        sentinel: observations.fixtureAfter?.sentinel ?? null,
+        sentinelPresent: observations.fixtureAfter?.sentinelPresent === true,
       },
-      sameExtension:
-        contentProbe.runtimeId === fixture.extensionId
-          ? 'runtime-id-equals-extension-id'
-          : 'runtime-id-mismatch',
+      candidate: {
+        recordId: candidateSentinel?.recordId ?? null,
+        payload: candidateSentinel?.payload ?? null,
+        sentinelPresent: candidateSentinel?.payload === sentinel,
+      },
     };
+    observations.sameExtension =
+      contentProbe.runtimeId === fixture.extensionId
+        ? 'runtime-id-equals-extension-id'
+        : 'runtime-id-mismatch';
     assertContentBoundary(observations);
     return observations;
   });
@@ -2304,7 +2896,9 @@ async function chromeMain() {
     'Focused negative fixtures reject wrong content, restart, uninstall and deletion observations',
     'Test-of-test only; no product claim.',
   );
-  await run(negativeFixtures, 'negative-fixtures', () => runNegativeFixtures());
+  await run(negativeFixtures, 'negative-fixtures', (observations) =>
+    runNegativeFixtures(observations),
+  );
 
   const epochFailClosed = record(
     'epoch-fail-closed',
@@ -2320,7 +2914,7 @@ async function chromeMain() {
     'Pending saves cannot commit after a cross-view delete, including distinct record IDs and withheld notification',
     'Observed in the candidate with two tabs and no BroadcastChannel.',
   );
-  await run(epochEntry, 'epoch-races', async () => {
+  await run(epochEntry, 'epoch-races', async (observations) => {
     await driver.get(candidateUrl);
     await waitReady();
     const tabA = await driver.getWindowHandle();
@@ -2330,34 +2924,46 @@ async function chromeMain() {
     await waitReady();
     await driver.switchTo().window(tabA);
     const pending = await call('beginPendingSave', 'record-b');
+    observations.pending = pending;
     assert.equal(pending.status, 'pending');
     await driver.switchTo().window(tabB);
     const deleted = await callRaw('deleteRecord', 'record-a');
+    observations.deleted = deleted;
     assert.equal(deleted.status, 'ok');
     await driver.switchTo().window(tabA);
     const stale = await callRaw('releasePending');
+    observations.stale = stale;
     const afterStale = await pages();
+    observations.afterStale = afterStale;
     assert.equal(stale.value.status, 'stale');
     assert.equal(afterStale.length, 0);
     const idempotent = await callRaw('beginPendingSave', 'record-c');
+    observations.idempotent = idempotent;
     assert.equal(idempotent.value.status, 'pending');
     await driver.switchTo().window(tabB);
     const missingDelete = await callRaw('deleteRecord', 'already-missing');
+    observations.missingDelete = missingDelete;
     assert.equal(missingDelete.status, 'ok');
     await driver.switchTo().window(tabA);
     const staleIdempotent = await callRaw('releasePending');
+    observations.staleIdempotent = staleIdempotent;
     assert.equal(staleIdempotent.value.status, 'stale');
     const afterIdempotent = await pages();
+    observations.afterIdempotent = afterIdempotent;
     assert.equal(afterIdempotent.length, 0);
     const commitFirst = await callRaw('beginPendingSave', 'record-d');
+    observations.commitFirst = commitFirst;
     assert.equal(commitFirst.value.status, 'pending');
     const savedFirst = await callRaw('releasePending');
+    observations.savedFirst = savedFirst;
     assert.equal(savedFirst.value.status, 'saved');
     await driver.switchTo().window(tabB);
     const deleteAfter = await callRaw('deleteRecord', 'record-a');
+    observations.deleteAfter = deleteAfter;
     assert.equal(deleteAfter.status, 'ok');
     await driver.switchTo().window(tabA);
     const afterCommit = await pages();
+    observations.afterCommit = afterCommit;
     assert.equal(
       afterCommit.some((entry) => entry.recordId === 'record-d'),
       true,
@@ -2365,28 +2971,17 @@ async function chromeMain() {
     const aborted = await callRaw('saveNow', 'record-e', {
       abortSynchronously: true,
     });
+    observations.aborted = aborted;
     assert.equal(aborted.value.status, 'aborted');
     const afterAbort = await pages();
+    observations.afterAbort = afterAbort;
     assert.equal(
       afterAbort.some((entry) => entry.recordId === 'record-e'),
       false,
     );
     await closeTab(tabB, tabA);
     await driver.switchTo().window(tabA);
-    return {
-      notification: 'withheld; no BroadcastChannel exists in the candidate',
-      pending,
-      deleted: deleted.value,
-      stale: stale.value,
-      afterStale,
-      idempotentDelete: missingDelete.value,
-      staleAfterIdempotentDelete: staleIdempotent.value,
-      commitFirst: savedFirst.value,
-      deleteAfterCommit: deleteAfter.value,
-      afterCommit,
-      synchronousAbort: aborted.value,
-      afterAbort,
-    };
+    return observations;
   });
 
   const readinessEntry = record(
@@ -2394,33 +2989,32 @@ async function chromeMain() {
     'First-save connection delay cannot silently acquire a post-delete epoch',
     'Observed in the candidate: Save is unavailable until the guarded connection is ready.',
   );
-  await run(readinessEntry, 'readiness-race', async () => {
+  await run(readinessEntry, 'readiness-race', async (observations) => {
     await call('clearRecords');
     const delayed = await openTab(
       `${candidateUrl}?db=first-save&delayOpen=1200`,
     );
     await driver.switchTo().window(delayed);
     const notReady = await callRaw('beginPendingSave', 'late-save');
+    observations.notReady = notReady;
     assert.equal(notReady.value.status, 'not-ready');
     const other = await openTab(`${candidateUrl}?db=first-save`);
     await waitReady();
     await call('saveNow', 'seed');
     const deleted = await callRaw('deleteRecord', 'seed');
+    observations.deleted = deleted;
     assert.equal(deleted.status, 'ok');
     await driver.switchTo().window(delayed);
     await waitReady();
     const begun = await callRaw('beginPendingSave', 'late-save');
+    observations.begun = begun;
     const released = await callRaw('releasePending');
+    observations.released = released;
     assert.equal(begun.value.status, 'pending');
     assert.equal(released.value.status, 'saved');
     await closeTab(other);
     await closeTab(delayed);
-    return {
-      beforeReady: notReady.value,
-      otherDelete: deleted.value,
-      afterReady: begun.value,
-      release: released.value,
-    };
+    return observations;
   });
 
   const lazyEntry = record(
@@ -2542,16 +3136,29 @@ async function chromeMain() {
     );
   }
 
+  const quotaOverride = record(
+    'quota-override',
+    'Supported test-only low quota produces a real QuotaExceededError and recovery',
+    'Chrome CDP Storage.overrideQuotaForOrigin in the disposable profile; not a product setting.',
+    false,
+  );
+  await run(quotaOverride, 'chrome-quota-override', (observations) =>
+    runChromeQuotaOverride(observations, installed.candidateId),
+  );
+
   const clearEntry = record(
     'forced-clear',
     'Forced browser-origin clearing removes candidate storage',
     'Test-authority CDP clear, not natural eviction.',
     false,
   );
-  await run(clearEntry, 'chrome-cdp-clear', async () => {
+  await run(clearEntry, 'chrome-cdp-clear', async (observations) => {
     await ensurePage(candidateUrl);
     await waitReady();
-    await call('putRaw', { recordId: 'clear-me', payload: 'clear-me' });
+    observations.seeded = await call('putRaw', {
+      recordId: 'clear-me',
+      payload: 'clear-me',
+    });
     const capabilities = await driver.getCapabilities();
     const cdp = await browserProtocol(
       capabilities.get('goog:chromeOptions').debuggerAddress,
@@ -2605,9 +3212,12 @@ async function chromeMain() {
       }
     }
     cdp.close();
+    observations.attempts = attempts;
+    observations.cleared = cleared;
     await driver.navigate().refresh();
     await waitReady();
     const records = await pages();
+    observations.recordsAfter = records;
     return { cleared, attempts, recordsAfter: records };
   });
   if (clearEntry.status === 'passed' && !clearEntry.details?.cleared) {
@@ -2642,7 +3252,14 @@ async function chromeMain() {
     const reinstalled = await chromeInstall(
       candidateDirectory,
       contentFixtureDirectory,
+      savedPopupDirectory,
     );
+    report.incognitoPopup = {
+      id: reinstalled.popupId,
+      url: reinstalled.popupId
+        ? `chrome-extension://${reinstalled.popupId}/popup.html`
+        : null,
+    };
     const routes = [];
     const privateUrl = `chrome-extension://${reinstalled.candidateId}/probe.html?guardOnly=1`;
     await driver.get(privateUrl);
@@ -2682,6 +3299,27 @@ async function chromeMain() {
     privateEntry.status = 'unavailable';
     report.gaps.push(
       'Chrome authentic incognito extension-page routes were browser-blocked or did not load the candidate; no reachable incognito entrypoint guard was observed. Exact routes and errors are retained. Product wiring must test the reachable popup/library entrypoints.',
+    );
+  }
+
+  const popupEntry = record(
+    'private-popup-route',
+    'Incognito popup candidate verifies allowance and a reachable guard',
+    'Test-only zero-permission action-popup candidate with test-only incognito allowance; not a product manifest change.',
+    false,
+  );
+  await run(popupEntry, 'chrome-private-popup', (observations) =>
+    runChromePopupRoute(observations),
+  );
+  if (
+    popupEntry.status === 'passed' &&
+    (!popupEntry.details?.popupRoute?.report ||
+      popupEntry.details?.popupRoute?.error ||
+      popupEntry.details?.popupRoute?.exception)
+  ) {
+    popupEntry.status = 'unavailable';
+    report.gaps.push(
+      `Chrome incognito action-popup route did not produce a verified guard: ${popupEntry.details?.popupRoute?.error ?? JSON.stringify(popupEntry.details?.popupRoute?.exception ?? null)}. Page route: ${JSON.stringify({ loaded: popupEntry.details?.pageRoute?.loaded, error: popupEntry.details?.pageRoute?.error, body: popupEntry.details?.pageRoute?.body })}.`,
     );
   }
 }

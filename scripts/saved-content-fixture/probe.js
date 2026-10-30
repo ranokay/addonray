@@ -3,6 +3,7 @@
 const DB_NAME = 'addonray-saved-investigations';
 const STORE = 'records';
 const SENTINEL = 'fixture-extension';
+const readOnly = new URLSearchParams(location.search).has('readOnly');
 
 function openDatabase() {
   return new Promise((resolve, reject) => {
@@ -39,13 +40,18 @@ function read(database) {
 
 async function main() {
   const database = await openDatabase();
-  await write(database, SENTINEL);
+  if (!readOnly) await write(database, SENTINEL);
   const records = await read(database);
   window.contentFixtureProbe = {
     extensionId:
       globalThis.browser?.runtime?.id ?? globalThis.chrome?.runtime?.id,
     sentinel: records[0]?.payload ?? null,
     sentinelPresent: records.some((record) => record.payload === SENTINEL),
+    readOnly,
+    records: records.map((record) => ({
+      recordId: record.recordId,
+      payload: record.payload,
+    })),
   };
   document.documentElement.dataset.contentFixtureReady = 'true';
 }
