@@ -4,9 +4,9 @@ Status: bounded #6 save, list, read-only reopen and single-record delete are
 implemented in signed local `974b5690b0e1f47d6ef97329b99749b50e9f78b9` and
 locally qualified on the pinned macOS browsers. Product browser restart, natural
 eviction, an actual Chrome engine quota error, a reachable Chrome private
-main-frame library route, the exact-OS and hosted matrix, the final frozen gate
-and independent review remain open. No push, PR, permission, publication or
-durability claim is included.
+main-frame library route, the exact-OS and hosted matrix, and independent review
+remain open. The local frozen gate passed at the implementation boundary. No
+push, PR, permission, publication or durability claim is included.
 
 This record follows the accepted Stage 1 mechanism in the
 [storage feasibility record](2026-10-30-saved-storage-feasibility.md). The prior
@@ -154,6 +154,6 @@ Product observations:
 ## Release boundary
 
 This is a locally qualified implementation report, not a shipping approval. The
-final repository gate, exact-head browser reports, independent review and the
+browser reports and local frozen gate are recorded; independent review and the
 remaining release matrix are required before any claim of completed #6 release
 qualification. Push and PR creation remain prohibited by the current task.
