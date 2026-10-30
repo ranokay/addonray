@@ -98,6 +98,9 @@ function library(state: SavedLibrarySnapshot): SavedLibrary {
     cancelDelete: vi.fn(),
     closeDetail: vi.fn(),
     delete: vi.fn(async () => {}),
+    suspend: vi.fn(),
+    resume: vi.fn(),
+    revalidate: vi.fn(),
     close: vi.fn(),
   };
 }

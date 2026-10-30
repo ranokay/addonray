@@ -14,6 +14,7 @@ export type SavedLibraryEntry =
 export interface SavedLibraryHint {
   subscribe(subscriber: () => void): () => void;
   notify(): void;
+  notifyRemote?(): void;
 }
 
 export interface SavedLibrarySnapshot {
@@ -66,7 +67,10 @@ export function createSavedLibrary(
     message: null,
   };
   let live = true;
+  let suspended = false;
   let operation = 0;
+  let hintRevision = 0;
+  let appliedRevision = 0;
   const subscribers = new Set<() => void>();
   const publish = (next: SavedLibrarySnapshot) => {
     state = next;
@@ -87,10 +91,22 @@ export function createSavedLibrary(
   const deny = () => clear('denied', deniedMessage);
   // A change signal is only a hint. Every refresh rechecks context and re-reads
   // storage before it can replace what this view shows.
-  const removeHint =
-    hint?.subscribe(() => {
+  const noteHint = () => {
+    if (!live) return;
+    hintRevision += 1;
+    if (suspended) return;
+    operation += 1;
+    if (!state.busy) void refresh();
+  };
+  const removeHint = hint?.subscribe(noteHint) ?? (() => {});
+
+  function afterAction() {
+    if (!live) return;
+    if (state.busy) publish({ ...state, busy: false });
+    if (hintRevision !== appliedRevision) {
       if (!state.busy) void refresh();
-    }) ?? (() => {});
+    }
+  }
 
   async function guard(ticket: number) {
     if (!live || ticket !== operation) return false;
@@ -100,8 +116,9 @@ export function createSavedLibrary(
   }
 
   async function refresh() {
-    if (!live || state.busy) return;
+    if (!live || suspended || state.busy) return;
     const ticket = ++operation;
+    appliedRevision = hintRevision;
     publish({ ...state, busy: true, message: null });
     try {
       if (!(await guard(ticket))) return;
@@ -159,11 +176,13 @@ export function createSavedLibrary(
       if (ticket !== operation) return;
       if (!(await normalContext(api))) return deny();
       clear('unavailable', preserveError(error));
+    } finally {
+      afterAction();
     }
   }
 
   async function open(key: IDBValidKey) {
-    if (!live || state.busy) return;
+    if (!live || suspended || state.busy) return;
     const ticket = ++operation;
     publish({ ...state, busy: true, message: null });
     try {
@@ -227,6 +246,8 @@ export function createSavedLibrary(
       if (ticket !== operation) return;
       if (!(await normalContext(api))) return deny();
       clear('unavailable', preserveError(error));
+    } finally {
+      afterAction();
     }
   }
 
@@ -243,7 +264,7 @@ export function createSavedLibrary(
     refresh,
     open,
     requestDelete(key: IDBValidKey) {
-      if (!live || state.busy) return;
+      if (!live || suspended || state.busy) return;
       const present = state.entries.some((entry) =>
         sameSavedKey(entry.key, key),
       );
@@ -251,11 +272,13 @@ export function createSavedLibrary(
       publish({ ...state, pendingDeleteKey: key, message: null });
     },
     cancelDelete() {
-      if (!live || state.busy || state.pendingDeleteKey === null) return;
+      if (!live || suspended || state.busy || state.pendingDeleteKey === null)
+        return;
       publish({ ...state, pendingDeleteKey: null });
     },
     closeDetail() {
-      if (!live || state.busy || state.selectedKey === null) return;
+      if (!live || suspended || state.busy || state.selectedKey === null)
+        return;
       publish({
         ...state,
         selected: null,
@@ -266,7 +289,7 @@ export function createSavedLibrary(
     },
     async delete() {
       const key = state.pendingDeleteKey;
-      if (!live || state.busy || key === null) return;
+      if (!live || suspended || state.busy || key === null) return;
       const ticket = ++operation;
       publish({ ...state, busy: true, message: null });
       try {
@@ -279,7 +302,6 @@ export function createSavedLibrary(
             : state.selected;
         const selectedKey = selected ? state.selectedKey : null;
         if (!(await guard(ticket))) return;
-        hint?.notify();
         publish({
           phase: 'ready',
           entries: state.entries.filter(
@@ -291,6 +313,7 @@ export function createSavedLibrary(
           busy: false,
           message: 'Saved record deleted.',
         });
+        hint?.notifyRemote?.();
       } catch (error) {
         if (ticket !== operation) return;
         if (!(await normalContext(api))) return deny();
@@ -300,12 +323,49 @@ export function createSavedLibrary(
           busy: false,
           message: `${preserveError(error)} The record may still exist. Refresh before trying again.`,
         });
+      } finally {
+        afterAction();
       }
     },
+    suspend() {
+      if (!live || suspended) return;
+      suspended = true;
+      operation += 1;
+      appliedRevision = hintRevision;
+      publish({
+        phase: 'checking',
+        entries: [],
+        selected: null,
+        selectedKey: null,
+        pendingDeleteKey: null,
+        busy: false,
+        message: 'Saved investigations are revalidated when this page resumes.',
+      });
+    },
+    resume() {
+      if (!live || !suspended) return;
+      suspended = false;
+      void refresh();
+    },
+    revalidate() {
+      if (!live || suspended) return;
+      void refresh();
+    },
     close() {
+      if (!live) return;
       live = false;
+      suspended = false;
       operation += 1;
       removeHint();
+      publish({
+        phase: 'checking',
+        entries: [],
+        selected: null,
+        selectedKey: null,
+        pendingDeleteKey: null,
+        busy: false,
+        message: null,
+      });
       subscribers.clear();
       store.close();
     },

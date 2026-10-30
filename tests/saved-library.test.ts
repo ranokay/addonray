@@ -51,6 +51,10 @@ class MemoryStore implements SavedStore {
   deleteCalls: IDBValidKey[] = [];
   failList: Error | null = null;
   failDelete: Error | null = null;
+  listWait: Promise<void> | null = null;
+  getWait: Promise<void> | null = null;
+  listStarted = Promise.withResolvers<void>();
+  getStarted = Promise.withResolvers<void>();
 
   async ready() {
     return this.state;
@@ -60,11 +64,15 @@ class MemoryStore implements SavedStore {
   }
   async list(): Promise<SavedStoreEntry[]> {
     this.listCalls += 1;
+    this.listStarted.resolve();
+    if (this.listWait) await this.listWait;
     if (this.failList) throw this.failList;
     return [...this.entries].map(([key, value]) => ({ key, value }));
   }
   async get(key: IDBValidKey) {
     this.getCalls += 1;
+    this.getStarted.resolve();
+    if (this.getWait) await this.getWait;
     return this.entries.get(key);
   }
   async save(): Promise<never> {
@@ -89,6 +97,7 @@ function hintFixture() {
     notify: vi.fn(() => {
       for (const subscriber of subscribers) subscriber();
     }),
+    notifyRemote: vi.fn(),
   };
   return {
     hint,
@@ -207,7 +216,7 @@ it('confirms a single delete, updates the list and notifies other views', async 
   expect(store.deleteCalls).toContain(validId);
   expect(library.getSnapshot().entries).toHaveLength(2);
   expect(library.getSnapshot().message).toBe('Saved record deleted.');
-  expect(hint.hint.notify).toHaveBeenCalledTimes(1);
+  expect(hint.hint.notifyRemote).toHaveBeenCalledTimes(1);
 });
 
 it('clears an open record when that record is deleted', async () => {
@@ -280,4 +289,128 @@ it('unsubscribes hints and storage on close', async () => {
   hint.fire();
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(store.listCalls).toBe(calls);
+});
+
+it('lists an oversized structurally valid row as unreadable and refuses to open it', async () => {
+  const { store, library } = fixture();
+  const oversized = record(validId);
+  oversized.report.before.extensions = Array.from({ length: 300 }, () => ({
+    name: 'x'.repeat(4096),
+    version: '1',
+    enabled: true,
+  }));
+  store.entries.set(validId, oversized);
+  await library.refresh();
+  expect(library.getSnapshot().entries).toEqual([
+    { key: validId, status: 'invalid' },
+  ]);
+  await library.open(validId);
+  expect(library.getSnapshot().selected).toBeNull();
+  expect(library.getSnapshot().message).toContain('unreadable');
+});
+
+it('invalidates a delayed open when a hint arrives during the read', async () => {
+  const { store, library, hint } = fixture();
+  seed(store);
+  await library.refresh();
+  const hold = Promise.withResolvers<void>();
+  store.getWait = hold.promise;
+  const pending = library.open(validId);
+  await store.getStarted.promise;
+  hint.fire();
+  store.entries.delete(validId);
+  hold.resolve();
+  await pending;
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(library.getSnapshot().selected).toBeNull();
+  expect(
+    library.getSnapshot().entries.filter((entry) => entry.status === 'valid'),
+  ).toHaveLength(0);
+  expect(library.getSnapshot().busy).toBe(false);
+});
+
+it('invalidates a delayed refresh when a hint arrives during the list', async () => {
+  const { store, library, hint } = fixture();
+  seed(store);
+  const hold = Promise.withResolvers<void>();
+  store.listWait = hold.promise;
+  const pending = library.refresh();
+  await store.listStarted.promise;
+  store.entries.delete(validId);
+  hint.fire();
+  hold.resolve();
+  await pending;
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(
+    library.getSnapshot().entries.filter((entry) => entry.status === 'valid'),
+  ).toHaveLength(0);
+  expect(library.getSnapshot().busy).toBe(false);
+});
+
+it('clears displayed archive data on suspend and revalidates after resume', async () => {
+  const { store, library, hint } = fixture();
+  seed(store);
+  await library.refresh();
+  await library.open(validId);
+  expect(library.getSnapshot().selected).toEqual(record(validId));
+
+  library.suspend();
+  expect(library.getSnapshot()).toMatchObject({
+    phase: 'checking',
+    entries: [],
+    selected: null,
+    selectedKey: null,
+    pendingDeleteKey: null,
+    busy: false,
+  });
+  hint.fire();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(library.getSnapshot().entries).toHaveLength(0);
+
+  store.entries.delete(validId);
+  library.resume();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(
+    library.getSnapshot().entries.filter((entry) => entry.status === 'valid'),
+  ).toHaveLength(0);
+  expect(library.getSnapshot().selected).toBeNull();
+});
+
+it('tears down displayed data and ignores hints after close', async () => {
+  const { store, library, hint } = fixture();
+  seed(store);
+  await library.refresh();
+  await library.open(validId);
+  library.close();
+  expect(library.getSnapshot()).toMatchObject({
+    entries: [],
+    selected: null,
+    selectedKey: null,
+    busy: false,
+  });
+  const calls = store.listCalls;
+  hint.fire();
+  library.resume();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(store.listCalls).toBe(calls);
+});
+
+it('lists an inconsistent page-error summary as unreadable', async () => {
+  const { store, library } = fixture();
+  const inconsistent = record(validId);
+  inconsistent.report.pageErrors.after = {
+    scriptErrors: 0,
+    unhandledRejections: 0,
+    total: 0,
+    finish: 'limit',
+    observedMs: 0,
+  };
+  store.entries.set(validId, inconsistent);
+  await library.refresh();
+  expect(library.getSnapshot().entries).toEqual([
+    { key: validId, status: 'invalid' },
+  ]);
+  await library.open(validId);
+  expect(library.getSnapshot().selected).toBeNull();
+  expect(library.getSnapshot().message).toContain('unreadable');
 });

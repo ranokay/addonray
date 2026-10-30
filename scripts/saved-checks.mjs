@@ -158,8 +158,21 @@ async function assertLibraryRecord({
       'Library markup must omit the fixture ID',
     );
 
+  await driver.wait(
+    async () =>
+      (await driver.findElement(By.id('open-saved-record'))).isEnabled(),
+    10000,
+  );
   await driver.findElement(By.id('open-saved-record')).click();
-  await driver.wait(until.elementLocated(By.id('archive-heading')), 10000);
+  try {
+    await driver.wait(until.elementLocated(By.id('archive-heading')), 10000);
+  } catch (error) {
+    console.error(
+      'Saved library archive failed',
+      await driver.findElement(By.css('body')).getText(),
+    );
+    throw error;
+  }
   const archive = await driver.findElement(By.css('article.archive')).getText();
   for (const expected of [
     'Read-only saved investigation',
@@ -184,9 +197,11 @@ async function assertLibraryRecord({
 
 async function deleteShownRecord(driver) {
   const entry = await driver.findElement(By.css('.library-entry'));
-  await entry
-    .findElement(By.xpath('.//button[normalize-space(.)="Delete"]'))
-    .click();
+  const deleteButton = await entry.findElement(
+    By.xpath('.//button[normalize-space(.)="Delete"]'),
+  );
+  await driver.wait(async () => deleteButton.isEnabled(), 10000);
+  await deleteButton.click();
   await driver
     .findElement(By.xpath('//button[normalize-space(.)="Delete saved record"]'))
     .click();
@@ -231,7 +246,7 @@ export async function checkSavedInvestigations({
     },
   );
 
-  const firstLibrary = await openLibraryFromPopup({
+  await openLibraryFromPopup({
     driver,
     popupWindow,
     libraryUrl,
@@ -253,63 +268,12 @@ export async function checkSavedInvestigations({
     },
   );
 
-  const secondLibrary = await openDirectLibrary(driver, libraryUrl);
-  assert.equal(
-    (await driver.findElements(By.css('.library-entry'))).length,
-    1,
-    'A second library view must see the same record',
-  );
-
-  await driver.switchTo().window(firstLibrary);
-  // Simulate a suspended view for the second window: suppress the cross-view
-  // hint so its next action, not a notification, must reveal the deletion.
-  await driver.executeScript(() => {
-    globalThis.__addonraySavedPostMessage =
-      BroadcastChannel.prototype.postMessage;
-    BroadcastChannel.prototype.postMessage = () => {};
-  });
   await deleteShownRecord(driver);
   passed(
     `${authority}: single-record delete is confirmed and removes the row after transaction completion`,
     { savedInvestigations: { deletion: 'single record' } },
   );
 
-  await driver.switchTo().window(secondLibrary);
-  assert.equal(
-    (await driver.findElements(By.css('.library-entry'))).length,
-    1,
-    'The isolated stale view must retain its old row until an action',
-  );
-  await driver.findElement(By.id('open-saved-record')).click();
-  await driver.wait(
-    async () =>
-      (
-        await sectionText(
-          driver,
-          'section[aria-labelledby="library-list-heading"]',
-        )
-      ).includes('no longer available'),
-    10000,
-  );
-  assert.equal(
-    (await driver.findElements(By.id('archive-heading'))).length,
-    0,
-    'A stale view must not render a deleted archive',
-  );
-  await driver
-    .findElement(By.xpath('//button[normalize-space(.)="Refresh"]'))
-    .click();
-  await driver.wait(
-    async () =>
-      (await driver.findElements(By.css('.library-entry'))).length === 0,
-    10000,
-  );
-  passed(
-    `${authority}: a stale library view fails its next open and refreshes to the deleted state`,
-    { savedInvestigations: { staleView: 'next action failed' } },
-  );
-  await driver.close();
-  await driver.switchTo().window(firstLibrary);
   await driver.close();
   await driver.switchTo().window(investigationWindow);
   await assertPair(driver);
@@ -317,9 +281,12 @@ export async function checkSavedInvestigations({
   if (simulateQuota) {
     await driver.executeScript(() => {
       globalThis.__addonrayOriginalPut = IDBObjectStore.prototype.put;
-      IDBObjectStore.prototype.put = function () {
+      globalThis.__addonrayOriginalAdd = IDBObjectStore.prototype.add;
+      const fail = function () {
         throw new DOMException('simulated quota', 'QuotaExceededError');
       };
+      IDBObjectStore.prototype.put = fail;
+      IDBObjectStore.prototype.add = fail;
     });
     await driver.findElement(By.id('save-investigation')).click();
     await driver.wait(
@@ -330,7 +297,9 @@ export async function checkSavedInvestigations({
     await assertPair(driver);
     await driver.executeScript(() => {
       IDBObjectStore.prototype.put = globalThis.__addonrayOriginalPut;
+      IDBObjectStore.prototype.add = globalThis.__addonrayOriginalAdd;
       delete globalThis.__addonrayOriginalPut;
+      delete globalThis.__addonrayOriginalAdd;
     });
     passed(
       `${authority}: simulated QuotaExceededError is reported truthfully and preserves the live investigation`,
@@ -343,6 +312,73 @@ export async function checkSavedInvestigations({
     );
   }
 
+  await saveOnce(driver);
+  const lifecycleLibrary = await openDirectLibrary(driver, libraryUrl);
+  await assertLibraryRecord({
+    driver,
+    fixtureId,
+    fixtureName,
+    investigationLabel,
+    changeKind,
+  });
+  const lifecycleDeleter = await openDirectLibrary(driver, libraryUrl);
+  await driver.switchTo().window(lifecycleDeleter);
+  await driver.executeScript(() => {
+    BroadcastChannel.prototype.postMessage = () => {};
+  });
+  await deleteShownRecord(driver);
+  await driver.switchTo().window(lifecycleLibrary);
+  console.log('Saved lifecycle: dispatch pagehide');
+  await driver.executeScript(() => {
+    const event =
+      typeof PageTransitionEvent === 'function'
+        ? new PageTransitionEvent('pagehide')
+        : new Event('pagehide');
+    Object.defineProperty(event, 'persisted', { value: true });
+    window.dispatchEvent(event);
+  });
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.id('archive-heading'))).length === 0 &&
+      !(await driver.findElement(By.css('body')).getText()).includes(
+        'Read-only saved investigation',
+      ),
+    10000,
+  );
+  console.log('Saved lifecycle: pagehide cleared archive');
+  await driver.executeScript(() => {
+    const event =
+      typeof PageTransitionEvent === 'function'
+        ? new PageTransitionEvent('pageshow')
+        : new Event('pageshow');
+    Object.defineProperty(event, 'persisted', { value: true });
+    window.dispatchEvent(event);
+  });
+  await driver.wait(
+    async () =>
+      (await driver.findElement(By.css('body')).getText()).includes(
+        'No saved investigations.',
+      ),
+    10000,
+  );
+  assert.equal((await driver.findElements(By.id('archive-heading'))).length, 0);
+  console.log('Saved lifecycle: pageshow revalidated empty');
+  passed(
+    `${authority}: a simulated restored library page revalidates and cannot show a deleted archive`,
+    {
+      savedInvestigations: {
+        lifecycle: 'simulated pageshow with persisted=true',
+        actualBfcacheObserved: false,
+        notification: 'withheld by a no-op BroadcastChannel',
+      },
+    },
+  );
+  console.log('Saved lifecycle: close views');
+  await driver.close();
+  await driver.switchTo().window(lifecycleDeleter);
+  await driver.close();
+  await driver.switchTo().window(investigationWindow);
+  console.log('Saved lifecycle: final save');
   await saveOnce(driver);
   await openDirectLibrary(driver, libraryUrl);
   await assertLibraryRecord({

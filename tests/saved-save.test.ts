@@ -243,6 +243,58 @@ it('cancels a pending save when the investigation resets', async () => {
   expect(model.getSnapshot().before).toBeNull();
 });
 
+it('refuses when normal context is lost during the permission wait', async () => {
+  const grant = Promise.withResolvers<boolean>();
+  const permissionStarted = Promise.withResolvers<void>();
+  let tabCalls = 0;
+  const currentApi = api({
+    tabs: {
+      getCurrent: vi.fn(async () => {
+        tabCalls += 1;
+        return { incognito: tabCalls >= 3 };
+      }),
+    },
+    permissions: {
+      contains: vi.fn(() => {
+        permissionStarted.resolve();
+        return grant.promise;
+      }),
+    },
+  });
+  const { model, store, saver } = await fixture({ currentApi });
+  const before = model.getSnapshot();
+  const pending = saver.save();
+  await permissionStarted.promise;
+  grant.resolve(true);
+  await pending;
+  expect(store.saveCalls).toBe(0);
+  expect(model.getSnapshot()).toBe(before);
+  expect(saver.getSnapshot().message).toContain('verified normal windows');
+});
+
+it('cancels when the investigation resets during the permission wait', async () => {
+  const grant = Promise.withResolvers<boolean>();
+  const permissionStarted = Promise.withResolvers<void>();
+  const currentApi = api({
+    permissions: {
+      contains: vi.fn(() => {
+        permissionStarted.resolve();
+        return grant.promise;
+      }),
+    },
+  });
+  const { model, store, saver } = await fixture({ currentApi });
+  const pending = saver.save();
+  await permissionStarted.promise;
+  model.startOver();
+  grant.resolve(true);
+  await pending;
+  expect(store.saveCalls).toBe(0);
+  expect(saver.getSnapshot().message).toContain(
+    'investigation changed before the save completed',
+  );
+});
+
 it('removes page permission requirements when no page data is attached', async () => {
   const { saver, currentApi } = await fixture();
   await saver.save();
@@ -263,6 +315,7 @@ it('reports quota, timeout and size failures without discarding live results', a
     ['stale-store', 'local storage changed'],
     ['cancelled', 'cancelled'],
     ['unavailable', 'storage is unavailable'],
+    ['duplicate', 'already exists'],
   ] as const;
   for (const [result, message] of cases) {
     const { model, store, saver } = await fixture();

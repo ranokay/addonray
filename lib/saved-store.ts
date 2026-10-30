@@ -26,6 +26,7 @@ export type SavedStoreSaveResult =
   | 'quota'
   | 'timeout'
   | 'cancelled'
+  | 'duplicate'
   | 'unavailable';
 
 export type SavedStoreErrorCode =
@@ -34,7 +35,8 @@ export type SavedStoreErrorCode =
   | 'blocked'
   | 'invalid-metadata'
   | 'quota'
-  | 'cancelled';
+  | 'cancelled'
+  | 'duplicate';
 
 export class SavedStoreError extends Error {
   constructor(
@@ -199,12 +201,11 @@ function open(factory: IDBFactory, onClosed: (database: IDBDatabase) => void) {
   });
 }
 
-function transaction<T>(
-  database: IDBDatabase,
-  mode: IDBTransactionMode,
-  stores: string[],
+function transactionFrom<T>(
+  current: IDBTransaction,
   work: (transaction: IDBTransaction) => Promise<T> | T,
   signal?: AbortSignal,
+  abortFailure?: () => SavedStoreError,
 ) {
   return new Promise<T>((resolve, reject) => {
     if (signal?.aborted)
@@ -213,7 +214,6 @@ function transaction<T>(
     let completed = false;
     let workDone = false;
     let workValue: T;
-    let current: IDBTransaction;
     let cancelled = false;
     const finish = (action: () => void) => {
       if (settled) return;
@@ -242,12 +242,6 @@ function transaction<T>(
         reject(new SavedStoreError('timeout', 'Saved storage timed out.')),
       );
     }, TIMEOUT_MS);
-    try {
-      current = database.transaction(stores, mode);
-    } catch (error) {
-      finish(() => reject(failure(error, 'unavailable')));
-      return;
-    }
     current.oncomplete = () => {
       completed = true;
       settleIfReady();
@@ -257,7 +251,7 @@ function transaction<T>(
         reject(
           cancelled
             ? new SavedStoreError('cancelled', 'The save was cancelled.')
-            : failure(current.error, 'unavailable'),
+            : (abortFailure?.() ?? failure(current.error, 'unavailable')),
         ),
       );
     current.onerror = () => {
@@ -282,6 +276,22 @@ function transaction<T>(
       },
     );
   });
+}
+
+function transaction<T>(
+  database: IDBDatabase,
+  mode: IDBTransactionMode,
+  stores: string[],
+  work: (transaction: IDBTransaction) => Promise<T> | T,
+  signal?: AbortSignal,
+) {
+  let current: IDBTransaction;
+  try {
+    current = database.transaction(stores, mode);
+  } catch (error) {
+    return Promise.reject(failure(error, 'unavailable'));
+  }
+  return transactionFrom(current, work, signal);
 }
 
 function isLostConnection(error: unknown) {
@@ -346,7 +356,25 @@ export function createIndexedDbSavedStore(
       return withConnection(readStateOf);
     },
     readState() {
-      return withConnection(readStateOf);
+      if (!live)
+        return Promise.reject(
+          new SavedStoreError('unavailable', 'Saved storage is closed.'),
+        );
+      const db = database;
+      if (!db)
+        return Promise.reject(
+          new SavedStoreError('unavailable', 'Saved storage is not open.'),
+        );
+      let current: IDBTransaction;
+      try {
+        // This transaction is created synchronously at the call site so a
+        // concurrent delete cannot slip in before the barrier is captured.
+        current = db.transaction(META, 'readonly');
+      } catch (error) {
+        if (database === db) database = null;
+        return Promise.reject(failure(error, 'unavailable'));
+      }
+      return readStateInTransaction(current);
     },
     list() {
       return withConnection((db) =>
@@ -379,44 +407,67 @@ export function createIndexedDbSavedStore(
         ),
       );
     },
-    async save(record, expected, signal) {
-      if (signal?.aborted) return 'unavailable';
+    save(record, expected, signal) {
+      if (!live) return Promise.resolve('unavailable');
+      const db = database;
+      if (!db) return Promise.resolve('unavailable');
+      if (signal?.aborted) return Promise.resolve('cancelled');
+      let current: IDBTransaction;
       try {
-        await withConnection(readStateOf);
-        return await withConnection((db) =>
-          transaction(
-            db,
-            'readwrite',
-            [RECORDS, META],
-            async (tx) => {
-              const state = await readStateInTransaction(tx);
-              if (state.storeId !== expected.storeId) return 'stale-store';
-              if (state.epoch !== expected.epoch) return 'stale';
-              if (state.epoch >= Number.MAX_SAFE_INTEGER) return 'exhausted';
-              const records = await requestValue<unknown[]>(
-                tx.objectStore(RECORDS).getAll(),
-              );
-              const bytes = storedRecordBytes(record);
-              const plan = planSave(records, bytes, Date.now());
-              for (const recordId of plan.cleanupIds)
-                tx.objectStore(RECORDS).delete(recordId);
-              if (plan.outcome !== 'ok') return plan.outcome;
-              if (bytes > SAVED_LIMITS.recordBytes) return 'record';
-              tx.objectStore(RECORDS).put(record);
-              return 'saved';
-            },
-            signal,
-          ),
-        );
-      } catch (error) {
-        if (error instanceof SavedStoreError) {
-          if (error.code === 'quota') return 'quota';
-          if (error.code === 'timeout') return 'timeout';
-          if (error.code === 'cancelled') return 'cancelled';
-        }
-        if (errorName(error) === 'QuotaExceededError') return 'quota';
-        return 'unavailable';
+        current = db.transaction([RECORDS, META], 'readwrite');
+      } catch {
+        if (database === db) database = null;
+        return Promise.resolve('unavailable');
       }
+      let requestFailure: SavedStoreError | null = null;
+      return transactionFrom(
+        current,
+        async (tx) => {
+          const state = await readStateInTransaction(tx);
+          if (state.storeId !== expected.storeId) return 'stale-store';
+          if (state.epoch !== expected.epoch) return 'stale';
+          if (state.epoch >= Number.MAX_SAFE_INTEGER) return 'exhausted';
+          const existing = await requestValue<unknown | undefined>(
+            tx.objectStore(RECORDS).get(record.recordId),
+          );
+          if (existing !== undefined) return 'duplicate';
+          const records = await requestValue<unknown[]>(
+            tx.objectStore(RECORDS).getAll(),
+          );
+          const bytes = storedRecordBytes(record);
+          const plan = planSave(records, bytes, Date.now());
+          for (const recordId of plan.cleanupIds)
+            tx.objectStore(RECORDS).delete(recordId);
+          if (plan.outcome !== 'ok') return plan.outcome;
+          if (bytes > SAVED_LIMITS.recordBytes) return 'record';
+          // add() fails the transaction rather than replacing an existing key.
+          const request = tx.objectStore(RECORDS).add(record);
+          await new Promise<void>((resolve, reject) => {
+            request.onsuccess = () => resolve();
+            request.onerror = () => {
+              requestFailure = failure(request.error, 'unavailable');
+              reject(requestFailure);
+            };
+          });
+          return 'saved';
+        },
+        signal,
+        () => requestFailure ?? failure(current.error, 'unavailable'),
+      ).then(
+        (result) => result,
+        (error) => {
+          if (signal?.aborted) return 'cancelled';
+          if (error instanceof SavedStoreError) {
+            if (error.code === 'quota') return 'quota';
+            if (error.code === 'timeout') return 'timeout';
+            if (error.code === 'cancelled') return 'cancelled';
+            if (error.code === 'duplicate') return 'duplicate';
+          }
+          if (errorName(error) === 'QuotaExceededError') return 'quota';
+          if (errorName(error) === 'ConstraintError') return 'duplicate';
+          return 'unavailable';
+        },
+      );
     },
     async delete(key) {
       await this.ready();

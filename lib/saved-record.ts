@@ -6,7 +6,11 @@ import {
 } from './comparison';
 import type { Result, TimingMeasurement, TimingSnapshot } from './inspector';
 import type { Investigation } from './investigation';
-import { pageErrorLimits, type PageErrorSummary } from './page-error-check';
+import {
+  copyPageErrorSummary,
+  pageErrorLimits,
+  type PageErrorSummary,
+} from './page-error-check';
 
 export const SAVED_SCHEMA_VERSION = 1;
 export const SAVED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -300,33 +304,7 @@ function validateTiming(value: unknown): value is TimingSnapshot {
 }
 
 function validateError(value: unknown): value is PageErrorSummary {
-  return (
-    isRecord(value) &&
-    exactKeys(value, [
-      'scriptErrors',
-      'unhandledRejections',
-      'total',
-      'finish',
-      'observedMs',
-    ]) &&
-    Number.isSafeInteger(value.scriptErrors) &&
-    Number.isSafeInteger(value.unhandledRejections) &&
-    Number.isSafeInteger(value.total) &&
-    (value.scriptErrors as number) >= 0 &&
-    (value.unhandledRejections as number) >= 0 &&
-    (value.scriptErrors as number) <= pageErrorLimits.events &&
-    (value.unhandledRejections as number) <= pageErrorLimits.events &&
-    value.total ===
-      (value.scriptErrors as number) + (value.unhandledRejections as number) &&
-    (value.total as number) <= pageErrorLimits.events &&
-    (value.finish === 'stop' ||
-      value.finish === 'timeout' ||
-      value.finish === 'limit') &&
-    typeof value.observedMs === 'number' &&
-    Number.isFinite(value.observedMs) &&
-    value.observedMs >= 0 &&
-    value.observedMs <= pageErrorLimits.durationMs
-  );
+  return copyPageErrorSummary(value) !== null;
 }
 
 function validateReport(value: unknown): value is SavedReport {
@@ -423,7 +401,16 @@ export function inspectStoredRecord(value: unknown): StoredRecordInspection {
       !validateReport(value.report)
     )
       return { status: 'invalid', recordId };
-    return { status: 'valid', record: value as unknown as SavedRecord };
+    const record = value as unknown as SavedRecord;
+    // The complete stored envelope and the exact would-be exported JSON share
+    // the same 1 MiB product cap as save. An oversized row is unreadable, not
+    // an archive, and remains available for explicit deletion.
+    if (
+      storedRecordBytes(record) > SAVED_LIMITS.recordBytes ||
+      exchangeBytes(record) > SAVED_LIMITS.jsonBytes
+    )
+      return { status: 'invalid', recordId };
+    return { status: 'valid', record };
   } catch {
     return { status: 'invalid', recordId };
   }

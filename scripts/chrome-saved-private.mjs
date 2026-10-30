@@ -306,47 +306,98 @@ export async function checkChromeSavedPrivate({
     );
 
     let mainFrame = { status: 'unavailable' };
+    const policyBlockPattern =
+      /ERR_BLOCKED_BY_CLIENT|blocked by Chromium|This page has been blocked/i;
+    let guardFailure = null;
+    let route = null;
+    let mainFrameTargetId = null;
     if (incognitoContext) {
       let libSession = null;
       try {
-        const created = await cdp.send('Target.createTarget', {
-          url: libraryUrl,
-          browserContextId: incognitoContext,
-        });
+        const currentTargets = await cdp.send('Target.getTargets');
+        const pageTarget = currentTargets.targetInfos.find(
+          (target) =>
+            target.type === 'page' &&
+            target.browserContextId === incognitoContext &&
+            target.url !== popupUrl,
+        );
+        if (!pageTarget)
+          throw new Error('No live incognito page target is available');
+        mainFrameTargetId = pageTarget.targetId;
+        route = 'cdp-live-incognito-page';
         ({ sessionId: libSession } = await cdp.send('Target.attachToTarget', {
-          targetId: created.targetId,
+          targetId: pageTarget.targetId,
           flatten: true,
         }));
-        await sleep(1000);
-        const observed = await cdp.send(
-          'Runtime.evaluate',
-          {
-            expression:
-              '({ title: document.title, text: document.body.innerText, rows: document.querySelectorAll(".library-entry").length, denied: Boolean(document.querySelector("#library-denied-heading")) })',
-            returnByValue: true,
-          },
+        const navigation = await cdp.send(
+          'Page.navigate',
+          { url: libraryUrl },
           libSession,
         );
-        const value = observed.result?.value ?? {};
-        mainFrame = {
-          status:
-            value.title === 'Saved investigations · AddonRay'
-              ? value.denied
-                ? 'denied'
-                : 'unexpected'
-              : 'browser-blocked',
-          rows: value.rows ?? null,
-          sentinelVisible: String(value.text ?? '').includes(sentinelName),
-          title: value.title ?? null,
-        };
-        assert.equal(mainFrame.rows, 0);
-        assert.equal(mainFrame.sentinelVisible, false);
-        if (mainFrame.status === 'unexpected')
-          throw new Error('Private library route rendered without a denial');
-        await cdp.send('Target.closeTarget', { targetId: created.targetId });
+        let value = {};
+        const deadline = Date.now() + 10000;
+        while (Date.now() < deadline) {
+          const observed = await cdp.send(
+            'Runtime.evaluate',
+            {
+              expression:
+                '({ title: document.title, text: document.body?.innerText ?? "", rows: document.querySelectorAll(".library-entry").length, denied: Boolean(document.querySelector("#library-denied-heading")), ready: document.readyState })',
+              returnByValue: true,
+            },
+            libSession,
+          );
+          value = observed.result?.value ?? {};
+          if (value.ready === 'complete') break;
+          await sleep(100);
+        }
+        const blocked =
+          policyBlockPattern.test(String(value.text ?? '')) ||
+          /ERR_BLOCKED_BY_CLIENT/i.test(String(navigation.errorText ?? ''));
+        if (value.title === 'Saved investigations · AddonRay') {
+          if (!value.denied) {
+            guardFailure =
+              'The incognito library route loaded without a context denial';
+          } else {
+            assert.equal(value.rows, 0);
+            assert.equal(
+              String(value.text ?? '').includes(sentinelName),
+              false,
+            );
+            mainFrame = {
+              status: 'denied',
+              title: value.title,
+              rows: value.rows,
+              sentinelVisible: false,
+            };
+          }
+        } else if (blocked) {
+          mainFrame = {
+            status: 'browser-blocked',
+            title: value.title ?? null,
+            text: String(value.text ?? '').slice(0, 400),
+            navigationError: navigation.errorText ?? null,
+          };
+        } else {
+          mainFrame = {
+            status: 'unavailable',
+            title: value.title ?? null,
+            text: String(value.text ?? '').slice(0, 400),
+            navigationError: navigation.errorText ?? null,
+            reason: 'route-loaded-without-product-page',
+          };
+        }
+        if (guardFailure) throw new Error(guardFailure);
+        if (mainFrameTargetId)
+          await cdp
+            .send('Target.closeTarget', { targetId: mainFrameTargetId })
+            .catch(() => {});
       } catch (error) {
-        if (mainFrame.status === 'unexpected') throw error;
-        mainFrame = { status: 'browser-blocked', error: String(error) };
+        if (guardFailure) throw error;
+        mainFrame = {
+          status: 'unavailable',
+          reason: 'transport-or-live-context-navigation-failed',
+          error: String(error),
+        };
       } finally {
         if (libSession)
           await cdp
@@ -355,14 +406,18 @@ export async function checkChromeSavedPrivate({
       }
     }
     assert.notEqual(mainFrame.status, 'unexpected');
-    await cdp.send('Target.closeTarget', { targetId: popup.targetId });
-    await cdp.send('Target.detachFromTarget', { sessionId });
+    assert.notEqual(mainFrame.status, 'unexpected');
+    await cdp
+      .send('Target.closeTarget', { targetId: popup.targetId })
+      .catch(() => {});
+    await cdp.send('Target.detachFromTarget', { sessionId }).catch(() => {});
     passed(
       `${authority}: the authentic incognito popup refuses the library and exposes no seeded archive`,
       {
         savedInvestigations: {
           privateLauncher: 'refused',
           privateMainFrame: mainFrame,
+          privateMainFrameRoute: route,
           storagePartition:
             'sentinel seeded in the incognito extension partition before the action',
         },

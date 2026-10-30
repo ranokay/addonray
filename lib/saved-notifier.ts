@@ -1,5 +1,6 @@
 export interface SavedChangeHint {
   notify(): void;
+  notifyRemote?(): void;
   subscribe(subscriber: () => void): () => void;
   dispose(): void;
 }
@@ -32,6 +33,14 @@ export function createSavedChangeHint(): SavedChangeHint {
     notify() {
       if (!live) return;
       deliver();
+      try {
+        channel?.postMessage('changed');
+      } catch {
+        /* The hint is optional. */
+      }
+    },
+    notifyRemote() {
+      if (!live) return;
       try {
         channel?.postMessage('changed');
       } catch {

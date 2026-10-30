@@ -13,14 +13,16 @@ if (!root) throw new Error('Missing library root');
 const hint = createSavedChangeHint();
 const store = createIndexedDbSavedStore();
 const library = createSavedLibrary(browser, store, hint);
-window.addEventListener(
-  'pagehide',
-  () => {
+window.addEventListener('pagehide', (event) => {
+  library.suspend();
+  if (!event.persisted) {
     library.close();
     hint.dispose();
-  },
-  { once: true },
-);
+  }
+});
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) library.resume();
+});
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>

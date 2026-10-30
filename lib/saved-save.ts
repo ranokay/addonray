@@ -175,6 +175,17 @@ export function createSavedSave(
           generation !== investigation.getGeneration()
         )
           throw new Error('cancelled');
+        if (!(await normalContext(api))) {
+          message('Save is available only in verified normal windows.');
+          return;
+        }
+        if (
+          !live ||
+          ticket !== operation ||
+          snapshot !== investigation.getSnapshot() ||
+          generation !== investigation.getGeneration()
+        )
+          throw new Error('cancelled');
         const recordResult = createSavedRecord(snapshot, {
           now: Date.now(),
           recordId: crypto.randomUUID(),
@@ -204,6 +215,22 @@ export function createSavedSave(
           )
             controller.abort();
         });
+        if (
+          !live ||
+          ticket !== operation ||
+          snapshot !== investigation.getSnapshot() ||
+          generation !== investigation.getGeneration()
+        ) {
+          controller.abort();
+          throw new Error('cancelled');
+        }
+        // Last abortable context check. The adapter creates its readwrite
+        // transaction synchronously after this await, so no context change can
+        // slip between this check and the enqueued write.
+        if (!(await normalContext(api))) {
+          message('Save is available only in verified normal windows.');
+          return;
+        }
         if (
           !live ||
           ticket !== operation ||
@@ -247,6 +274,12 @@ export function createSavedSave(
           );
           return;
         }
+        if (result === 'duplicate') {
+          message(
+            'A saved record with this ID already exists. The live investigation was kept.',
+          );
+          return;
+        }
         if (result === 'records')
           message(
             'The library already contains 50 saved records. Delete one before saving.',
@@ -287,9 +320,11 @@ export function createSavedSave(
             message(
               'The investigation changed before the save completed. The live investigation was kept.',
             );
-          else if (error instanceof SavedStoreError)
+          else if (error instanceof SavedStoreError) {
             message(`${error.message} The live investigation was kept.`);
-          else
+            if (error.code === 'unavailable')
+              void store.ready().catch(() => {});
+          } else
             message(
               'The save could not be completed. The live investigation was kept.',
             );

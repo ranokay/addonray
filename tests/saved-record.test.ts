@@ -242,6 +242,40 @@ it('rejects malformed values, unknown fields, overlong strings and unsafe timest
     observedMs: 1,
   };
   invalid.push(badError);
+  for (const malformed of [
+    {
+      scriptErrors: 0,
+      unhandledRejections: 0,
+      total: 0,
+      finish: 'limit',
+      observedMs: 0,
+    },
+    {
+      scriptErrors: 0,
+      unhandledRejections: 0,
+      total: 0,
+      finish: 'timeout',
+      observedMs: 1,
+    },
+    {
+      scriptErrors: 0,
+      unhandledRejections: 0,
+      total: 0,
+      finish: 'stop',
+      observedMs: 30000,
+    },
+    {
+      scriptErrors: 0,
+      unhandledRejections: 0,
+      total: 200,
+      finish: 'stop',
+      observedMs: 1,
+    },
+  ]) {
+    const malformedError = clone();
+    malformedError.report.pageErrors.after = malformed as never;
+    invalid.push(malformedError);
+  }
   const longRetention = clone();
   longRetention.expiresAt = longRetention.savedAt + 91 * 24 * 60 * 60 * 1000;
   invalid.push(longRetention);
@@ -298,4 +332,57 @@ it('cleans only valid expired rows and counts unsupported rows toward limits', (
       totalBytes: 1,
     }).outcome,
   ).toBe('total');
+});
+
+it('treats the exact stored-byte boundary as valid and one byte over as invalid', () => {
+  const exact = (() => {
+    const limit = SAVED_LIMITS.recordBytes;
+    const template = record();
+    const entries = (count: number, lastLength: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        name: 'x'.repeat(index === count - 1 ? lastLength : 4096),
+        version: '1',
+        enabled: true,
+      }));
+    const candidate = (count: number, lastLength: number): SavedRecord => ({
+      ...template,
+      report: {
+        ...template.report,
+        before: { extensions: entries(count, lastLength) },
+      },
+    });
+    for (let count = 1; ; count += 1) {
+      if (storedRecordBytes(candidate(count, 4096)) < limit) continue;
+      let low = 0;
+      let high = 4096;
+      while (low <= high) {
+        const middle = Math.floor((low + high) / 2);
+        const bytes = storedRecordBytes(candidate(count, middle));
+        if (bytes === limit) return candidate(count, middle);
+        if (bytes < limit) low = middle + 1;
+        else high = middle - 1;
+      }
+      throw new Error('No exact stored-byte boundary found');
+    }
+  })();
+  expect(storedRecordBytes(exact)).toBe(SAVED_LIMITS.recordBytes);
+  expect(inspectStoredRecord(exact).status).toBe('valid');
+  const over = {
+    ...exact,
+    report: {
+      ...exact.report,
+      before: {
+        extensions: exact.report.before.extensions.map((entry, index) =>
+          index === exact.report.before.extensions.length - 1
+            ? { ...entry, name: `${entry.name}x` }
+            : entry,
+        ),
+      },
+    },
+  };
+  expect(storedRecordBytes(over)).toBe(SAVED_LIMITS.recordBytes + 1);
+  expect(inspectStoredRecord(over)).toEqual({
+    status: 'invalid',
+    recordId: exact.recordId,
+  });
 });
