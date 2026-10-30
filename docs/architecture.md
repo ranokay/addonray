@@ -169,8 +169,9 @@ holds a random store-instance ID and a deletion epoch. A save on a ready connect
 barrier, then rechecks store identity, epoch, metadata, record count, aggregate
 bytes and the candidate size inside one synchronously created readwrite
 transaction before adding the record. `add` refuses an existing record ID, so a
-save cannot overwrite an archive. A missing or invalidated connection refuses
-that action rather than opening a new permit after the barrier. Success resolves
+save cannot overwrite an archive. The same bounded transaction lifecycle attaches to the synchronously created
+barrier. A missing or invalidated connection refuses that action rather than
+opening a new permit after the barrier. Success resolves
 only after the transaction completes. Deletes remove
 one record and increment the epoch in the same transaction. Missing, corrupt or
 exhausted metadata and recreated connections fail closed. Open, blocked and

@@ -1,7 +1,7 @@
 # Saved-investigation product slice
 
 Status: bounded #6 save, list, read-only reopen and single-record delete are
-implemented in signed local `41d3af4409ca82ebecaff7cee1b104c561239306` and
+implemented in signed local `2a5ac372117103110b4153b1cf1364418fd54aa7` and
 locally qualified on the pinned macOS browsers. Product browser restart,
 deletion persistence, the production-adapter ordering/add-only/bounds/abort
 regressions and the simulated library lifecycle pass separately. Natural
@@ -56,7 +56,7 @@ does not enter either package.
 
 ## Deterministic tests
 
-The full suite at `41d3af4` passes **509 tests / 2,022,318 assertions across 35
+The full suite at `2a5ac37` passes **517 tests / 2,022,334 assertions across 36
 files**. Native type checking passes **81 files**. Focused coverage includes:
 
 - exact archived payload, ID omission, duplicate names, state preservation and
@@ -78,14 +78,14 @@ UI SSR tests do not replace the interactive product flows below.
 
 `scripts/saved-store-checks.mjs` compiles the production `lib/saved-store.ts` and
 `lib/saved-record.ts` into a test-only extension and exercises the actual
-IndexedDB adapter on the four pins. Each report passes eight checks:
+IndexedDB adapter on the four pins. Each report passes nine checks, including the bounded barrier timeout:
 
-| Target                           | Raw report                                     | SHA-256                                                            |
-| -------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------ |
-| Firefox 140.0                    | `.scratch/saved-store-checks-firefox-140.json` | `2be4255a2bdfc8744ca9f33258014077f58939fbdb9f152f07283c97b00116a5` |
-| Firefox 153.5.1esr               | `.scratch/saved-store-checks-firefox-153.json` | `07dd0fd1d08dcd6d96b3b61592c8b07800436b907bd78fa443a8b515b79a329f` |
-| Firefox 158.0.1                  | `.scratch/saved-store-checks-firefox-158.json` | `5f564db7af3f1506b4ada6b4f122b60fd54edc1776cfae93503ec61e655efdfb` |
-| Chrome for Testing 156.0.8078.47 | `.scratch/saved-store-checks-chrome.json`      | `b94523e62483cf96da0a8704e919a8ce78047a520003893092fd3bd87476bfed` |
+| Target                           | Raw report                           | SHA-256                                                            |
+| -------------------------------- | ------------------------------------ | ------------------------------------------------------------------ |
+| Firefox 140.0                    | `.scratch/r2-store-firefox-140.json` | `2a939109529a79975686204f9b77c4d82d6f3f7f715ee1711aec833f62b55606` |
+| Firefox 153.5.1esr               | `.scratch/r2-store-firefox-153.json` | `8f33405b22e9878f3fb0e0a5fb304b5499489c643d66d1a6ed237b61ded7e374` |
+| Firefox 158.0.1                  | `.scratch/r2-store-firefox-158.json` | `162ad6b96557352b87adcb6f8c070bdd6865e66a5338fa1307dfb17d9e8e6983` |
+| Chrome for Testing 156.0.8078.47 | `.scratch/r2-store-chrome-run.json`  | `3f2e136fab796c1745d583bfbac1ed4bf531744e201636da80ea6b70677e08f2` |
 
 The checks cover the first/not-ready connection, synchronous metadata-barrier
 enqueueing, a deletion after the barrier rejecting the save with distinct record
@@ -113,13 +113,13 @@ to the user's profile.
 
 | Target                           | Result                         | Observed checks | Raw report                                  | SHA-256                                                            |
 | -------------------------------- | ------------------------------ | --------------- | ------------------------------------------- | ------------------------------------------------------------------ |
-| Firefox 140.0                    | passed-with-qualification-gaps | 87              | `.scratch/firefox-evidence-140.0.json`      | `c5742e435c3583bd5aa61d6cd03e382409ae3009df8c7541648025d70e155880` |
-| Firefox 153.5.1esr               | passed-with-qualification-gaps | 87              | `.scratch/firefox-evidence-153.5.1esr.json` | `95042e9c9b4ddd60507e865384a745f51681af782dfb37e617df72a03b6c6345` |
-| Firefox 158.0.1                  | passed-with-qualification-gaps | 87              | `.scratch/firefox-evidence-158.0.1.json`    | `ec0eed6d0f47867db65c347686054ab475c8ed1164e8b4eeecee34ae0cb699f0` |
-| Chrome for Testing 156.0.8078.47 | passed-with-qualification-gaps | 81              | `.scratch/chrome-evidence.json`             | `6d9751c03129da807b130ea437f21df79a4256616dfdd6dd45913841668ea095` |
+| Firefox 140.0                    | passed-with-qualification-gaps | 88              | `.scratch/firefox-evidence-140.0.json`      | `0ff10afafe3ab26ed369b09d97fab035f65a19698c2fd4901ae515a7b9efbbad` |
+| Firefox 153.5.1esr               | passed-with-qualification-gaps | 88              | `.scratch/firefox-evidence-153.5.1esr.json` | `6238c19ec88b99086dba39cc3f599dc56a5086db49cc27e98f78a3ac219173c9` |
+| Firefox 158.0.1                  | passed-with-qualification-gaps | 88              | `.scratch/firefox-evidence-158.0.1.json`    | `82190ab34a130f540c4b27dbeadb77509e1c079f04d002a76f8942c20bbce452` |
+| Chrome for Testing 156.0.8078.47 | passed-with-qualification-gaps | 82              | `.scratch/chrome-evidence.json`             | `3f52f8e886d1cb4a7d93a7ca6445658544beb3dd628c5542eda009580651c018` |
 
 All four reports record source commit
-`41d3af4409ca82ebecaff7cee1b104c561239306` and `sourceDirty:false`.
+`2a5ac372117103110b4153b1cf1364418fd54aa7` and `sourceDirty:false`.
 
 Product observations:
 
@@ -150,17 +150,17 @@ Product observations:
 ## Product browser restart
 
 The restart probe is `scripts/saved-restart-checks.mjs`. It uses the packaged
-product assets and runs at clean commit `41d3af4`. Each target performs
+product assets and runs at clean commit `2a5ac37`. Each target performs
 three bounded processes: explicit product Save with a completed live pair;
 restart with the retained profile/origin; and a second restart after single
 delete.
 
 | Target                           | Checks   | Raw report                                       | SHA-256                                                            |
 | -------------------------------- | -------- | ------------------------------------------------ | ------------------------------------------------------------------ |
-| Firefox 140.0                    | 5 passed | `.scratch/saved-restart-firefox-140.0.json`      | `43afa67c2d9d294e6b1d235f7b05118e248423dea821281005e76b5eccf22a2d` |
-| Firefox 153.5.1esr               | 5 passed | `.scratch/saved-restart-firefox-153.5.1esr.json` | `730c813c297c8b7dfba32a3d27c3fb94f1a5514a6eb62b4d0472185f1c9f2fe7` |
-| Firefox 158.0.1                  | 5 passed | `.scratch/saved-restart-firefox-158.0.1.json`    | `22a6adec6efc0752e75cf655b085094c9593d0067aa3dc28036a0d7ff85013e9` |
-| Chrome for Testing 156.0.8078.47 | 5 passed | `.scratch/saved-restart-chrome.json`             | `02272af950dc57c0fb8be64b4d13c8a8b81cc7eda46c6369882a31a98cd69ec6` |
+| Firefox 140.0                    | 5 passed | `.scratch/saved-restart-firefox-140.0.json`      | `349c125e2678f7eb3c9dfd4a3e17fc82acc9bf40005dbdb76dd7003b9fed62e8` |
+| Firefox 153.5.1esr               | 5 passed | `.scratch/saved-restart-firefox-153.5.1esr.json` | `e9710cc9571d7e014b25f7a338df87124055afc440816464db8b5f4723d130ce` |
+| Firefox 158.0.1                  | 5 passed | `.scratch/saved-restart-firefox-158.0.1.json`    | `69aeaba6c516041fa3d5990df5aee2a7b4205236524efe70d222ad6d3f604db4` |
+| Chrome for Testing 156.0.8078.47 | 5 passed | `.scratch/saved-restart-chrome.json`             | `e22227ca1ce2440055432d103feb19468969fbb4020bf39bbc1a21968d7b14bd` |
 
 Commands:
 
@@ -210,9 +210,13 @@ browser-policy block and is retained only as a failed attempt.
 The current probe attaches to a live incognito page target and navigates it to
 the library route. Chrome returns `net::ERR_BLOCKED_BY_CLIENT` and the page text
 `This page has been blocked by Chromium`; this is a concrete observed policy
-block, recorded separately from the authentic popup refusal. The library's own
-private guard remains unexercised in Chrome because the route cannot load. No
-incognito allowance, permission or product mode was broadened.
+block, recorded separately from the authentic popup refusal. The classifier is
+tested against negative fixtures for a loaded page without denial, a denied page
+that renders a row, and a denied page that renders the sentinel; all fail the
+probe as product guard failures. Transport failures remain `unavailable` and do
+not pass. The library's own private guard remains unexercised in Chrome because
+the route cannot load. No incognito allowance, permission or product mode was
+broadened.
 
 ## Gaps and limits
 
@@ -240,7 +244,7 @@ incognito allowance, permission or product mode was broadened.
 
 ## Source and package rebuilds
 
-At `41d3af4`, both source rebuild comparisons pass:
+At `2a5ac37`, both source rebuild comparisons pass:
 
 ```sh
 mise run test-source-build
@@ -249,9 +253,9 @@ mise run test-source-build-chrome
 
 Each reports `Source archive rebuild matches every packaged extension file.` The
 evidence files are `.scratch/source-build-evidence.json`
-(SHA-256 `59a3838a556afc2fb7cf7fa3898fc00a3e481f81504ee5c64dc2f28574cba330`)
+(SHA-256 `814bebe8a90b2f5874f8f65df18dadf2f1f82c7865c5a8287a52a03c97b3945b`)
 and `.scratch/source-build-evidence-chrome.json`
-(SHA-256 `c164bb86ee763a15f30b7bc93f2f7b6a76986ac1490d689febe007396b02a446`).
+(SHA-256 `6f555b7dd2d0e7745080c9c1fb664bdc1f68c713681fda16888a4f7e9361b99b`).
 The shared gate independently packages and validates both targets and writes
 their SHA-256 identities. No signed distribution or retail installation is
 claimed.

@@ -2,7 +2,7 @@
 
 Status: Stage 1 candidate evidence after review rounds F1 through F7. The Stage 1
 mechanism was accepted for the bounded #6 implementation on 2026-10-30. Stage 2
-product save/list/reopen/delete code is implemented in signed local `41d3af4` and
+product save/list/reopen/delete code is implemented in signed local `2a5ac37` and
 locally qualified; see the separate
 [product evidence](2026-10-30-saved-investigations.md). This record preserves the
 candidate gate, its exact raw reports and its explicit qualification gaps. No

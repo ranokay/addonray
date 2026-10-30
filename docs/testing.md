@@ -474,8 +474,8 @@ Browser and native evidence:
   and unknown refusal before storage access, exact transaction results,
   expired/unsupported rows, stale opens, single delete, disclosures, text
   escaping and no collection on render.
-- The clean local `41d3af4` browser tasks pass 87 checks on Firefox 140.0,
-  153.5.1esr and 158.0.1 and 81 checks on Chrome for Testing 156.0.8078.47. They
+- The clean local `2a5ac37` browser tasks pass 88 checks on Firefox 140.0,
+  153.5.1esr and 158.0.1 and 82 checks on Chrome for Testing 156.0.8078.47. They
   exercise the packaged save/list/open/delete flow, reload, multi-view deletion,
   the normal popup launcher, Firefox management removal, a Firefox authentic
   private window with a seeded archive, a Chrome authentic incognito popup with
@@ -488,9 +488,10 @@ Browser and native evidence:
   Chrome. Chrome product checks use the named pre-granted UI fixture with
   unchanged production assets.
 - `scripts/saved-store-checks.mjs` compiles the production storage adapter and
-  runs eight checks on all four pins: synchronous barrier capture, deletion after
-  the barrier, not-ready/recreated connections, idempotent delete, add-only
-  duplicate refusal, abort cancellation and oversized-row rejection. Run it with
+  runs nine checks on all four pins: a bounded barrier timeout followed by a
+  later save, synchronous barrier capture, deletion after the barrier,
+  not-ready/recreated connections, idempotent delete, add-only duplicate refusal,
+  abort cancellation and oversized-row rejection. Run it with
   `FIREFOX_VERSION=<pin> bun run test:saved-store:firefox` or
   `bun run test:saved-store:chrome`.
 - The separate `scripts/saved-restart-checks.mjs` probe passes five checks on
