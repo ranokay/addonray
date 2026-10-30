@@ -1904,7 +1904,7 @@ async function firefoxMain() {
       };
       const quota = estimate.quota;
       report.gaps.push(
-        `Natural quota exhaustion was not induced: the quota estimate (${quota ?? 'absent'} bytes) is above the fixed 64 MiB pressure cap. No real QuotaExceededError observation exists for this target.`,
+        `The estimate-only quota check did not induce natural pressure; the estimate (${quota ?? 'absent'} bytes) is above the fixed 64 MiB cap. This is not a quota-error observation; see the separate quota-override check.`,
       );
     }
     const abort = await callRaw('saveNow', 'quota-abort', {
@@ -2944,7 +2944,7 @@ async function chromeMain() {
       observations.estimate.quota > 64 * 1024 * 1024
     )
       report.gaps.push(
-        `Natural quota exhaustion was not induced: the Chrome quota estimate (${observations.estimate.quota ?? 'absent'} bytes) is absent or above the fixed 64 MiB pressure cap. No real QuotaExceededError observation exists for this target.`,
+        `The estimate-only quota check did not induce natural pressure; the Chrome estimate (${observations.estimate.quota ?? 'absent'} bytes) is absent or above the fixed 64 MiB cap. This is not a quota-error observation; see the separate quota-override check.`,
       );
     return observations;
   });
