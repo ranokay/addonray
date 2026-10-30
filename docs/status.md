@@ -35,9 +35,10 @@ positive normal active-tab classification. All approved storage/privacy
 disclosures appear before Save, and stored names/versions render as text.
 
 Local behavior evidence is **499 tests / 2,022,281 assertions across 35 files**
-and native type checking of 81 files. Exact working-tree browser runs pass **87
-checks on each of Firefox 140.0, 153.5.1esr and 158.0.1** and **81 checks on
-Chrome for Testing 156.0.8078.47**. They cover save/list/open/delete, reload,
+and native type checking of 81 files. Exact browser runs from clean local
+`974b5690b0e1f47d6ef97329b99749b50e9f78b9` pass **87 checks on each of Firefox
+140.0, 153.5.1esr and 158.0.1** and **81 checks on Chrome for Testing
+156.0.8078.47**. They cover save/list/open/delete, reload,
 stale-view deletion, the normal popup launcher, a seeded archive after Firefox
 management removal, a Firefox authentic private window, a Chrome authentic
 incognito popup, and a simulated Chrome `QuotaExceededError`. Chrome private

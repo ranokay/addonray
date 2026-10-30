@@ -1,11 +1,12 @@
 # Saved-investigation product slice
 
 Status: bounded #6 save, list, read-only reopen and single-record delete are
-implemented in the working tree and locally qualified on the pinned macOS
-browsers. Product browser restart, natural eviction, an actual Chrome engine
-quota error, a reachable Chrome private main-frame library route, the exact-OS
-and hosted matrix, the final frozen gate and independent review remain open. No
-push, PR, permission, publication or durability claim is included.
+implemented in signed local `974b5690b0e1f47d6ef97329b99749b50e9f78b9` and
+locally qualified on the pinned macOS browsers. Product browser restart, natural
+eviction, an actual Chrome engine quota error, a reachable Chrome private
+main-frame library route, the exact-OS and hosted matrix, the final frozen gate
+and independent review remain open. No push, PR, permission, publication or
+durability claim is included.
 
 This record follows the accepted Stage 1 mechanism in the
 [storage feasibility record](2026-10-30-saved-storage-feasibility.md). The prior
@@ -53,7 +54,7 @@ does not enter either package.
 
 ## Deterministic tests
 
-The full working-tree suite passes **499 tests / 2,022,281 assertions across 35
+The full suite at `974b569` passes **499 tests / 2,022,281 assertions across 35
 files**. Native type checking passes **81 files**. Focused coverage includes:
 
 - exact archived payload, ID omission, duplicate names, state preservation and
@@ -143,8 +144,8 @@ Product observations:
 5. **Natural eviction and engine quota.** Natural pressure eviction is unobserved.
    Firefox's real low-quota failure is Stage 1 candidate evidence; Chrome's
    product quota path is simulated only.
-6. **Source state.** Browser reports were produced from a working tree. The final
-   clean implementation run and frozen gate are recorded separately.
+6. **Source state.** Browser reports were produced from clean `974b569`. The
+   final documentation head and frozen gate are recorded separately.
 7. **One OS/architecture.** macOS arm64 only. Linux/Windows, retail installs,
    store distribution and native UI usability are outside this run.
 8. **Scope.** No import, JSON export, printable HTML, clipboard, retention

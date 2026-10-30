@@ -474,8 +474,8 @@ Browser and native evidence:
   and unknown refusal before storage access, exact transaction results,
   expired/unsupported rows, stale opens, single delete, disclosures, text
   escaping and no collection on render.
-- The working-tree browser tasks pass 87 checks on Firefox 140.0, 153.5.1esr and
-  158.0.1 and 81 checks on Chrome for Testing 156.0.8078.47. They exercise the
+- The clean local `974b569` browser tasks pass 87 checks on Firefox 140.0,
+  153.5.1esr and 158.0.1 and 81 checks on Chrome for Testing 156.0.8078.47. They exercise the
   packaged save/list/open/delete flow, reload, multi-view deletion, the normal
   popup launcher, Firefox management removal, a Firefox authentic private window
   with a seeded archive, a Chrome authentic incognito popup with a seeded
