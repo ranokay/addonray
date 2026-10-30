@@ -211,6 +211,27 @@ function invalidRecord() {
   };
 }
 
+async function barrierTimeout(name) {
+  const store = stores.get(name);
+  const originalGet = IDBObjectStore.prototype.get;
+  IDBObjectStore.prototype.get = function (...args) {
+    if (this.name === 'meta') return { onsuccess: null, onerror: null };
+    return originalGet.apply(this, args);
+  };
+  const started = performance.now();
+  let error = null;
+  try {
+    await store.readState();
+  } catch (caught) {
+    error = String(caught);
+  }
+  const elapsedMs = performance.now() - started;
+  IDBObjectStore.prototype.get = originalGet;
+  const state = await store.readState();
+  const saved = await store.save(makeRecord('55555555-5555-5555-5555-555555555555'), state);
+  return { error, elapsedMs, state, saved, list: await store.list() };
+}
+
 async function notReady() {
   const store = createIndexedDbSavedStore();
   stores.set('not-ready', store);
@@ -236,6 +257,7 @@ globalThis.savedStoreProbe = {
   abortedSave,
   invalidRecord,
   notReady,
+  barrierTimeout,
   makeRecord,
 };
 `,
@@ -338,6 +360,18 @@ try {
   assert.equal(first.saveBefore, 'unavailable');
   assert.equal(first.saveAfter, 'saved');
   passed('not-ready and first-connection refusal, then explicit ready', first);
+
+  await call(driver, 'reset');
+  await call(driver, 'open', 'timeout');
+  const timeout = await call(driver, 'barrierTimeout', 'timeout');
+  assert.match(timeout.error, /timed out/i);
+  assert(timeout.elapsedMs >= 4500, JSON.stringify(timeout));
+  assert.equal(timeout.saved, 'saved');
+  assert.equal(timeout.list.length, 1);
+  passed(
+    'bounded barrier timeout rejects then permits a later explicit save',
+    timeout,
+  );
 
   await call(driver, 'reset');
   await call(driver, 'open', 'a');

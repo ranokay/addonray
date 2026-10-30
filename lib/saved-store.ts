@@ -374,7 +374,7 @@ export function createIndexedDbSavedStore(
         if (database === db) database = null;
         return Promise.reject(failure(error, 'unavailable'));
       }
-      return readStateInTransaction(current);
+      return transactionFrom(current, (tx) => readStateInTransaction(tx));
     },
     list() {
       return withConnection((db) =>

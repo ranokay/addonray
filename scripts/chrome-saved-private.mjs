@@ -3,6 +3,7 @@ import { cp, mkdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { By, until } from 'selenium-webdriver';
 import { chromeExtensionId, launchChrome } from './chrome-session.mjs';
+import { classifyPrivateMainFrame } from './chrome-private-main-frame.ts';
 
 function sleep(milliseconds) {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, milliseconds));
@@ -306,9 +307,6 @@ export async function checkChromeSavedPrivate({
     );
 
     let mainFrame = { status: 'unavailable' };
-    const policyBlockPattern =
-      /ERR_BLOCKED_BY_CLIENT|blocked by Chromium|This page has been blocked/i;
-    let guardFailure = null;
     let route = null;
     let mainFrameTargetId = null;
     if (incognitoContext) {
@@ -350,49 +348,19 @@ export async function checkChromeSavedPrivate({
           if (value.ready === 'complete') break;
           await sleep(100);
         }
-        const blocked =
-          policyBlockPattern.test(String(value.text ?? '')) ||
-          /ERR_BLOCKED_BY_CLIENT/i.test(String(navigation.errorText ?? ''));
-        if (value.title === 'Saved investigations · AddonRay') {
-          if (!value.denied) {
-            guardFailure =
-              'The incognito library route loaded without a context denial';
-          } else {
-            assert.equal(value.rows, 0);
-            assert.equal(
-              String(value.text ?? '').includes(sentinelName),
-              false,
-            );
-            mainFrame = {
-              status: 'denied',
-              title: value.title,
-              rows: value.rows,
-              sentinelVisible: false,
-            };
-          }
-        } else if (blocked) {
-          mainFrame = {
-            status: 'browser-blocked',
-            title: value.title ?? null,
-            text: String(value.text ?? '').slice(0, 400),
-            navigationError: navigation.errorText ?? null,
-          };
-        } else {
-          mainFrame = {
-            status: 'unavailable',
-            title: value.title ?? null,
-            text: String(value.text ?? '').slice(0, 400),
-            navigationError: navigation.errorText ?? null,
-            reason: 'route-loaded-without-product-page',
-          };
-        }
-        if (guardFailure) throw new Error(guardFailure);
+        value.navigationError = navigation.errorText ?? null;
+        mainFrame = classifyPrivateMainFrame(value, sentinelName);
         if (mainFrameTargetId)
           await cdp
             .send('Target.closeTarget', { targetId: mainFrameTargetId })
             .catch(() => {});
       } catch (error) {
-        if (guardFailure) throw error;
+        if (
+          error instanceof Error &&
+          'guardFailure' in error &&
+          error.guardFailure === true
+        )
+          throw error;
         mainFrame = {
           status: 'unavailable',
           reason: 'transport-or-live-context-navigation-failed',

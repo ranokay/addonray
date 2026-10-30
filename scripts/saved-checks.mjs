@@ -246,7 +246,7 @@ export async function checkSavedInvestigations({
     },
   );
 
-  await openLibraryFromPopup({
+  const firstLibrary = await openLibraryFromPopup({
     driver,
     popupWindow,
     libraryUrl,
@@ -268,12 +268,59 @@ export async function checkSavedInvestigations({
     },
   );
 
+  const secondLibrary = await openDirectLibrary(driver, libraryUrl);
+  assert.equal(
+    (await driver.findElements(By.css('.library-entry'))).length,
+    1,
+    'A second library view must see the same record',
+  );
+  await driver.switchTo().window(firstLibrary);
+  await driver.executeScript(() => {
+    BroadcastChannel.prototype.postMessage = () => {};
+  });
   await deleteShownRecord(driver);
   passed(
     `${authority}: single-record delete is confirmed and removes the row after transaction completion`,
     { savedInvestigations: { deletion: 'single record' } },
   );
 
+  await driver.switchTo().window(secondLibrary);
+  assert.equal(
+    (await driver.findElements(By.css('.library-entry'))).length,
+    1,
+    'The withheld-notification view must retain its old row until an action',
+  );
+  await driver.findElement(By.id('open-saved-record')).click();
+  await driver.wait(
+    async () =>
+      (
+        await sectionText(
+          driver,
+          'section[aria-labelledby="library-list-heading"]',
+        )
+      ).includes('no longer available'),
+    10000,
+  );
+  assert.equal((await driver.findElements(By.id('archive-heading'))).length, 0);
+  await driver
+    .findElement(By.xpath('//button[normalize-space(.)="Refresh"]'))
+    .click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.css('.library-entry'))).length === 0,
+    10000,
+  );
+  passed(
+    `${authority}: a withheld-notification view fails its next open and refreshes to the deleted state`,
+    {
+      savedInvestigations: {
+        staleView: 'next action failed without a notification',
+        notification: 'withheld by a no-op BroadcastChannel',
+      },
+    },
+  );
+  await driver.close();
+  await driver.switchTo().window(firstLibrary);
   await driver.close();
   await driver.switchTo().window(investigationWindow);
   await assertPair(driver);

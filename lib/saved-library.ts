@@ -69,6 +69,7 @@ export function createSavedLibrary(
   let live = true;
   let suspended = false;
   let operation = 0;
+  let owner: number | null = null;
   let hintRevision = 0;
   let appliedRevision = 0;
   const subscribers = new Set<() => void>();
@@ -78,6 +79,7 @@ export function createSavedLibrary(
   };
   const clear = (phase: 'denied' | 'unavailable', message: string) => {
     operation += 1;
+    owner = null;
     publish({
       phase,
       entries: [],
@@ -100,17 +102,22 @@ export function createSavedLibrary(
   };
   const removeHint = hint?.subscribe(noteHint) ?? (() => {});
 
-  function afterAction() {
+  function afterAction(ticket: number) {
     if (!live) return;
-    if (state.busy) publish({ ...state, busy: false });
-    if (hintRevision !== appliedRevision) {
-      if (!state.busy) void refresh();
+    if (owner === ticket) {
+      owner = null;
+      if (state.busy) publish({ ...state, busy: false });
+    }
+    if (owner === null && hintRevision !== appliedRevision) {
+      void refresh();
     }
   }
 
   async function guard(ticket: number) {
-    if (!live || ticket !== operation) return false;
-    if (await normalContext(api)) return true;
+    if (!live || suspended || ticket !== operation) return false;
+    const normal = await normalContext(api);
+    if (!live || suspended || ticket !== operation) return false;
+    if (normal) return true;
     deny();
     return false;
   }
@@ -118,6 +125,7 @@ export function createSavedLibrary(
   async function refresh() {
     if (!live || suspended || state.busy) return;
     const ticket = ++operation;
+    owner = ticket;
     appliedRevision = hintRevision;
     publish({ ...state, busy: true, message: null });
     try {
@@ -173,17 +181,20 @@ export function createSavedLibrary(
         message: null,
       });
     } catch (error) {
-      if (ticket !== operation) return;
-      if (!(await normalContext(api))) return deny();
+      if (!live || suspended || ticket !== operation) return;
+      const normal = await normalContext(api);
+      if (!live || suspended || ticket !== operation) return;
+      if (!normal) return deny();
       clear('unavailable', preserveError(error));
     } finally {
-      afterAction();
+      afterAction(ticket);
     }
   }
 
   async function open(key: IDBValidKey) {
     if (!live || suspended || state.busy) return;
     const ticket = ++operation;
+    owner = ticket;
     publish({ ...state, busy: true, message: null });
     try {
       if (!(await guard(ticket))) return;
@@ -243,11 +254,13 @@ export function createSavedLibrary(
         message: null,
       });
     } catch (error) {
-      if (ticket !== operation) return;
-      if (!(await normalContext(api))) return deny();
+      if (!live || suspended || ticket !== operation) return;
+      const normal = await normalContext(api);
+      if (!live || suspended || ticket !== operation) return;
+      if (!normal) return deny();
       clear('unavailable', preserveError(error));
     } finally {
-      afterAction();
+      afterAction(ticket);
     }
   }
 
@@ -291,6 +304,7 @@ export function createSavedLibrary(
       const key = state.pendingDeleteKey;
       if (!live || suspended || state.busy || key === null) return;
       const ticket = ++operation;
+      owner = ticket;
       publish({ ...state, busy: true, message: null });
       try {
         if (!(await guard(ticket))) return;
@@ -324,13 +338,14 @@ export function createSavedLibrary(
           message: `${preserveError(error)} The record may still exist. Refresh before trying again.`,
         });
       } finally {
-        afterAction();
+        afterAction(ticket);
       }
     },
     suspend() {
       if (!live || suspended) return;
       suspended = true;
       operation += 1;
+      owner = null;
       appliedRevision = hintRevision;
       publish({
         phase: 'checking',
@@ -356,6 +371,7 @@ export function createSavedLibrary(
       live = false;
       suspended = false;
       operation += 1;
+      owner = null;
       removeHint();
       publish({
         phase: 'checking',

@@ -4,6 +4,7 @@ import { browser } from './browser';
 import { firefoxContext } from '../lib/browser-target';
 import { createInvestigation } from '../lib/investigation';
 import { createSavedSave, type SavedSaveBrowser } from '../lib/saved-save';
+import { SavedStoreError } from '../lib/saved-store';
 import type {
   SavedStore,
   SavedStoreEntry,
@@ -293,6 +294,18 @@ it('cancels when the investigation resets during the permission wait', async () 
   expect(saver.getSnapshot().message).toContain(
     'investigation changed before the save completed',
   );
+});
+
+it('releases the save lease when the barrier times out', async () => {
+  const { model, store, saver } = await fixture();
+  store.readState = async () => {
+    throw new SavedStoreError('timeout', 'Saved storage timed out.');
+  };
+  await saver.save();
+  expect(saver.getSnapshot().message).toContain('Saved storage timed out.');
+  const lease = model.activity.tryBegin('save');
+  expect(lease).not.toBeNull();
+  lease?.release();
 });
 
 it('removes page permission requirements when no page data is attached', async () => {

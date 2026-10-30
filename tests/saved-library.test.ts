@@ -414,3 +414,118 @@ it('lists an inconsistent page-error summary as unreadable', async () => {
   expect(library.getSnapshot().selected).toBeNull();
   expect(library.getSnapshot().message).toContain('unreadable');
 });
+
+it('does not publish a delayed open after a hint during the final context check', async () => {
+  const store = new MemoryStore();
+  const hint = hintFixture();
+  const finalGuard = Promise.withResolvers<{ incognito: boolean }>();
+  let calls = 0;
+  const api: SavedBrowser = {
+    tabs: {
+      getCurrent: vi.fn(async () => {
+        calls += 1;
+        if (calls === 4) return finalGuard.promise;
+        return { incognito: false };
+      }),
+    },
+  };
+  const library = createSavedLibrary(api, store, hint.hint);
+  store.entries.set(validId, record(validId));
+  await library.refresh();
+  const opening = library.open(validId);
+  await store.getStarted.promise;
+  hint.fire();
+  finalGuard.resolve({ incognito: false });
+  await opening;
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(library.getSnapshot().selected).toBeNull();
+});
+
+it('clears a delayed open when the view is suspended during the final context check', async () => {
+  const store = new MemoryStore();
+  const hint = hintFixture();
+  const finalGuard = Promise.withResolvers<{ incognito: boolean }>();
+  let calls = 0;
+  const api: SavedBrowser = {
+    tabs: {
+      getCurrent: vi.fn(async () => {
+        calls += 1;
+        if (calls === 4) return finalGuard.promise;
+        return { incognito: false };
+      }),
+    },
+  };
+  const library = createSavedLibrary(api, store, hint.hint);
+  store.entries.set(validId, record(validId));
+  await library.refresh();
+  const opening = library.open(validId);
+  await store.getStarted.promise;
+  library.suspend();
+  finalGuard.resolve({ incognito: false });
+  await opening;
+  expect(library.getSnapshot()).toMatchObject({
+    phase: 'checking',
+    entries: [],
+    selected: null,
+    busy: false,
+  });
+});
+
+it('does not let an old action clear a newer resumed action busy state', async () => {
+  const store = new MemoryStore();
+  const hint = hintFixture();
+  const finalGuard = Promise.withResolvers<{ incognito: boolean }>();
+  let calls = 0;
+  const api: SavedBrowser = {
+    tabs: {
+      getCurrent: vi.fn(async () => {
+        calls += 1;
+        if (calls === 4) return finalGuard.promise;
+        return { incognito: false };
+      }),
+    },
+  };
+  const library = createSavedLibrary(api, store, hint.hint);
+  store.entries.set(validId, record(validId));
+  await library.refresh();
+  const opening = library.open(validId);
+  await store.getStarted.promise;
+  library.suspend();
+  library.resume();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  finalGuard.resolve({ incognito: false });
+  await opening;
+  expect(library.getSnapshot().selected).toBeNull();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(library.getSnapshot().busy).toBe(false);
+});
+
+it('does not publish a delayed open after close during the final context check', async () => {
+  const store = new MemoryStore();
+  const hint = hintFixture();
+  const finalGuard = Promise.withResolvers<{ incognito: boolean }>();
+  let calls = 0;
+  const api: SavedBrowser = {
+    tabs: {
+      getCurrent: vi.fn(async () => {
+        calls += 1;
+        if (calls === 4) return finalGuard.promise;
+        return { incognito: false };
+      }),
+    },
+  };
+  const library = createSavedLibrary(api, store, hint.hint);
+  store.entries.set(validId, record(validId));
+  await library.refresh();
+  const opening = library.open(validId);
+  await store.getStarted.promise;
+  library.close();
+  finalGuard.resolve({ incognito: false });
+  await opening;
+  expect(library.getSnapshot()).toMatchObject({
+    entries: [],
+    selected: null,
+    selectedKey: null,
+    busy: false,
+  });
+});
