@@ -5,7 +5,7 @@ product runtime, schema, storage adapter and UI are not implemented. Product
 wiring remains stopped.
 
 The candidate commit named by the final browser reports is signed
-`ddc31a88f9293884d984075b4562d4ce7f8de5e7`, based on integration
+`e9fa95848d876a339bfc48168c45af91d37daaab`, based on integration
 `512f36ca9c8caa0b6c37f739b509009e897a3238` on `feat/saved-investigation`.
 The parent checkout was not modified. No product `lib/` or `entrypoints/` file
 changed.
@@ -19,8 +19,8 @@ profiles under ignored `.scratch/`; no user profile was opened.
 
 | Input                                | Identity                                                                            |
 | ------------------------------------ | ----------------------------------------------------------------------------------- |
-| `scripts/saved-storage-checks.mjs`   | SHA-256 `feedc251d5c0dede23bf947ce7ba05496d780be1a4bab1cf7ec219308777ad67`          |
-| `scripts/saved-storage-candidate/**` | combined SHA-256 `f1186ac909a4e54741af1be677fa6db923ef42776936b5e9d3d3b8ea101cfd28` |
+| `scripts/saved-storage-checks.mjs`   | SHA-256 `7b079fe178c33833bffed899179529fc8dd0de3ff9daa94a38e2fdc196bb778e`          |
+| `scripts/saved-storage-candidate/**` | combined SHA-256 `46ce9efbb5f851c27417344bc61ebaea9d51ea2b22f75d3a304e56c621a0a9f1` |
 | `scripts/saved-content-fixture/**`   | combined SHA-256 `b5edcdc86ed08fbf3cd335230be1a981a71c4b16f97cc1a2dc93c1b256fa243f` |
 | `scripts/saved-popup-candidate/**`   | combined SHA-256 `ab562e9ddeab9f110fb9405671e5ac28a6d2299a653bc88efc4261149faef8b2` |
 
@@ -30,8 +30,8 @@ separately identified test-only extension with one declared loopback
 `content_scripts` match and host permission. The popup candidate is a separate
 zero-permission action-popup extension with no host permissions. Candidate-only
 hooks provide readiness delays, a pending-save gate, synchronous aborts,
-metadata corruption and the deletion-epoch comparison. They do not enter the
-product or source archives.
+metadata corruption, store identity and the deletion-epoch comparison. They do
+not enter the product or source archives.
 
 Browser restart uses a retained copy of the session-1 Firefox profile or the
 same Chrome user-data directory. Firefox temporary extensions are reinstalled
@@ -42,183 +42,185 @@ unchanged. This is a test harness, not an installed product.
 
 - Firefox 140.0, 153.5.1esr and 158.0.1: every essential check passed; each
   command exits `0`. Non-essential gaps: `persistence-grant` (optional
-  `persist()` prompt) and `forced-clear` (scoped Firefox clear lost the driver
-  session). These are not relabelled as passes.
+  `persist()` prompt) and `forced-clear` (scoped clear returned `NS_OK` but the
+  post-clear page navigation timed out).
 - Chrome for Testing 156.0.8078.47: the reachable action-popup guard passed, but
   the authentic main-frame extension-page route remains browser-blocked.
   `private-context` is essential and `unavailable`; `report.incomplete` is
-  `["private-context"]`; the command exits `2`. This is an incomplete gate.
-- Overall: the ordinary IndexedDB mechanism, exact bounds, transactional
-  deletion barrier, content-script isolation, restart sentinel and the
-  Firefox/Rich Chrome popup private guards passed where observable. The gate
-  remains incomplete pending supervisor disposition of the remaining gaps.
+  `["private-context"]`; the command exits `2`. The Chrome low-quota override
+  is active but unenforced and is `unavailable`, not a quota-error pass.
+- Overall: the ordinary IndexedDB mechanism, exact bounds, atomic refusal,
+  transactional deletion barrier, store-loss handling, content-script
+  isolation, restart sentinel and the Firefox/Chrome popup private guards
+  passed where observable. The gate remains incomplete pending disposition of
+  the remaining gaps.
 
 ## Results matrix
 
 Legend: **P** passed, **U** unavailable (not a pass), **n/e** non-essential.
 
-| Check                                            | FF 140.0 | FF 153.5.1esr | FF 158.0.1 | Chrome 156.0.8078.47 |
-| ------------------------------------------------ | -------- | ------------- | ---------- | -------------------- |
-| Availability / round trip                        | P        | P             | P          | P                    |
-| Ordinary operation prompt checkpoints            | P        | P             | P          | P                    |
-| Raw storage headroom (separate)                  | P        | P             | P          | P                    |
-| Exact 5,242,880-byte set / 1,048,576-byte record | P        | P             | P          | P                    |
-| Atomic 51st / total-byte / per-record refusal    | P        | P             | P          | P                    |
-| Separate `persist()` probe                       | U (n/e)  | U (n/e)       | U (n/e)    | P (n/e)              |
-| Quota estimate observation                       | P (n/e)  | P (n/e)       | P (n/e)    | P (n/e)              |
-| Test-only low-quota override                     | P        | P             | P          | P (no error)         |
-| Forced browser-origin clear                      | U (n/e)  | U (n/e)       | U (n/e)    | P (n/e)              |
-| Content-script boundary                          | P        | P             | P          | P                    |
-| Cross-view deletion epoch                        | P        | P             | P          | P                    |
-| Missing/corrupt/exhausted epoch fail-closed      | P        | P             | P          | P                    |
-| First-save readiness race                        | P        | P             | P          | P                    |
-| Delete / expiry / unsupported                    | P        | P             | P          | P                    |
-| Authentic private/incognito main frame           | P        | P             | P          | U                    |
-| Authentic incognito action popup                 | n/a      | n/a           | n/a        | P                    |
-| Restart persistence                              | P        | P             | P          | P                    |
-| Uninstall/reinstall observation                  | P (n/e)  | P (n/e)       | P (n/e)    | P (n/e)              |
-| Negative fixtures / failure retention            | P        | P             | P          | P                    |
+| Check                                            | FF 140.0 | FF 153.5.1esr | FF 158.0.1 | Chrome 156.0.8078.47          |
+| ------------------------------------------------ | -------- | ------------- | ---------- | ----------------------------- |
+| Availability / round trip                        | P        | P             | P          | P                             |
+| Ordinary operation prompt checkpoints            | P        | P             | P          | P                             |
+| Raw storage headroom (separate)                  | P        | P             | P          | P                             |
+| Exact 5,242,880-byte set / 1,048,576-byte record | P        | P             | P          | P                             |
+| Atomic 51st / total-byte / per-record refusal    | P        | P             | P          | P                             |
+| Separate `persist()` probe                       | U (n/e)  | U (n/e)       | U (n/e)    | P (n/e)                       |
+| Estimate-only quota observation                  | P (n/e)  | P (n/e)       | P (n/e)    | P (n/e)                       |
+| Real low-quota error + recovery                  | P        | P             | P          | U (active override, no error) |
+| Forced browser-origin clear                      | U (n/e)  | U (n/e)       | U (n/e)    | P (n/e)                       |
+| Content-script boundary                          | P        | P             | P          | P                             |
+| Cross-view deletion epoch                        | P        | P             | P          | P                             |
+| Missing/corrupt/exhausted epoch fail-closed      | P        | P             | P          | P                             |
+| First-save readiness race                        | P        | P             | P          | P                             |
+| Delete / expiry / unsupported                    | P        | P             | P          | P                             |
+| Controlled store loss / recreation               | P        | P             | P          | P                             |
+| Authentic private/incognito main frame           | P        | P             | P          | U                             |
+| Authentic incognito action popup                 | n/a      | n/a           | n/a        | P                             |
+| Restart persistence                              | P        | P             | P          | P                             |
+| Uninstall/reinstall observation                  | P (n/e)  | P (n/e)       | P (n/e)    | P (n/e)                       |
+| Negative fixtures / failure retention            | P        | P             | P          | P                             |
 
 ## Review corrections
 
-### F2 — no reseeding and exact sentinels
+### F2/F4/F6 — retained from the previous round
 
-The content fixture now supports a read-only query (`?readOnly=1`) that reads
-the database without writing. After the content-script attempt, the runner reads
-the candidate page's own extension origin without reloading it, then opens the
-fixture page read-only. It verifies the exact `candidate-sentinel` /
-`extension-candidate` payload, the exact `archive-sentinel` /
-`fixture-extension` payload, the read-only flag, the page-origin `page` sentinel,
-the matching content-script runtime ID, and both extension sentinels still
-readable after the attempt. A wrong candidate payload is a negative fixture.
-The content script still sees only `page`, never either extension sentinel.
+Read-only content-fixture queries verify exact sentinel IDs and payloads without
+reseeding after the content-script attempt. Prompt detection requires both
+notification routes to exist and be readable; missing routes are unavailable,
+and a popup-only negative fixture detects the `persistent-storage` popup. Run
+callbacks populate shared observations before assertions and retain a failure
+snapshot. These remain implemented in the current candidate.
 
-### F4 — positive route presence
+### F7.1 — quota verdicts match observations
 
-The Firefox prompt detector now requires the notification box and
-`PopupNotifications` object to exist, requires both notification lists to be
-real arrays, and records explicit route errors. `classifyStoragePrompt` returns
-`missing-inspection-route` for absent routes and `inspection-unavailable` for
-route errors; `{}` is no longer prompt-free. The ordinary check opens a fresh
-`guardOnly` database and inspects both routes before open/upgrade, after
-open/upgrade, after a small write, after a 1 MiB write and after readback. A
-popup-only negative fixture detects a `persistent-storage` popup, and a
-missing-route negative fixture returns unavailable. The optional `persist()`
-prompt remains separate and does not fail ordinary DB use.
+The Firefox low-quota check requires a real `QuotaExceededError` and a
+successful recovery write. Its final result is
+`QuotaExceededError: The current transaction exceeded its quota limitations.`
+with one record before recovery and a successful 64 KiB recovery write.
 
-### F6 — shared observations and retained failures
+Primary sources for the low-quota mechanisms:
+`dom.quotaManager.temporaryStorage.fixedLimit` in
+`modules/libpref/init/StaticPrefList.yaml`, revision `86136a5f`
+(<https://searchfox.org/mozilla-central/source/modules/libpref/init/StaticPrefList.yaml>);
+Chrome DevTools Protocol `Storage.overrideQuotaForOrigin`
+(<https://chromedevtools.github.io/devtools-protocol/tot/Storage/#method-overrideQuotaForOrigin>)
+on Chrome for Testing `156.0.8078.47`.
 
-Run callbacks populate the shared observations object before assertions for
-availability, exact capacity, refusal, content boundary, epoch races, epoch
-fail-closed, readiness, deletion/expiry, restart, uninstall and clearing. The
-content check no longer shadows the run observations. Helpers record open/read
-and save replies before asserting. `run()` stores the observations plus a page
-state failure snapshot on assertion failure. A synthetic failure retains its
-counter and stage; the content and epoch checks retain their actual probe and
-transaction details on the same path. Quota observations retain the request
-name/message and counters. The Firefox low-quota report now records a real
-`QuotaExceededError`; the earlier generic transaction error remains in the
-retained failed attempts.
+The Chrome check is explicitly named "Test-only quota override observation:
+active override but no enforced error". `Storage.overrideQuotaForOrigin` was
+accepted, `Storage.getUsageAndQuota` reported `overrideActive:true` with a
+2,000,000-byte quota, but five 1 MiB random writes succeeded. The override was
+reset and recovery succeeded. The check is `unavailable`, with the exact active
+override retained; it is not a quota-error pass. A helper setup/transport error
+becomes an unavailable check, never a pass. Negative fixtures reject a false
+quota flag, a non-`QuotaExceededError` name and a failed recovery.
 
-### F7 — incognito popup and engine-specific probes
+### F7.2 — Firefox scoped clear target and completion
 
-**Chrome action popup.** A separate zero-permission action-popup candidate was
-loaded with `--load-extension` into a disposable profile. The runner used the
-actual `chrome://extensions/?id=...` detail toggle to set **Allow in Incognito**
-(test-only browser configuration) and verified the toggle; after restart
-`chrome.extension.isAllowedIncognitoAccess()` returned `true`. It created an
-authentic incognito window with `chrome.windows.create({incognito:true})`,
-triggered the action popup with the existing CDP `Extensions.triggerAction`
-authority on an incognito tab target, attached to the popup target, and
-evaluated the candidate probe.
+The scoped API is
+`clearStoragesForPrincipal(in nsIPrincipal, [optional] ACString persistenceType)`
+in `dom/quota/nsIQuotaManagerService.idl`. Its request is `nsIQuotaRequest` with
+a callback `onComplete(in nsIQuotaRequest)` in
+`dom/quota/nsIQuotaCallbacks.idl`; the callback receives `resultCode` and
+`resultName`. The candidate no longer awaits a non-Promise request object and
+never falls back to global `qms.clear()`.
 
-The popup reported: `allowed: true`; `tabs.getCurrent()` returned
+The candidate closes its DB handles, navigates the candidate tab to
+`about:blank`, then resolves the actual pinned extension principal. The raw
+result is stored before context restoration. In all three Firefox reports the
+principal was concrete and exact (`principalOrigin` equal to the extension
+origin; `extensionPrincipalURI` matching; `hasPrincipal:true`), and the callback
+returned `resultCode:0`, `resultName:"NS_OK"`, `cleared:true`. Context
+restoration succeeded, but reopening the candidate page then timed out
+(`Navigation timed out after 30000 ms`). The check is therefore `unavailable`:
+the API call completed successfully, but the emptied store was not verified by
+a post-clear read. No global clear was attempted. The earlier guessed-method
+attempts and session-loss attempts remain retained.
+
+Primary sources:
+
+- `dom/quota/nsIQuotaManagerService.idl`, revision `86136a5f`:
+  <https://searchfox.org/mozilla-central/source/dom/quota/nsIQuotaManagerService.idl>
+- `dom/quota/nsIQuotaRequests.idl` and `nsIQuotaCallbacks.idl`, revision
+  `86136a5f`:
+  <https://searchfox.org/mozilla-central/source/dom/quota/nsIQuotaRequests.idl>,
+  <https://searchfox.org/mozilla-central/source/dom/quota/nsIQuotaCallbacks.idl>
+
+### F7.3 — controlled store loss
+
+Each new database creates a `storeId` with `deletionEpoch:0`. A pending save
+captures both the expected epoch and the expected `storeId`; the put transaction
+compares both inside the same readwrite transaction. A controlled
+`deleteDatabase` closes the candidate handles and recreates a database whose
+epoch is again `0` but whose `storeId` differs. Releasing the old pending save
+returns `stale-store`; the new store remains empty and a fresh save succeeds.
+The check is explicitly labelled controlled loss handling, not natural
+eviction. Negative fixtures reject a reused store identity and an accepted
+pending save.
+
+### F7.4 — private-context disposition
+
+The Chrome popup candidate was loaded with `--load-extension`, **Allow in
+Incognito** was set through the actual `chrome://extensions/?id=...` detail
+toggle, and `chrome.extension.isAllowedIncognitoAccess()` returned `true` after
+restart. An authentic incognito window was created with
+`chrome.windows.create({incognito:true})`; the action popup was opened with
+`Extensions.triggerAction` on a real incognito tab target.
+
+Popup observations: `allowed:true`; `tabs.getCurrent()` returned
 `{status:"unknown", tabFound:false}`; `tabs.query({active:true,currentWindow:true})`
 returned `{status:"success", incognito:true}`; the guard returned
 `{status:"blocked", reason:"private-or-unknown-context", storageAccessed:false}`;
-`chrome.extension.inIncognitoContext` was `false` in the popup. The guard uses
-the explicit tab query only as a classification source and treats the undefined
-`getCurrent()` result as unknown, never as normal. The page route
-`chrome-extension://.../page.html` remained blocked with
-`ERR_BLOCKED_BY_CLIENT` even with the allowance; that blocked route is retained
-separately and is not counted as a pass.
+`storageAccesses` was `0`. `chrome.extension.inIncognitoContext` was `false` in
+the popup, recorded but not used to classify it as normal. The same popup
+candidate's main-frame page remained browser-blocked with
+`ERR_BLOCKED_BY_CLIENT` even with the allowance. The old main-frame route stays
+unavailable; the popup route passes. There is no combined waiver: the gate
+remains incomplete and Stage 2 must test every actual product entrypoint.
 
-**Firefox clearing.** Primary source: the pinned `nsIQuotaManagerService` IDL
-exposes `clearStoragesForPrincipal(in nsIPrincipal, [optional] ACString
-persistenceType)`, not `clearStoragesForOrigin`. The candidate closed its DB
-handles, navigated the candidate tab to `about:blank`, then called
-`Services.qms.clearStoragesForPrincipal(policy.principal)` from the chrome
-context. The FirefoxDriver session was lost (`NoSuchSessionError`) before the
-post-clear read; the method, authority, seed and closed-handle stages are
-retained. Forced browser-origin clearing remains unavailable on Firefox. The
-earlier guessed `clearStoragesForOrigin`/`qms.clear` failures remain retained.
+## Remaining gaps
 
-**Firefox low quota.** `dom.quotaManager.temporaryStorage.fixedLimit` is a
-documented test-only override in KiB (`StaticPrefList.yaml`, value `-1` by
-default). A fresh disposable profile set it to `2048` with
-`dom.quotaManager.testing=true`. The candidate wrote a 1 MiB random record, then
-the next write failed with
-`QuotaExceededError: The current transaction exceeded its quota limitations.`;
-clearing and a 64 KiB recovery write succeeded. This is a real observed
-`QuotaExceededError`, not a simulated abort.
-
-**Chrome low quota.** `Storage.overrideQuotaForOrigin` was accepted and
-`Storage.getUsageAndQuota` reported `overrideActive:true` with a 2,000,000-byte
-quota, but five 1 MiB random writes still succeeded and no
-`QuotaExceededError` was observed. The override is active but not enforced for
-this extension origin in this build; the gap is recorded rather than claiming a
-quota observation.
-
-## Gaps and disposition
-
-1. **Eviction is unobserved.** Firefox and Chrome `persisted()` were `false`;
-   natural pressure eviction was not induced. The 30-day retention rule remains
-   a product-level refusal/cleanup rule, not proof that best-effort storage
-   survives pressure. No `storage` or `unlimitedStorage` permission was
-   requested or approved.
-2. **Chrome low quota is not enforced** despite an active CDP override.
-   Firefox has a real `QuotaExceededError`; Chrome does not.
-3. **Firefox forced browser-origin clearing remains unavailable.** The correct
-   scoped principal method lost the driver session after handles were closed.
-4. **Chrome authentic incognito main-frame route remains blocked.** The
-   reachable action popup guard passed; the product library page would need its
-   own reachable-route test and stop condition in Stage 2.
-5. **Uninstall behavior** is observed for temporary/unpacked test installs, not
-   retail installation, signed distribution or every OS.
-6. **Scope.** One OS/architecture, local browsers only. No Linux, Windows,
-   store, privacy-policy or native-platform qualification follows.
+1. **Eviction unobserved.** Firefox and Chrome `persisted()` were `false`;
+   natural pressure eviction was not induced. The 30/90-day rules are
+   product-use expiry/max-retention rules, not a minimum physical-survival
+   guarantee. No new permission is requested for a durability guarantee.
+2. **Chrome low quota remains unenforced** despite an active CDP override;
+   Firefox has a real `QuotaExceededError`. Controlled store loss/recreation is
+   covered separately.
+3. **Firefox scoped clear completion unverified.** The principal and callback
+   were valid (`NS_OK`, `cleared:true`) but the post-clear page read timed out;
+   forced clearing remains unavailable.
+4. **Chrome authentic incognito main-frame route remains blocked.** The popup
+   guard passes; the product library page route would need its own reachable
+   route test and stop condition.
+5. **Uninstall** is observed only for temporary/unpacked test installs.
+6. **Scope** is one OS/architecture and local browsers only.
 
 The ordinary IndexedDB mechanism, exact bounds, atomic refusal, content-script
-isolation, restart sentinel, fail-closed epoch and private/unknown guard logic
-passed where observable. Product wiring is stopped; the remaining gate frontier
-is the best-effort eviction risk, Chrome enforcement/clearing limits, and the
-Chrome main-frame incognito route.
+isolation, restart sentinel, fail-closed epoch, controlled store-loss handling
+and reachable popup private guard passed where observable. Product wiring is
+stopped.
 
 ## Retained raw reports
 
-All paths are under ignored `.scratch/`:
-
 | Target                           | Report                                                                            | SHA-256                                                            |
 | -------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Firefox 140.0                    | `.scratch/saved-storage-firefox-140-0-20261030T111831Z-gLuDiW/report.json`        | `a6391c2af86b51a73f314acfb445484d7e9d7c842fe6780f764af510c6671d9e` |
-| Firefox 153.5.1esr               | `.scratch/saved-storage-firefox-153-5-1esr-20261030T111855Z-oX8Ute/report.json`   | `7eee0fb5dec646e11086192d7bfbefbfd1af75c15f717173db2358cc0e27c160` |
-| Firefox 158.0.1                  | `.scratch/saved-storage-firefox-158-0-1-20261030T111807Z-4r9lH7/report.json`      | `b46e4a3a5aff59575226b05fc544504adfa6b7c01fa68664cd9a23cfaeadfe68` |
-| Chrome for Testing 156.0.8078.47 | `.scratch/saved-storage-chrome-156-0-8078-47-20261030T111919Z-JktVNo/report.json` | `56e566a695a5b4707b2fd7f6c2417f699dd5c1dc4c5be72e9675e0245dc3eea7` |
+| Firefox 140.0                    | `.scratch/saved-storage-firefox-140-0-20261030T114409Z-VYspET/report.json`        | `1d7b12e8a2925b388c182b1e5329b00c1e8978075147f7995e154a092e0ae175` |
+| Firefox 153.5.1esr               | `.scratch/saved-storage-firefox-153-5-1esr-20261030T114600Z-YnRFg5/report.json`   | `b79adcd93268f86e32344f4bcc4b08bbb3afbc19d21ffa8a2f497711f90447da` |
+| Firefox 158.0.1                  | `.scratch/saved-storage-firefox-158-0-1-20261030T114211Z-L4XPoB/report.json`      | `82bcf8f3d93d62f8b33a16904df4555b9aaf7bf3d50219efeb78680b145cdc24` |
+| Chrome for Testing 156.0.8078.47 | `.scratch/saved-storage-chrome-156-0-8078-47-20261030T114747Z-bOrDph/report.json` | `328b4303232a781848443ae24b1affd9fcc9042ac2858d9233b650dc4e0cee10` |
 
 Each report has a `report.sha256` sidecar. The reports retain source commit
-`ddc31a88f9293884d984075b4562d4ce7f8de5e7`, `dirty: false`, candidate/fixture/
+`e9fa95848d876a339bfc48168c45af91d37daaab`, `dirty:false`, candidate/fixture/
 popup hashes, exact browser/driver versions, stages, observations, negative
-fixtures, incomplete reasons and cleanup. Raw evidence is not committed.
-
-Earlier v1, v2 and v3 attempts remain under the same ignored directory and were
-not deleted or relabelled. They include the canonical-hash mismatch, the
-synthetic-noise report, the double-unwrapped private branch, the missing
-inspection-route reports, the failed Firefox clearing attempts and the
-Chrome-only reports that predate the popup allowance.
+fixtures, incomplete reasons and cleanup. Earlier attempts remain under the
+same ignored directory and were not deleted or relabelled.
 
 ## Gate
 
 The shared check runs through the receipt runner before signed local commits.
-The candidate commit's pre-commit hook ran the full native gate. The final frozen
-receipt for the documentation head is recorded outside the repository. No push,
-pull request, permission change, product UI or runtime is included.
+The candidate commit's pre-commit hook ran the full native gate. The final
+frozen receipt for the documentation head is recorded outside the repository.
+No push, pull request, permission change, product UI or runtime is included.
