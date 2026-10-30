@@ -71,6 +71,7 @@ export type StoredRecordInspection =
 const encoder = new TextEncoder();
 const recordIdPattern =
   /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
+const maxDateMilliseconds = 8_640_000_000_000_000;
 
 type InvestigationState = ReturnType<Investigation['getSnapshot']>;
 
@@ -413,6 +414,8 @@ export function inspectStoredRecord(value: unknown): StoredRecordInspection {
       !Number.isSafeInteger(value.savedAt) ||
       !Number.isSafeInteger(value.expiresAt) ||
       (value.savedAt as number) < 0 ||
+      (value.savedAt as number) > maxDateMilliseconds ||
+      (value.expiresAt as number) > maxDateMilliseconds ||
       (value.expiresAt as number) <= (value.savedAt as number) ||
       (value.expiresAt as number) - (value.savedAt as number) >
         SAVED_MAX_RETENTION_MS ||

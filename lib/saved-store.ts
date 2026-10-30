@@ -179,7 +179,10 @@ function open(factory: IDBFactory, onClosed: (database: IDBDatabase) => void) {
       reject(failure(request.error, 'unavailable'));
     };
     request.onsuccess = () => {
-      if (settled) return;
+      if (settled) {
+        request.result.close();
+        return;
+      }
       settled = true;
       clearTimeout(timer);
       const database = request.result;

@@ -158,6 +158,30 @@ it('saves a completed investigation and keeps the live pair', async () => {
   });
 });
 
+it('reports a committed save even when the optional hint throws', async () => {
+  vi.spyOn(browser.permissions, 'request').mockResolvedValue(true);
+  vi.spyOn(browser.management, 'getAll').mockResolvedValue([]);
+  const model = createInvestigation(browser, firefoxContext);
+  await model.captureBefore();
+  await model.captureAfter();
+  const store = new MemoryStore();
+  const saver = createSavedSave(
+    api(),
+    model,
+    store,
+    {
+      notify() {
+        throw new Error('hint failed');
+      },
+    },
+    firefoxContext,
+  );
+  await saver.ready;
+  await saver.save();
+  expect(store.records.size).toBe(1);
+  expect(saver.getSnapshot().message).toContain('Saved locally.');
+});
+
 it('creates a separate record for each explicit save', async () => {
   const { store, saver } = await fixture();
   await saver.save();

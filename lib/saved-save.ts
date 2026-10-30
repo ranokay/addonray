@@ -219,7 +219,11 @@ export function createSavedSave(
         if (!live || ticket !== operation) return;
         if (result === 'saved') {
           const label = recordLabel(record);
-          notifier?.notify();
+          try {
+            notifier?.notify();
+          } catch {
+            /* A liveness hint cannot turn a committed save into a failure. */
+          }
           publish({
             ...state,
             busy: false,

@@ -251,6 +251,10 @@ it('rejects malformed values, unknown fields, overlong strings and unsafe timest
   const badVersion = clone();
   (badVersion as unknown as Record<string, unknown>).schemaVersion = '1';
   invalid.push(badVersion);
+  const unsupportedDate = clone();
+  unsupportedDate.savedAt = 9_000_000_000_000_000;
+  unsupportedDate.expiresAt = unsupportedDate.savedAt + 1;
+  invalid.push(unsupportedDate);
   for (const value of invalid)
     expect(inspectStoredRecord(value).status).toBe('invalid');
 });

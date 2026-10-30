@@ -11,21 +11,32 @@ const channelName = 'addonray-saved-investigations-v1';
 export function createSavedChangeHint(): SavedChangeHint {
   let live = true;
   const subscribers = new Set<() => void>();
+  const deliver = () => {
+    if (!live) return;
+    for (const subscriber of [...subscribers]) {
+      try {
+        subscriber();
+      } catch {
+        /* A hint receiver cannot fail the mutating action. */
+      }
+    }
+  };
   let channel: BroadcastChannel | null = null;
   try {
     channel = new BroadcastChannel(channelName);
-    channel.onmessage = () => {
-      if (!live) return;
-      for (const subscriber of [...subscribers]) subscriber();
-    };
+    channel.onmessage = deliver;
   } catch {
     channel = null;
   }
   return {
     notify() {
       if (!live) return;
-      for (const subscriber of [...subscribers]) subscriber();
-      channel?.postMessage('changed');
+      deliver();
+      try {
+        channel?.postMessage('changed');
+      } catch {
+        /* The hint is optional. */
+      }
     },
     subscribe(subscriber) {
       if (!live) return () => {};
