@@ -245,25 +245,31 @@ private windows stays unchanged.
 
 Import requires explicit file selection. AddonRay rejects a file larger than
 1 MiB before parsing, then accepts only schema version 1. It rejects unknown
-fields, duplicate keys, prototype-affecting keys, malformed values and
-out-of-range values. It preserves measured, unrecorded, unavailable and null
-states. A valid import opens as an explicitly labelled, untrusted, read-only
-report. It makes no inventory or page collection call and resumes no collector.
-It performs only the narrow current-view context and storage eligibility checks
-needed for the approved normal-window and availability boundary. Import alone
-persists nothing. A separate Save imported report action stores it under the same
-library, retention, deletion and context rules. AddonRay stores no original
-filename or path and keeps the imported provenance on every re-export. A file's
-self-asserted provenance is never authenticated as local capture.
+fields, duplicate keys, prototype-affecting keys, malformed values,
+negative or above-range duration values and out-of-range values. It preserves
+measured, unrecorded, unavailable and null states. A valid import opens as an
+explicitly labelled, untrusted, read-only report. It makes no inventory or page
+collection call and resumes no collector. It performs only the narrow
+current-view context and storage eligibility checks needed for the approved
+normal-window and availability boundary. Import alone persists nothing. A
+separate Save imported report action stores it under the same library, retention,
+deletion and context rules. Save imported report applies the 1 MiB stored-record
+bound including the local envelope. A maximum-size import is view-only if
+the envelope would exceed that bound. The imported view stays available for
+inspection or deletion. The interface discloses that before save; no partial
+record is written. AddonRay stores no original filename or path and
+keeps the imported provenance on every re-export. A file's self-asserted
+provenance is never authenticated as local capture.
 
 The approved formats are Markdown, JSON, printable HTML and explicit clipboard
 copy. Each has its own exact preview. JSON export and import share schema version
-1 and the same save, export and import bounds: 1 MiB complete document, 1,000
-inventory entries per side, 2,000 changes, 4,096 characters per string and
-nesting depth 8. Save checks the exact would-be JSON export, so an accepted
-export re-imports without truncation. No operation truncates, repairs or
-silently drops content. A report that fits JSON but whose printable HTML exceeds
-1 MiB cannot be printed.
+1 and the 1 MiB complete-document cap. The per-record stored cap also includes the
+local envelope, so a maximum-size import is view-only if the envelope would
+exceed it. The other shared bounds are 1,000 inventory entries per side, 2,000
+changes, 4,096 characters per string and nesting depth 8. Save checks the exact
+would-be JSON export, so an accepted export re-imports for read-only inspection
+without truncation. No operation truncates, repairs or silently drops content. A
+report that fits JSON but whose printable HTML exceeds 1 MiB cannot be printed.
 
 Download and print are requests, not proof of acceptance or completion. Keep the
 view open until the browser shows a download. The print dialog outcome is not

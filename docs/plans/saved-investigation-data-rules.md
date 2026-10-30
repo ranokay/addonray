@@ -186,10 +186,15 @@ or silently deleted.
 
 Save serializes the exact would-be JSON export and checks both the stored record
 and the export against their limits before commit. The local envelope is counted
-in the stored record and the 5 MiB total but not in the exported document. No
-operation truncates. An accepted export must be re-importable without hitting a
-different cap. A future schema or serializer change that grows the representation
-must repeat the round-trip check before release.
+in the stored record and the 5 MiB total but not in the exported document. The
+1 MiB import cap and the 1 MiB stored-record cap apply to different byte sets:
+the import cap covers the complete JSON file, while the stored-record cap covers
+the complete local record including the envelope. No operation truncates. An
+accepted export can be re-imported for read-only inspection without hitting the
+file or schema caps. Saving an imported report is a separate operation subject to
+the stored-record cap. A maximum-size import is view-only if the local envelope
+would exceed the stored-record bound. A future schema or serializer change that
+grows the representation must repeat the round-trip check before release.
 
 When the library is full, AddonRay removes expired and deleted records first. If
 the new record would still exceed 50 records or 5 MiB, Save fails with a clear
@@ -331,10 +336,12 @@ the file's claim. Re-export uses the local origin. A file that claims `captured`
 never becomes a local capture.
 
 `assessment` is one of the four assessment values or `null`. Timing measurements
-use `measured`, `unrecorded` or `unavailable`. Page-error attachments use the
-existing validated summary fields. The JSON report carries no extension IDs,
-source tab IDs, record IDs, local timestamps, page or browser context, user text
-or derived differences.
+use `measured`, `unrecorded` or `unavailable`. A measured `milliseconds` value is
+a finite number from 0 through `Number.MAX_SAFE_INTEGER`. A page-error
+`observedMs` value is a finite number from 0 through 30,000. Page-error
+attachments also keep the existing finish, count and duration consistency rules.
+The JSON report carries no extension IDs, source tab IDs, record IDs, local
+timestamps, page or browser context, user text or derived differences.
 
 ### Strict import
 
@@ -346,8 +353,8 @@ Import requires explicit file selection. AddonRay rejects a file larger than
 - reject unknown fields at every level;
 - reject duplicate keys;
 - reject `__proto__`, `prototype` and `constructor` keys;
-- reject non-finite numbers, wrong types, out-of-range counts and malformed
-  status values;
+- reject non-finite numbers, wrong types, negative or above-range `milliseconds`
+  and `observedMs` values, out-of-range counts and malformed status values;
 - enforce the inventory, change, string, nesting and byte bounds;
 - preserve measured, unrecorded, unavailable and null states exactly.
 
@@ -360,15 +367,22 @@ availability boundary. Import alone does not persist anything.
 
 A separate "Save imported report" action persists the validated content as an
 imported record under the same library, retention, deletion, context and bounds
-rules. The record keeps a local `importedAt` and imported origin. AddonRay stores
-neither the original filename nor path. Every re-export keeps the imported
-provenance marker and never presents the content as a local capture.
+rules. Save imported report applies the 1 MiB stored-record bound including the
+local envelope. A maximum-size import that would exceed that bound after the
+envelope is added remains view-only. The imported view stays available for
+inspection or deletion. The interface must disclose that before the save action.
+No operation truncates or writes a partial imported record. The record keeps a
+local `importedAt` and imported origin. AddonRay stores neither the original
+filename nor path. Every re-export keeps the imported provenance marker and never
+presents the content as a local capture.
 
 ### Round-trip and oversize behavior
 
-The save, JSON export and import limits are the same. Save checks the exact
-would-be export before commit. Any accepted JSON export is re-importable under
-the approved file and schema bounds. No operation truncates, repairs an
+The save, JSON export and import limits share the same numeric 1 MiB cap but
+apply to different byte sets. Save checks the exact would-be export before
+commit. Any accepted JSON export is re-importable for read-only inspection under
+the approved file and schema bounds. Saving the imported record is a separate
+operation subject to the stored-record cap. No operation truncates, repairs an
 out-of-range value or silently drops content. An oversized save, export, print
 preparation, clipboard preparation or import fails with a bounded result. It
 preserves the current valid record or live state, subject to the reset,
@@ -420,8 +434,8 @@ fit their own bounds. This is a presentation limit, not a data-loss path.
 | SRD-14 | Keep unsupported saved records listed for explicit deletion. Do not auto-migrate, rewrite or silently delete them.                                                                                                                                                                                                                                                                                                                   |
 | SRD-15 | Open an import as an explicitly labelled, untrusted, read-only report. Make no inventory or page collection call, resume no collector and persist nothing until a separate Save imported report action. Perform only the narrow current-view context and storage eligibility checks needed for the approved normal-window and availability boundary.                                                                                 |
 | SRD-16 | Keep imported provenance on every re-export. Store no filename or path. Never treat a file's self-asserted provenance as authenticated local capture.                                                                                                                                                                                                                                                                                |
-| SRD-17 | Use schema version 1 with strict validation. Reject unsupported versions, unknown fields, duplicate keys, prototype-affecting keys, malformed values and out-of-range values.                                                                                                                                                                                                                                                        |
-| SRD-18 | Enforce matching save, JSON export and import bounds. An accepted JSON export re-imports without truncation. No operation truncates or repairs data.                                                                                                                                                                                                                                                                                 |
+| SRD-17 | Use schema version 1 with strict validation. Reject unsupported versions, unknown fields, duplicate keys, prototype-affecting keys, malformed values, negative or above-range `milliseconds` and `observedMs` values and out-of-range counts.                                                                                                                                                                                        |
+| SRD-18 | Enforce matching save, JSON export and import bounds. An accepted JSON export re-imports for read-only inspection without truncation. A maximum-size import is view-only when the local envelope would exceed the stored-record bound. No operation truncates or repairs data.                                                                                                                                                       |
 | SRD-19 | Preview each output in its own representation. Generate self-contained printable HTML with no scripts or remote resources.                                                                                                                                                                                                                                                                                                           |
 | SRD-20 | Report download and print as requests, not completion. Report clipboard success only after a successful write. Treat accepted outputs as outside recall.                                                                                                                                                                                                                                                                             |
 | SRD-21 | Add no runtime, manifest, permission, dependency, toolchain, support, publication, licensing or evidence change in #5.                                                                                                                                                                                                                                                                                                               |

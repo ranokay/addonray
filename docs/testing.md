@@ -407,12 +407,19 @@ Model and schema checks:
 - measured, unrecorded, unavailable and null states preserved without coercion;
 - strict schema version 1, unknown fields, duplicate keys, prototype-affecting
   keys, malformed values, non-finite numbers and unsupported versions;
+- negative, non-finite and above-range `milliseconds` and `observedMs` values
+  rejected; measured `milliseconds` at most `Number.MAX_SAFE_INTEGER` and
+  `observedMs` at most 30,000;
 - unsupported saved records listed for explicit deletion without migration,
   rewrite or silent deletion;
 - 1,000 inventory entries per side, 2,000 changes, 4,096 characters per string,
   nesting depth 8, 1 MiB complete JSON and no truncation;
 - save, export and import byte accounting, including the local envelope in the
-  stored record and the round-trip requirement for an accepted export;
+  stored record, the accepted-export re-import requirement for inspection and
+  the separate save bound;
+- maximum-size import is view-only when the local envelope would exceed the
+  1 MiB stored-record bound; the view remains available for inspection or
+  deletion and save writes no partial record;
 - read-only reopen with no inventory or page collection, no source-tab access,
   no collector resumption and no collection-permission prompt; exercise the
   narrow current-view context and storage eligibility checks.

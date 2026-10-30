@@ -154,7 +154,7 @@ The future library owner lists records, enforces retention and bounds, and coord
 
 The #6 storage adapter candidate is extension-origin IndexedDB without a new permission. It is not approved until the storage, quota, restart, eviction, multi-view and private-context feasibility gates pass. No background owner, storage permission, sync path or companion transfer is added. If IndexedDB fails, #6 returns with evidence before proposing a storage permission.
 
-The future import owner validates a selected file, renders it as untrusted text and keeps it separate from live observations. Persistence requires a separate save and marks the record imported. The future report owner uses one bounded report model for Markdown, JSON, printable HTML and clipboard previews. Each format has its own exact preview and output lifetime. No PDF library, remote resource, automatic sharing or collector is introduced.
+The future import owner validates a selected file, renders it as untrusted text and keeps it separate from live observations. Persistence requires a separate save and marks the record imported, subject to the stored-record bound that includes the local envelope. A maximum-size import is view-only if the envelope would exceed that bound. The future report owner uses one bounded report model for Markdown, JSON, printable HTML and clipboard previews. Each format has its own exact preview and output lifetime. No PDF library, remote resource, automatic sharing or collector is introduced.
 
 The current runtime contains none of these owners. The existing investigation, report serializer and download controller stay in memory as described above.
 
