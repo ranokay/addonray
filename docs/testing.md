@@ -474,15 +474,25 @@ Browser and native evidence:
   and unknown refusal before storage access, exact transaction results,
   expired/unsupported rows, stale opens, single delete, disclosures, text
   escaping and no collection on render.
-- The clean local `e0d1293` browser tasks pass 87 checks on Firefox 140.0,
-  153.5.1esr and 158.0.1 and 81 checks on Chrome for Testing 156.0.8078.47. They exercise the
-  packaged save/list/open/delete flow, reload, multi-view deletion, the normal
-  popup launcher, Firefox management removal, a Firefox authentic private window
-  with a seeded archive, a Chrome authentic incognito popup with a seeded
-  incognito partition, and a simulated Chrome `QuotaExceededError`.
-- The Chrome private main-frame library route is browser-blocked and remains a
-  gap; the authentic incognito popup refusal is observed. Chrome product checks
-  use the named pre-granted UI fixture with unchanged production assets.
+- The clean local `41d3af4` browser tasks pass 87 checks on Firefox 140.0,
+  153.5.1esr and 158.0.1 and 81 checks on Chrome for Testing 156.0.8078.47. They
+  exercise the packaged save/list/open/delete flow, reload, multi-view deletion,
+  the normal popup launcher, Firefox management removal, a Firefox authentic
+  private window with a seeded archive, a Chrome authentic incognito popup with
+  a seeded incognito partition, a simulated Chrome `QuotaExceededError`, and a
+  simulated persisted `pageshow` that revalidates after another view deletes the
+  archive. No actual Chrome BFCache restoration is claimed.
+- The Chrome private main-frame library navigation is an observed
+  `ERR_BLOCKED_BY_CLIENT` policy block. The authentic incognito popup refusal is
+  separate evidence; the library's own private guard remains unexercised in
+  Chrome. Chrome product checks use the named pre-granted UI fixture with
+  unchanged production assets.
+- `scripts/saved-store-checks.mjs` compiles the production storage adapter and
+  runs eight checks on all four pins: synchronous barrier capture, deletion after
+  the barrier, not-ready/recreated connections, idempotent delete, add-only
+  duplicate refusal, abort cancellation and oversized-row rejection. Run it with
+  `FIREFOX_VERSION=<pin> bun run test:saved-store:firefox` or
+  `bun run test:saved-store:chrome`.
 - The separate `scripts/saved-restart-checks.mjs` probe passes five checks on
   each of Firefox 140.0, 153.5.1esr, 158.0.1 and Chrome 156.0.8078.47. Run it
   with `FIREFOX_VERSION=<pin> bun run test:saved-restart:firefox` or

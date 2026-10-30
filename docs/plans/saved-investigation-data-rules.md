@@ -131,8 +131,9 @@ permission. The Stage 1 candidate gate observed quota behavior, persistence
 across restart, controlled store loss, multi-view deletion barriers and the
 approved bounds on the pinned Firefox and Chrome targets. The supervisor
 accepted the mechanism for the bounded #6 slice on 2026-10-30. Natural eviction,
-an actual Chrome quota error, verified Firefox post-clear emptiness and a
-reachable Chrome private main-frame library route remain explicit gaps. The
+an actual Chrome quota error, verified Firefox post-clear emptiness and an
+exercised Chrome private main-frame library guard remain explicit gaps; the
+current Chrome main-frame route is policy-blocked. The
 50-record, 5 MiB and 1 MiB limits are product bounds, not IndexedDB or browser
 quota promises, and no persistence grant is claimed.
 
@@ -463,9 +464,9 @@ The #6 IndexedDB feasibility gate has run and its mechanism is accepted for the
 bounded implementation. The remaining gates below are future work, not current
 evidence:
 
-- #6: natural eviction, an actual Chrome engine quota error, a reachable Chrome
-  private main-frame library route, the exact-OS/hosted matrix and release
-  review. Page reload, full browser process restart with retained profile/origin,
+- #6: natural eviction, an actual Chrome engine quota error, an exercised Chrome
+  private main-frame library guard (the current route is policy-blocked), the
+  exact-OS/hosted matrix and release review. Page reload, full browser process restart with retained profile/origin,
   deletion persistence, controlled store loss, expiry, stale-view failure,
   permission removal and reachable private popup guards are observed.
 - #7: 7/30/90-day retention, 90-day maximum, lazy cleanup, delete-all, stale-view

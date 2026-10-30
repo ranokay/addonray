@@ -165,10 +165,13 @@ complete stored bytes including the local envelope, exact would-be exported
 JSON bytes and the 30-day/90-day bounds without truncation.
 
 `lib/saved-store.ts` owns extension-origin IndexedDB. One private meta record
-holds a random store-instance ID and a deletion epoch. A save first reads that
-state, then rechecks store identity, epoch, metadata, record count, aggregate
-bytes and the candidate size inside one readwrite transaction before putting the
-record. Success resolves only after the transaction completes. Deletes remove
+holds a random store-instance ID and a deletion epoch. A save on a ready connection synchronously enqueues its readonly metadata
+barrier, then rechecks store identity, epoch, metadata, record count, aggregate
+bytes and the candidate size inside one synchronously created readwrite
+transaction before adding the record. `add` refuses an existing record ID, so a
+save cannot overwrite an archive. A missing or invalidated connection refuses
+that action rather than opening a new permit after the barrier. Success resolves
+only after the transaction completes. Deletes remove
 one record and increment the epoch in the same transaction. Missing, corrupt or
 exhausted metadata and recreated connections fail closed. Open, blocked and
 transaction waits are bounded; pending writes abort on investigation reset. No
@@ -192,8 +195,10 @@ or source-tab code and requests no permission. Every read/action rechecks the
 owning normal context and re-reads storage. Expired valid rows are removed
 lazily; unsupported or unreadable rows stay visible for explicit deletion.
 Deleting one record clears an open copy of that record. A cross-view
-`BroadcastChannel` message only triggers a refresh; the next action never depends
-on it. The popup launcher classifies the active tab of the current window and
+`BroadcastChannel` message is a hint: a busy read is invalidated and a refresh is
+queued, and the next action re-reads storage even if no hint arrives. `pagehide`
+clears displayed archive data; a persisted `pageshow` revalidates before the view
+is used again. The popup launcher classifies the active tab of the current window and
 requires `incognito === false`, so private, incognito and unknown contexts expose
 no saved data. The library remains usable after management or scripting
 permission removal.

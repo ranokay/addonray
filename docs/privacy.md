@@ -214,14 +214,17 @@ truncation.
 
 `lib/saved-store.ts` is the extension-origin IndexedDB adapter. One private meta
 record supplies a store-instance ID and deletion epoch; saves and deletes bind
-both inside one readwrite transaction after rechecking metadata and bounds.
-Missing, corrupt or exhausted metadata fails closed. The adapter bounds open,
-blocked and transaction waits, aborts pending writes on reset, and reports
-success only after transaction completion. A store recreation or deletion epoch
-change rejects a pending write instead of resurrecting data. `lib/saved-save.ts`
-holds the exclusive save lease, checks normal context and current permissions
-through the last abortable point, and preserves the live investigation on
-ordinary storage, quota or size failure. `lib/saved-context.ts` fails closed on
+both inside one readwrite transaction after rechecking metadata and bounds. A
+ready connection synchronously enqueues the readonly barrier and the readwrite
+transaction before yielding; a missing or invalidated connection refuses the
+save. `add` refuses an existing record ID, so saves remain add-only. Missing,
+corrupt or exhausted metadata fails closed. The adapter bounds open, blocked and
+transaction waits, aborts pending writes on reset, and reports success only after
+transaction completion. A store recreation or deletion epoch change rejects a
+pending write instead of resurrecting data. `lib/saved-save.ts` holds the
+exclusive save lease, checks normal context and current permissions through the
+last abortable point (including after permission and record preparation), and
+preserves the live investigation on ordinary storage, quota or size failure. `lib/saved-context.ts` fails closed on
 missing or non-normal own-tab classification.
 
 `entrypoints/library` lists records and opens one inline read-only archive. It
@@ -230,7 +233,9 @@ and remains usable after management or scripting removal. Unsupported and
 unreadable rows stay visible for explicit deletion. Expiry refuses open and
 removes the row lazily. The library and investigation surfaces recheck normal
 context before reading or mutating; a cross-view `BroadcastChannel` message is
-only a refresh hint, and every action re-reads storage. The popup launcher uses
+only a refresh hint, a busy read is invalidated and refreshed, and every action
+re-reads storage. `pagehide` clears displayed archive data and a persisted
+`pageshow` revalidates before the view is reused. The popup launcher uses
 the active tab of the current window and requires a positive
 `incognito === false` classification before opening the library. Private,
 incognito and unknown contexts expose no saved rows.

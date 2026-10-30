@@ -34,9 +34,9 @@ BroadcastChannel message is only a refresh hint. The popup launcher requires a
 positive normal active-tab classification. All approved storage/privacy
 disclosures appear before Save, and stored names/versions render as text.
 
-Local behavior evidence is **500 tests / 2,022,284 assertions across 35 files**
+Local behavior evidence is **509 tests / 2,022,318 assertions across 35 files**
 and native type checking of 81 files. Exact browser runs from clean local
-`e0d129346aacbb54461fe0a581e43d9d8c9fafa8` pass **87 checks on each of Firefox
+`41d3af4409ca82ebecaff7cee1b104c561239306` pass **87 checks on each of Firefox
 140.0, 153.5.1esr and 158.0.1** and **81 checks on Chrome for Testing
 156.0.8078.47**. They cover save/list/open/delete, reload,
 stale-view deletion, the normal popup launcher, a seeded archive after Firefox
@@ -45,17 +45,19 @@ incognito popup, and a simulated Chrome `QuotaExceededError`. A separate
 five-check product restart probe passes on all four pins: explicit Save, full
 browser process restart with retained profile/origin, read-only list/reopen,
 live-state loss, no permission prompt, and deletion persistence across another
-restart. Chrome private
-main-frame library access remains browser-blocked; the launcher refusal is the
-observed guard. Chrome product checks use the named pre-granted UI fixture with
+restart. A four-pin production-adapter probe passes eight storage-ordering,
+add-only, bounds and abort checks each. Chrome private
+main-frame library navigation is an observed `ERR_BLOCKED_BY_CLIENT` policy
+block; the launcher refusal is a separate observed guard and the library's own
+private guard remains unexercised in Chrome. Chrome product checks use the named pre-granted UI fixture with
 unchanged production assets. See
 [product evidence](evidence/2026-10-30-saved-investigations.md) and the preserved
 [Stage 1 feasibility record](evidence/2026-10-30-saved-storage-feasibility.md).
 
 Still open for #6 release qualification: natural eviction, an actual Chrome
-engine quota error, a reachable Chrome private main-frame library route,
-unmodified Chrome optional-permission consent, the exact-OS/hosted matrix,
-independent review and release approval. The local
+engine quota error, an exercised Chrome private main-frame library guard (the
+route is currently policy-blocked), unmodified Chrome optional-permission
+consent, the exact-OS/hosted matrix, independent review and release approval. The local
 frozen gate passed at the delivery head. #7 through #11 remain unimplemented. No
 push, PR, permission, publication or durability claim is included.
 
@@ -397,7 +399,7 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Preserve the current session-only runtime and existing Markdown report; add no data persistence, permission, dependency, support or evidence claim.
 - [x] Run the #6 IndexedDB feasibility gate on the pinned Firefox and Chrome targets. The Stage 1 candidate was accepted for the bounded implementation on 2026-10-30 with explicit gaps; see [feasibility evidence](evidence/2026-10-30-saved-storage-feasibility.md).
 - [x] Implement #6 explicit save, list, read-only reopen and single-record delete with local behavior and browser evidence; see [product evidence](evidence/2026-10-30-saved-investigations.md).
-- [ ] Complete release qualification for #6: product browser restart, natural eviction, an actual Chrome engine quota error, a reachable Chrome private main-frame library route, and the exact-OS/hosted matrix.
+- [ ] Complete release qualification for #6: natural eviction, an actual Chrome engine quota error, an exercised Chrome private main-frame library guard, and the exact-OS/hosted matrix. Product restart and production-adapter regressions pass.
 - [ ] Implement and qualify #7 retention choices, bulk deletion and delete-all.
 - [ ] Implement and qualify #8 JSON export, #9 untrusted import, #10 printable HTML/PDF and #11 clipboard.
 - [ ] Qualify private and unknown contexts, multi-view deletion, expiry, storage failure and the exact browser and OS matrix.
@@ -409,9 +411,9 @@ Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.m
 is the current scope and support record. #5's
 [saved-investigation and report-exchange contract](plans/saved-investigation-data-rules.md)
 was approved and recorded on 2026-10-30. The bounded #6 slice is implemented and
-locally qualified with explicit gaps, including product browser restart; its
-local frozen gate passed, while the final release matrix and independent review
-remain. The next v1 decisions are #4, #13 and #20. #7 through #11 may start
+locally qualified with explicit gaps; product restart, production-adapter
+regressions and the simulated lifecycle path pass, and the local frozen gate
+passed, while the final release matrix and independent review remain. The next v1 decisions are #4, #13 and #20. #7 through #11 may start
 only under the approved #5 contract and their own gates. This implementation task
 authorizes no push or PR. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
