@@ -8,7 +8,7 @@ import { checkPackage } from './check-package.mjs';
 export const chromeVersion = '156.0.8078.47';
 
 // Browser-root commands must omit sessionId; Selenium's convenience CDP connection attaches a page.
-async function browserProtocol(debuggerAddress) {
+export async function browserProtocol(debuggerAddress) {
   assert.match(debuggerAddress, /^(?:localhost|127\.0\.0\.1):\d+$/);
   const response = await fetch(`http://${debuggerAddress}/json/version`);
   assert(response.ok, 'Chrome browser debugger metadata unavailable');
