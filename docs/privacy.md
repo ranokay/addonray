@@ -159,15 +159,17 @@ report output.
 | Printable HTML and print output                                                                              | Explicit print after preview                     | Browser, print dialog or PDF destination controls                                                      | User-chosen printer or local PDF                        |
 | Clipboard text                                                                                               | Explicit copy after preview                      | Browser or OS clipboard controls                                                                       | OS clipboard                                            |
 
-The archive is immutable and read-only. Reopening collects nothing, prompts for
-no management or scripting permission, reattaches no source tab and resumes no
-collector. Each save creates a new record. The archive omits extension IDs,
-source tab IDs, live investigation identity and label, document, attempt and
-transfer IDs, permission and host metadata, page URL, title and content, browser
-and OS context, user notes, custom titles and exchanged timestamps. The local
-record ID and local times never enter an exchanged report. Extension names can
-duplicate, so the archive keeps the ID-based changes computed at save time and
-never recomputes them from names.
+The archive is immutable and read-only. Reopening collects no inventory or page
+data, prompts for no management or scripting permission, reattaches no source tab
+and resumes no collector. It performs only the narrow current-view context and
+storage eligibility checks needed for the approved normal-window and availability
+boundary. Each save creates a new record. The archive omits extension IDs, source
+tab IDs, live investigation identity and label, document, attempt and transfer
+IDs, permission and host metadata, page URL, title and content, browser and OS
+context, user notes, custom titles and exchanged timestamps. The local record ID
+and local times never enter an exchanged report. Extension names can duplicate,
+so the archive keeps the ID-based changes computed at save time and never
+recomputes them from names.
 
 ### Local storage and disclosure
 
@@ -224,7 +226,10 @@ collection permission. New live captures still need the existing consent.
 
 A pending live save fails if its source investigation resets, a permission is
 removed, the investigation changes or normal context is lost before commit. No
-partial or post-revocation save is written.
+partial or post-revocation save is written. An ordinary storage, quota or size
+failure preserves the current valid live investigation. A reset or permission
+removal keeps its existing clearing semantics and invalidates the save. A failed
+save never restores discarded data.
 
 If a future storage or clipboard mechanism uses a permission, its removal
 behavior is not covered by this contract and must be defined and qualified before
@@ -243,10 +248,12 @@ Import requires explicit file selection. AddonRay rejects a file larger than
 fields, duplicate keys, prototype-affecting keys, malformed values and
 out-of-range values. It preserves measured, unrecorded, unavailable and null
 states. A valid import opens as an explicitly labelled, untrusted, read-only
-report. It makes no browser call and resumes no collector. Import alone persists
-nothing. A separate Save imported report action stores it under the same library,
-retention, deletion and context rules. AddonRay stores no original filename or
-path and keeps the imported provenance on every re-export. A file's
+report. It makes no inventory or page collection call and resumes no collector.
+It performs only the narrow current-view context and storage eligibility checks
+needed for the approved normal-window and availability boundary. Import alone
+persists nothing. A separate Save imported report action stores it under the same
+library, retention, deletion and context rules. AddonRay stores no original
+filename or path and keeps the imported provenance on every re-export. A file's
 self-asserted provenance is never authenticated as local capture.
 
 The approved formats are Markdown, JSON, printable HTML and explicit clipboard

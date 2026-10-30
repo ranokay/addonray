@@ -413,8 +413,9 @@ Model and schema checks:
   nesting depth 8, 1 MiB complete JSON and no truncation;
 - save, export and import byte accounting, including the local envelope in the
   stored record and the round-trip requirement for an accepted export;
-- read-only reopen with no collector, source tab, permission prompt or browser
-  call.
+- read-only reopen with no inventory or page collection, no source-tab access,
+  no collector resumption and no collection-permission prompt; exercise the
+  narrow current-view context and storage eligibility checks.
 
 Storage adapter checks:
 
@@ -426,7 +427,10 @@ Storage adapter checks:
   lazy cleanup and no hard physical deletion claim;
 - single delete, confirmed delete-all, pending-action invalidation, no
   resurrection and suspended-view behavior;
-- pending save failure on reset, permission removal or context loss;
+- ordinary storage, quota, size or output save failure preserves the current
+  valid live state, while reset, permission removal, source change or context
+  loss invalidates the save and cannot restore discarded data or resurrect a
+  deleted record;
 - unsupported record listing and explicit delete.
 
 UI checks:

@@ -46,11 +46,12 @@ Each Save creates a new archive with a new local record ID. It never updates an
 existing archive and never autosaves. A repeated explicit Save of the same live
 investigation creates a separate archive.
 
-Reopening reads the stored record only. It does not collect inventory, read a
-page, prompt for management or scripting, reattach a source tab, resume a
-collector or accept new observations. The archive view is read-only. The user
-can review it, export it in an approved format, print it, copy its reviewed text
-or delete it.
+Reopening reads the stored record and performs only the narrow current-view
+context and storage eligibility checks needed for the approved normal-window and
+availability boundary. It does not collect inventory, inspect a page, prompt for
+management or scripting, reattach a source tab, resume a collector or accept new
+observations. The archive view is read-only. The user can review it, export it
+in an approved format, print it, copy its reviewed text or delete it.
 
 ### Local record envelope
 
@@ -143,8 +144,11 @@ fails with a bounded result and writes no record when:
 - the record would exceed any approved bound;
 - storage is unavailable or quota fails.
 
-A failed save preserves the live investigation. It writes no partial record.
-No save prompts for a new permission.
+An ordinary storage, quota, size or output failure preserves the current valid
+live investigation. A reset or permission removal keeps its existing clearing
+semantics and invalidates the save. A changed source or context invalidates the
+save under the existing investigation rules. A failed save writes no partial
+record and never restores discarded data. No save prompts for a new permission.
 
 ### Retention and expiry
 
@@ -189,7 +193,8 @@ must repeat the round-trip check before release.
 
 When the library is full, AddonRay removes expired and deleted records first. If
 the new record would still exceed 50 records or 5 MiB, Save fails with a clear
-message. Unexpired records are never auto-evicted. The live investigation stays.
+message. Unexpired records are never auto-evicted. The current valid live
+investigation stays.
 
 ### Delete, delete-all and concurrent views
 
@@ -347,9 +352,11 @@ Import requires explicit file selection. AddonRay rejects a file larger than
 - preserve measured, unrecorded, unavailable and null states exactly.
 
 A valid import opens as an explicitly labelled "Imported report" in a read-only
-view. It is untrusted text. It makes no browser call, reads no page, resumes no
-collector, reattaches no source tab and cannot be attached to a live
-investigation. Import alone does not persist anything.
+view. It is untrusted text. It makes no inventory or page collection call,
+inspects no page, resumes no collector, reattaches no source tab and cannot be
+attached to a live investigation. It performs only the narrow current-view
+context and storage eligibility checks needed for the approved normal-window and
+availability boundary. Import alone does not persist anything.
 
 A separate "Save imported report" action persists the validated content as an
 imported record under the same library, retention, deletion, context and bounds
@@ -363,8 +370,10 @@ The save, JSON export and import limits are the same. Save checks the exact
 would-be export before commit. Any accepted JSON export is re-importable under
 the approved file and schema bounds. No operation truncates, repairs an
 out-of-range value or silently drops content. An oversized save, export, print
-preparation, clipboard preparation or import fails with a bounded result and
-preserves the existing record or live investigation.
+preparation, clipboard preparation or import fails with a bounded result. It
+preserves the current valid record or live state, subject to the reset,
+permission and context invalidation rules above, and never restores discarded
+data.
 
 A report that fits the JSON bound but whose printable HTML representation exceeds
 1 MiB cannot be printed. Its JSON and Markdown outputs remain available if they
@@ -376,7 +385,8 @@ fit their own bounds. This is a presentation limit, not a data-loss path.
 - No automatic save, autosave, automatic history or recovered live session.
 - No editable or resumable saved investigation.
 - No collector, source tab or browser observation resumes from an archive or
-  import.
+  import. The narrow current-view context and storage eligibility checks do not
+  collect observations.
 - No per-field redaction, omit-names control, user notes or custom titles.
 - No extension IDs, extension-ID hashes, live session identifiers, source tab
   IDs, document or attempt IDs.
@@ -392,30 +402,30 @@ fit their own bounds. This is a presentation limit, not a data-loss path.
 
 ## Acceptance criteria
 
-| ID     | Required behavior                                                                                                                                                                                               |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SRD-01 | Save only a completed, idle investigation with both inventories successful and a verified normal window. Each explicit Save creates a new immutable record. No autosave and no update of an existing record.    |
-| SRD-02 | Store both inventories, the precomputed ID-based changes, assessment, optional timing and page-error summaries and observation limits. Omit extension IDs and all live or ephemeral identifiers.                |
-| SRD-03 | Preserve measured, unrecorded, unavailable and null states. Allow duplicate names. Never recompute archived changes from names.                                                                                 |
-| SRD-04 | Reopen read-only. Never collect, prompt for management or scripting, reattach a source tab, resume a collector or accept new observations.                                                                      |
-| SRD-05 | Keep records in extension-origin storage in the current browser profile with no sync, cloud, telemetry or companion path. Disclose the access and retention boundary before the first save.                     |
-| SRD-06 | Try IndexedDB without a new permission in #6, behind the approved Firefox and Chrome feasibility checks. Return with evidence before proposing any storage permission.                                          |
-| SRD-07 | Require a verified normal window for every saved-data and exchange action. Private, incognito and unknown contexts expose no saved data. The guard is independent of collection permission.                     |
-| SRD-08 | Apply 30-day default retention, 7/30/90-day choices and a 90-day maximum from `savedAt`. Expiry refuses product use and triggers lazy cleanup, not a hard physical deletion deadline.                           |
-| SRD-09 | Enforce 50 records, 5 MiB total and 1 MiB per record with complete serialized accounting, including the local envelope. Refuse a save when full and never evict unexpired records.                              |
-| SRD-10 | Fail a save without a partial write when eligibility, bounds, storage, permission or context fails. Preserve the live investigation. A pending save cannot outlive a reset, permission removal or context loss. |
-| SRD-11 | Keep saved archives available after management or scripting revocation. New capture still requires consent.                                                                                                     |
-| SRD-12 | Apply single-record delete and confirmed delete-all across views, invalidate pending actions and prevent resurrection. Do not promise instantaneous execution in a suspended view.                              |
-| SRD-13 | Disclose that browser backups, profile copies and already handed-off files, prints or clipboard content are outside product recall. No forensic-erasure claim.                                                  |
-| SRD-14 | Keep unsupported saved records listed for explicit deletion. Do not auto-migrate, rewrite or silently delete them.                                                                                              |
-| SRD-15 | Open an import as an explicitly labelled, untrusted, read-only report. Make no browser call, resume no collector and persist nothing until a separate Save imported report action.                              |
-| SRD-16 | Keep imported provenance on every re-export. Store no filename or path. Never treat a file's self-asserted provenance as authenticated local capture.                                                           |
-| SRD-17 | Use schema version 1 with strict validation. Reject unsupported versions, unknown fields, duplicate keys, prototype-affecting keys, malformed values and out-of-range values.                                   |
-| SRD-18 | Enforce matching save, JSON export and import bounds. An accepted JSON export re-imports without truncation. No operation truncates or repairs data.                                                            |
-| SRD-19 | Preview each output in its own representation. Generate self-contained printable HTML with no scripts or remote resources.                                                                                      |
-| SRD-20 | Report download and print as requests, not completion. Report clipboard success only after a successful write. Treat accepted outputs as outside recall.                                                        |
-| SRD-21 | Add no runtime, manifest, permission, dependency, toolchain, support, publication, licensing or evidence change in #5.                                                                                          |
-| SRD-22 | Qualify storage, retention, deletion, import, export, print, clipboard, private and unknown contexts and multi-view behavior before claiming implementation.                                                    |
+| ID     | Required behavior                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SRD-01 | Save only a completed, idle investigation with both inventories successful and a verified normal window. Each explicit Save creates a new immutable record. No autosave and no update of an existing record.                                                                                                                                                                                                                         |
+| SRD-02 | Store both inventories, the precomputed ID-based changes, assessment, optional timing and page-error summaries and observation limits. Omit extension IDs and all live or ephemeral identifiers.                                                                                                                                                                                                                                     |
+| SRD-03 | Preserve measured, unrecorded, unavailable and null states. Allow duplicate names. Never recompute archived changes from names.                                                                                                                                                                                                                                                                                                      |
+| SRD-04 | Reopen read-only. Never collect inventory or page data, prompt for management or scripting, reattach a source tab, resume a collector or accept new observations. Perform only the narrow current-view context and storage eligibility checks needed for the approved normal-window and availability boundary.                                                                                                                       |
+| SRD-05 | Keep records in extension-origin storage in the current browser profile with no sync, cloud, telemetry or companion path. Disclose the access and retention boundary before the first save.                                                                                                                                                                                                                                          |
+| SRD-06 | Try IndexedDB without a new permission in #6, behind the approved Firefox and Chrome feasibility checks. Return with evidence before proposing any storage permission.                                                                                                                                                                                                                                                               |
+| SRD-07 | Require a verified normal window for every saved-data and exchange action. Private, incognito and unknown contexts expose no saved data. The guard is independent of collection permission.                                                                                                                                                                                                                                          |
+| SRD-08 | Apply 30-day default retention, 7/30/90-day choices and a 90-day maximum from `savedAt`. Expiry refuses product use and triggers lazy cleanup, not a hard physical deletion deadline.                                                                                                                                                                                                                                                |
+| SRD-09 | Enforce 50 records, 5 MiB total and 1 MiB per record with complete serialized accounting, including the local envelope. Refuse a save when full and never evict unexpired records.                                                                                                                                                                                                                                                   |
+| SRD-10 | Fail a save without a partial write when eligibility, bounds, storage, permission or context fails. An ordinary storage, quota, size or output failure preserves the current valid live investigation. A reset or permission removal keeps its existing clearing semantics, and a changed source or context invalidates the save. A pending save cannot outlive those changes, restore discarded data or resurrect a deleted record. |
+| SRD-11 | Keep saved archives available after management or scripting revocation. New capture still requires consent.                                                                                                                                                                                                                                                                                                                          |
+| SRD-12 | Apply single-record delete and confirmed delete-all across views, invalidate pending actions and prevent resurrection. Do not promise instantaneous execution in a suspended view.                                                                                                                                                                                                                                                   |
+| SRD-13 | Disclose that browser backups, profile copies and already handed-off files, prints or clipboard content are outside product recall. No forensic-erasure claim.                                                                                                                                                                                                                                                                       |
+| SRD-14 | Keep unsupported saved records listed for explicit deletion. Do not auto-migrate, rewrite or silently delete them.                                                                                                                                                                                                                                                                                                                   |
+| SRD-15 | Open an import as an explicitly labelled, untrusted, read-only report. Make no inventory or page collection call, resume no collector and persist nothing until a separate Save imported report action. Perform only the narrow current-view context and storage eligibility checks needed for the approved normal-window and availability boundary.                                                                                 |
+| SRD-16 | Keep imported provenance on every re-export. Store no filename or path. Never treat a file's self-asserted provenance as authenticated local capture.                                                                                                                                                                                                                                                                                |
+| SRD-17 | Use schema version 1 with strict validation. Reject unsupported versions, unknown fields, duplicate keys, prototype-affecting keys, malformed values and out-of-range values.                                                                                                                                                                                                                                                        |
+| SRD-18 | Enforce matching save, JSON export and import bounds. An accepted JSON export re-imports without truncation. No operation truncates or repairs data.                                                                                                                                                                                                                                                                                 |
+| SRD-19 | Preview each output in its own representation. Generate self-contained printable HTML with no scripts or remote resources.                                                                                                                                                                                                                                                                                                           |
+| SRD-20 | Report download and print as requests, not completion. Report clipboard success only after a successful write. Treat accepted outputs as outside recall.                                                                                                                                                                                                                                                                             |
+| SRD-21 | Add no runtime, manifest, permission, dependency, toolchain, support, publication, licensing or evidence change in #5.                                                                                                                                                                                                                                                                                                               |
+| SRD-22 | Qualify storage, retention, deletion, import, export, print, clipboard, private and unknown contexts and multi-view behavior before claiming implementation.                                                                                                                                                                                                                                                                         |
 
 ## Issue #5 acceptance map
 
