@@ -197,7 +197,9 @@ owning normal context and re-reads storage. Expired valid rows are removed
 lazily; unsupported or unreadable rows stay visible for explicit deletion.
 Deleting one record clears an open copy of that record. A cross-view
 `BroadcastChannel` message is a hint: a busy read is invalidated and a refresh is
-queued, and the next action re-reads storage even if no hint arrives. `pagehide`
+queued, and the next action re-reads storage even if no hint arrives. Refresh,
+open and delete catch paths recheck lifecycle/operation after every context await;
+a superseded action cannot publish or clear a newer action's busy state. `pagehide`
 clears displayed archive data; a persisted `pageshow` revalidates before the view
 is used again. The popup launcher classifies the active tab of the current window and
 requires `incognito === false`, so private, incognito and unknown contexts expose

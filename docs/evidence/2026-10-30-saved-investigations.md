@@ -1,7 +1,7 @@
 # Saved-investigation product slice
 
 Status: bounded #6 save, list, read-only reopen and single-record delete are
-implemented in signed local `2a5ac372117103110b4153b1cf1364418fd54aa7` and
+implemented in signed local `05ac5ef950f0372bcbf8e710f1bb7dda50aafd88` and
 locally qualified on the pinned macOS browsers. Product browser restart,
 deletion persistence, the production-adapter ordering/add-only/bounds/abort
 regressions and the simulated library lifecycle pass separately. Natural
@@ -56,7 +56,7 @@ does not enter either package.
 
 ## Deterministic tests
 
-The full suite at `2a5ac37` passes **517 tests / 2,022,334 assertions across 36
+The full suite at `05ac5ef` passes **518 tests / 2,022,344 assertions across 36
 files**. Native type checking passes **81 files**. Focused coverage includes:
 
 - exact archived payload, ID omission, duplicate names, state preservation and
@@ -113,13 +113,13 @@ to the user's profile.
 
 | Target                           | Result                         | Observed checks | Raw report                                  | SHA-256                                                            |
 | -------------------------------- | ------------------------------ | --------------- | ------------------------------------------- | ------------------------------------------------------------------ |
-| Firefox 140.0                    | passed-with-qualification-gaps | 88              | `.scratch/firefox-evidence-140.0.json`      | `0ff10afafe3ab26ed369b09d97fab035f65a19698c2fd4901ae515a7b9efbbad` |
-| Firefox 153.5.1esr               | passed-with-qualification-gaps | 88              | `.scratch/firefox-evidence-153.5.1esr.json` | `6238c19ec88b99086dba39cc3f599dc56a5086db49cc27e98f78a3ac219173c9` |
-| Firefox 158.0.1                  | passed-with-qualification-gaps | 88              | `.scratch/firefox-evidence-158.0.1.json`    | `82190ab34a130f540c4b27dbeadb77509e1c079f04d002a76f8942c20bbce452` |
-| Chrome for Testing 156.0.8078.47 | passed-with-qualification-gaps | 82              | `.scratch/chrome-evidence.json`             | `3f52f8e886d1cb4a7d93a7ca6445658544beb3dd628c5542eda009580651c018` |
+| Firefox 140.0                    | passed-with-qualification-gaps | 88              | `.scratch/firefox-evidence-140.0.json`      | `aef80c13f0df67b31f2618f34b3d18c689472a48cff1d861abec83a2a5c25289` |
+| Firefox 153.5.1esr               | passed-with-qualification-gaps | 88              | `.scratch/firefox-evidence-153.5.1esr.json` | `d67a755cbf732ebc97681c855ba5f106e02d9ca3aa0e9e8f8fc647d4fddbe289` |
+| Firefox 158.0.1                  | passed-with-qualification-gaps | 88              | `.scratch/firefox-evidence-158.0.1.json`    | `786549e45c49ac03ad5259b95dade6430f8d3848f07b54308c1cf3807073638f` |
+| Chrome for Testing 156.0.8078.47 | passed-with-qualification-gaps | 82              | `.scratch/chrome-evidence.json`             | `c7482a9e13f6e543b36b8a7c8971cceda83b939e7380276eaeabc2947d1ee253` |
 
 All four reports record source commit
-`2a5ac372117103110b4153b1cf1364418fd54aa7` and `sourceDirty:false`.
+`05ac5ef950f0372bcbf8e710f1bb7dda50aafd88` and `sourceDirty:false`.
 
 Product observations:
 
@@ -143,24 +143,24 @@ Product observations:
 - Chrome: an authentic incognito action popup refuses the launcher. A sentinel
   record was seeded in the incognito extension partition before the action; no
   library tab opened and no saved row appeared.
-- Chrome: a simulated `QuotaExceededError` from a patched
-  `IDBObjectStore.prototype.put` produces the bounded quota message and preserves
+- Chrome: a simulated `QuotaExceededError` from patched
+  `IDBObjectStore.prototype.put`/`add` produces the bounded quota message and preserves
   the live pair. This is not an observed Chrome engine quota failure.
 
 ## Product browser restart
 
 The restart probe is `scripts/saved-restart-checks.mjs`. It uses the packaged
-product assets and runs at clean commit `2a5ac37`. Each target performs
+product assets and runs at clean commit `05ac5ef`. Each target performs
 three bounded processes: explicit product Save with a completed live pair;
 restart with the retained profile/origin; and a second restart after single
 delete.
 
 | Target                           | Checks   | Raw report                                       | SHA-256                                                            |
 | -------------------------------- | -------- | ------------------------------------------------ | ------------------------------------------------------------------ |
-| Firefox 140.0                    | 5 passed | `.scratch/saved-restart-firefox-140.0.json`      | `349c125e2678f7eb3c9dfd4a3e17fc82acc9bf40005dbdb76dd7003b9fed62e8` |
-| Firefox 153.5.1esr               | 5 passed | `.scratch/saved-restart-firefox-153.5.1esr.json` | `e9710cc9571d7e014b25f7a338df87124055afc440816464db8b5f4723d130ce` |
-| Firefox 158.0.1                  | 5 passed | `.scratch/saved-restart-firefox-158.0.1.json`    | `69aeaba6c516041fa3d5990df5aee2a7b4205236524efe70d222ad6d3f604db4` |
-| Chrome for Testing 156.0.8078.47 | 5 passed | `.scratch/saved-restart-chrome.json`             | `e22227ca1ce2440055432d103feb19468969fbb4020bf39bbc1a21968d7b14bd` |
+| Firefox 140.0                    | 5 passed | `.scratch/saved-restart-firefox-140.0.json`      | `0efc03fbf7e37e1583c1ab620f21b9b53234bde9939e7711fba6e88db2ac6ae1` |
+| Firefox 153.5.1esr               | 5 passed | `.scratch/saved-restart-firefox-153.5.1esr.json` | `7f6983136ed256a96408d894f9eb35fefd4317d75b4354798e03b3d0c57dd124` |
+| Firefox 158.0.1                  | 5 passed | `.scratch/saved-restart-firefox-158.0.1.json`    | `96cc97da2b80bf277b35e84080e3940de911ea57c960e67910e135791393a003` |
+| Chrome for Testing 156.0.8078.47 | 5 passed | `.scratch/saved-restart-chrome.json`             | `56c4427d7f0ee2db91e0fa3b353fe99456521e190569e3a0f1385aab2f634025` |
 
 Commands:
 
@@ -218,6 +218,24 @@ not pass. The library's own private guard remains unexercised in Chrome because
 the route cannot load. No incognito allowance, permission or product mode was
 broadened.
 
+### Library race regressions
+
+The delete failure catch now rechecks `live`, `suspended` and the operation after
+its context await, matching refresh/open. Deferred-context tests cover
+hint-during-final-open-guard, suspend and close during that guard, delete failure
+during suspend/resume, and a held newer refresh whose busy state must survive the
+old action.
+
+Local negative controls (not committed) removed the post-await guard, the owner
+check, and the delete-catch guard in turn. The relevant tests failed:
+
+- `.scratch/negative-control-post-guard.log` (SHA-256 `44cbb057eb8af7011a73779c067b9188fc915df2fed2baf4f49aa05bbcdf53f7`) — three final-guard tests fail.
+- `.scratch/negative-control-owner.log` (SHA-256 `db55ff9ec02965c91fd7781f42089f1e1330d80b2aac63b64197b4f228c7882b`) — newer busy state is cleared.
+- `.scratch/negative-control-delete-catch.log` (SHA-256 `a6507f7c8679f7768100c91780b4ea05fe995370558819e6f3784fc2e3fc1c60`) — obsolete delete catch clears newer busy state.
+
+The committed source was restored before each check; no negative control was
+committed or amended into history.
+
 ## Gaps and limits
 
 1. **Chrome private main-frame library guard.** The current live-incognito page
@@ -235,7 +253,7 @@ broadened.
 4. **Natural eviction and engine quota.** Natural pressure eviction is unobserved.
    Firefox's real low-quota failure is Stage 1 candidate evidence; Chrome's
    product quota path is simulated only.
-5. **Source state.** Browser reports were produced from clean `41d3af4`. The
+5. **Source state.** Browser reports were produced from clean `05ac5ef`. The
    final documentation head and frozen gate are recorded separately.
 6. **One OS/architecture.** macOS arm64 only. Linux/Windows, retail installs,
    store distribution and native UI usability are outside this run.
@@ -244,7 +262,7 @@ broadened.
 
 ## Source and package rebuilds
 
-At `2a5ac37`, both source rebuild comparisons pass:
+At `05ac5ef`, both source rebuild comparisons pass:
 
 ```sh
 mise run test-source-build
@@ -253,9 +271,9 @@ mise run test-source-build-chrome
 
 Each reports `Source archive rebuild matches every packaged extension file.` The
 evidence files are `.scratch/source-build-evidence.json`
-(SHA-256 `814bebe8a90b2f5874f8f65df18dadf2f1f82c7865c5a8287a52a03c97b3945b`)
+(SHA-256 `0733431ad42d4e7dfcf2e48f5be5cf0901f93de3ebc1dc1b0178e3d5d60e0376`)
 and `.scratch/source-build-evidence-chrome.json`
-(SHA-256 `6f555b7dd2d0e7745080c9c1fb664bdc1f68c713681fda16888a4f7e9361b99b`).
+(SHA-256 `e66673865e0c655cf526b3c44349b0141c3415d8345cebd054b2322879c39f5a`).
 The shared gate independently packages and validates both targets and writes
 their SHA-256 identities. No signed distribution or retail installation is
 claimed.

@@ -34,9 +34,9 @@ BroadcastChannel message is only a refresh hint. The popup launcher requires a
 positive normal active-tab classification. All approved storage/privacy
 disclosures appear before Save, and stored names/versions render as text.
 
-Local behavior evidence is **517 tests / 2,022,334 assertions across 36 files**
+Local behavior evidence is **518 tests / 2,022,344 assertions across 36 files**
 and native type checking of 83 files. Exact browser runs from clean local
-`2a5ac372117103110b4153b1cf1364418fd54aa7` pass **88 checks on each of Firefox
+`05ac5ef950f0372bcbf8e710f1bb7dda50aafd88` pass **88 checks on each of Firefox
 140.0, 153.5.1esr and 158.0.1** and **82 checks on Chrome for Testing
 156.0.8078.47**. They cover save/list/open/delete, reload,
 stale-view deletion, the normal popup launcher, a seeded archive after Firefox
