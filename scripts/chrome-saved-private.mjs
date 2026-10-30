@@ -1,17 +1,8 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { cp, mkdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { By, until } from 'selenium-webdriver';
-import { launchChrome } from './chrome-session.mjs';
-
-function chromeExtensionId(path) {
-  const digest = createHash('sha256').update(resolve(path)).digest();
-  return [...digest.subarray(0, 16)]
-    .flatMap((byte) => [byte >> 4, byte & 0x0f])
-    .map((nibble) => String.fromCharCode(97 + nibble))
-    .join('');
-}
+import { chromeExtensionId, launchChrome } from './chrome-session.mjs';
 
 function sleep(milliseconds) {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, milliseconds));
