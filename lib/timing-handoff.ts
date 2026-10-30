@@ -122,6 +122,8 @@ export function installInvestigationTimingHandoff(
       }
     },
     async receive(input, sender) {
+      const lease = investigation.activity.tryBegin('attachment');
+      if (!lease) return error('Another investigation action is in progress.');
       try {
         if (!live || !popup(api, sender))
           return error('The timing sender is unavailable.');
@@ -188,6 +190,8 @@ export function installInvestigationTimingHandoff(
         return { status: 'success', value: null };
       } catch {
         return stale();
+      } finally {
+        lease.release();
       }
     },
   };

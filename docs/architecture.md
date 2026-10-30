@@ -34,7 +34,7 @@ The inventory is sensitive because extension choices can reveal user interests. 
 
 The page probe collects no identifiers or content. Validate document readiness against known values, performance type values as bounded strings, and response length before rendering. Render text through React. Do not insert HTML or execute returned strings.
 
-Keep permission grants distinct from data retention. The browser can retain a grant after the popup closes. AddonRay retains no corresponding diagnostic history. In-flight operations must not repopulate cleared or revoked results.
+Keep permission grants distinct from data retention. The browser can retain a grant after the popup closes. AddonRay retains live diagnostics only until their owning view ends; explicit Save creates a bounded local archive under the saved-investigation rules. In-flight operations must not repopulate cleared or revoked results.
 
 ## Manual comparison ownership
 
@@ -146,17 +146,65 @@ preserves the original immediate-owner-close failures separately from the passed
 revised candidate gate. Full product/browser/native qualification and signed
 delivery remain pending.
 
-## Approved saved investigation and exchange ownership
+## Saved investigation ownership
 
-The [saved-data contract](plans/saved-investigation-data-rules.md) adds a future saved-archive owner separate from the live investigation. The save controller copies approved observations from one completed, idle investigation into an immutable record. It binds to the exact live snapshot reference, reset generation and normal-window context. It writes no partial record and never reuses the live investigation identity. Ordinary storage, quota or size failure preserves the current valid live investigation. Reset, permission removal, source change and context invalidation keep their existing clearing or rejection behavior and cannot be undone by a pending save. Reopening reads the stored record and performs only the narrow current-view context and storage eligibility checks needed for the approved normal-window and availability boundary. No inventory, page-scripting, source-tab access, collector or collection-permission API enters the archive view.
+The [saved-data contract](plans/saved-investigation-data-rules.md) adds a
+saved-archive owner separate from the live investigation. The Stage 1
+IndexedDB candidate was accepted for the bounded #6 slice on 2026-10-30; save,
+list, read-only reopen and single-record delete are implemented. Import, JSON
+exchange, printable HTML, clipboard, retention choices and bulk deletion remain
+future work.
 
-The future library owner lists records, enforces retention and bounds, and coordinates delete and delete-all across extension views. Save is add-only and delete is the only mutation. Multi-view correctness must not depend on an instant DOM event. A suspended view must fail its next read or action. Pending saves cannot complete after a delete, delete-all or source reset. Unsupported records stay listed for explicit deletion.
+`lib/saved-record.ts` is the pure schema/model boundary. It accepts one
+completed, idle live snapshot, requires both successful inventories, strips
+extension IDs and all live/transport identifiers, and retains only approved
+inventory rows, precomputed ID-based changes, assessment, optional timing and
+page-error summaries, fixed observation limits, a random local record ID and
+local times. It checks string code points, nesting, inventory/change counts,
+complete stored bytes including the local envelope, exact would-be exported
+JSON bytes and the 30-day/90-day bounds without truncation.
 
-The #6 storage adapter candidate is extension-origin IndexedDB without a new permission. It is not approved until the storage, quota, restart, eviction, multi-view and private-context feasibility gates pass. No background owner, storage permission, sync path or companion transfer is added. If IndexedDB fails, #6 returns with evidence before proposing a storage permission.
+`lib/saved-store.ts` owns extension-origin IndexedDB. One private meta record
+holds a random store-instance ID and a deletion epoch. A save first reads that
+state, then rechecks store identity, epoch, metadata, record count, aggregate
+bytes and the candidate size inside one readwrite transaction before putting the
+record. Success resolves only after the transaction completes. Deletes remove
+one record and increment the epoch in the same transaction. Missing, corrupt or
+exhausted metadata and recreated connections fail closed. Open, blocked and
+transaction waits are bounded; pending writes abort on investigation reset. No
+new permission is used, and no durability or background-cleanup guarantee is
+added.
 
-The future import owner validates a selected file, renders it as untrusted text and keeps it separate from live observations. Persistence requires a separate save and marks the record imported, subject to the stored-record bound that includes the local envelope. A maximum-size import is view-only if the envelope would exceed that bound. The future report owner uses one bounded report model for Markdown, JSON, printable HTML and clipboard previews. Each format has its own exact preview and output lifetime. No PDF library, remote resource, automatic sharing or collector is introduced.
+`lib/live-activity.ts` is the investigation's public action boundary. Capture,
+attachment and report actions may overlap unless a save is pending. Save is an
+exclusive lease: acquisition and the idle check are one synchronous operation,
+and it blocks new live actions until the transaction settles. `saved-save.ts`
+binds the exact snapshot reference and reset generation, reads the store state
+as its first asynchronous step after the lease, then checks normal own-tab
+context and current permission eligibility through the last abortable point.
+Reset, assessment/attachment changes, permission removal or context loss abort
+the pending write. Ordinary storage, quota or size failure keeps the live
+investigation. A successful save notifies other views only as a hint.
 
-The current runtime contains none of these owners. The existing investigation, report serializer and download controller stay in memory as described above.
+`entrypoints/library` is a separate normal-window document. It lists records and
+opens one inline read-only archive; it imports no inventory, session, collector
+or source-tab code and requests no permission. Every read/action rechecks the
+owning normal context and re-reads storage. Expired valid rows are removed
+lazily; unsupported or unreadable rows stay visible for explicit deletion.
+Deleting one record clears an open copy of that record. A cross-view
+`BroadcastChannel` message only triggers a refresh; the next action never depends
+on it. The popup launcher classifies the active tab of the current window and
+requires `incognito === false`, so private, incognito and unknown contexts expose
+no saved data. The library remains usable after management or scripting
+permission removal.
+
+The still-future import owner will validate a selected file, render it as
+untrusted text and keep it separate from live observations. Persistence will
+require a separate save and mark the record imported, subject to the
+stored-record bound that includes the local envelope. The report-exchange owner
+will use one bounded report model for JSON, printable HTML and clipboard, each
+with its own exact preview and output lifetime. No PDF library, remote resource,
+automatic sharing or collector is introduced.
 
 ## Expanded v1 target
 

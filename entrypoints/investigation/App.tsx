@@ -11,7 +11,9 @@ import type { Investigation } from '../../lib/investigation';
 import { TimingComparison } from './TimingComparison';
 import { PageErrorComparison } from './PageErrorComparison';
 import { ReportExportSection } from './ReportExport';
+import { SavedInvestigationSection } from './SavedInvestigation';
 import type { ReportExport } from '../../lib/report-export';
+import type { SavedSave } from '../../lib/saved-save';
 
 type InvestigationState = ReturnType<Investigation['getSnapshot']>;
 
@@ -94,6 +96,7 @@ export function InvestigationView({
   onStartOver,
   onAssessment,
   report,
+  saved,
 }: {
   state: InvestigationState;
   context: BrowserContext;
@@ -103,6 +106,7 @@ export function InvestigationView({
   onStartOver: () => void;
   onAssessment: (value: PageAssessment) => void;
   report?: ReactNode;
+  saved?: ReactNode;
 }) {
   const before = state.before?.status === 'success' ? state.before.value : null;
   const after = state.after?.status === 'success' ? state.after.value : null;
@@ -304,6 +308,7 @@ export function InvestigationView({
           </p>
         </section>
       )}
+      {saved}
       {report}
     </main>
   );
@@ -312,14 +317,22 @@ export function InvestigationView({
 export function App({
   investigation,
   exporter,
+  saver,
+  libraryUrl,
 }: {
   investigation: Investigation;
   exporter: ReportExport;
+  saver: SavedSave;
+  libraryUrl: string;
 }) {
   const state = useSyncExternalStore(
     investigation.subscribe,
     investigation.getSnapshot,
   );
+  const eligible =
+    state.busy === null &&
+    state.before?.status === 'success' &&
+    state.after?.status === 'success';
   return (
     <InvestigationView
       state={state}
@@ -329,16 +342,14 @@ export function App({
       onCaptureAfter={investigation.captureAfter}
       onStartOver={investigation.startOver}
       onAssessment={investigation.setAssessment}
-      report={
-        <ReportExportSection
-          exporter={exporter}
-          eligible={
-            state.busy === null &&
-            state.before?.status === 'success' &&
-            state.after?.status === 'success'
-          }
+      saved={
+        <SavedInvestigationSection
+          saver={saver}
+          eligible={eligible}
+          libraryUrl={libraryUrl}
         />
       }
+      report={<ReportExportSection exporter={exporter} eligible={eligible} />}
     />
   );
 }

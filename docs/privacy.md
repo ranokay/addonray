@@ -13,7 +13,7 @@ The boundaries below describe the implemented runtime. The expanded v1 target ma
 | Capability outcomes                                                  | Related action or documented capability explanation | Visible popup session only           | React memory                |
 | Optional permission grant                                            | Browser permission prompt                           | Managed by the browser until revoked | Browser permission settings |
 
-No diagnostic data enters local storage, sync storage, logs, analytics, or a remote endpoint. The extension does not read page URLs or DOM content for the Phase 0 report. Clear removes results immediately. Closing the popup destroys its session. A retained browser permission does not imply retained diagnostic data.
+Outside an explicit saved-investigation Save, no diagnostic data enters local storage, sync storage, logs, analytics, or a remote endpoint. The saved archive boundary is described below. The extension does not read page URLs or DOM content for the Phase 0 report. Clear removes results immediately. Closing the popup destroys its session. A retained browser permission does not imply retained diagnostic data.
 
 Revocation clears affected results. Clear and revocation invalidate in-flight actions so late responses cannot restore discarded data. Denial must leave the interface usable.
 
@@ -140,24 +140,24 @@ transfer. This is a documented interpretation for the selected scope, not
 qualified implementation, store approval or publication. Export browser/native
 qualification remains pending, and any future transmission needs reassessment.
 
-## Approved saved-investigation and report-exchange contract
+## Saved-investigation and report-exchange boundaries
 
 The user approved [the saved-data contract](plans/saved-investigation-data-rules.md)
-and Q1 through Q16 on 2026-10-30. This section describes the approved future
-boundary. No saved-data runtime, storage permission, JSON exchange, import,
-printable HTML or clipboard action is implemented. The current investigation
-remains in the owning view's memory, and the Markdown download remains the only
-report output.
+and Q1 through Q16 on 2026-10-30. The bounded #6 slice now implements explicit
+Save, local list, read-only reopen and single-record delete. Import, JSON
+exchange, printable HTML, clipboard, retention choices, bulk deletion and
+delete-all remain future #7 through #11 work. The current investigation stays in
+the owning view's memory, and the Markdown download remains the only report
+output.
 
-| Data                                                                                                         | Trigger                                          | Retention                                                                                              | Destination                                             |
-| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| Immutable archive: inventories, precomputed changes, assessment, optional timing and error summaries, limits | Explicit Save of a completed, idle investigation | 30-day default. #7 may offer 7, 30 or 90 days, never beyond 90 days from `savedAt`, or explicit delete | Extension-origin storage in the current browser profile |
-| Local record envelope: record ID, schema version, origin, `savedAt`, `expiresAt`, imported `importedAt`      | Save or imported-report save                     | With the record                                                                                        | Extension-origin storage in the current browser profile |
-| Validated imported report                                                                                    | Explicit file selection, then separate save      | Same as a saved record                                                                                 | Extension-origin storage in the current browser profile |
-| Report preview                                                                                               | Explicit prepare action                          | Owning view memory                                                                                     | View memory                                             |
-| Markdown or JSON download                                                                                    | Explicit download after preview                  | Browser or filesystem controls                                                                         | User-chosen local destination                           |
-| Printable HTML and print output                                                                              | Explicit print after preview                     | Browser, print dialog or PDF destination controls                                                      | User-chosen printer or local PDF                        |
-| Clipboard text                                                                                               | Explicit copy after preview                      | Browser or OS clipboard controls                                                                       | OS clipboard                                            |
+| Data                                                                                                         | Trigger                                          | Retention                                                                                                    | Destination                                               |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| Immutable archive: inventories, precomputed changes, assessment, optional timing and error summaries, limits | Explicit Save of a completed, idle investigation | 30-day default and explicit delete in #6. #7 may offer 7, 30 or 90 days, never beyond 90 days from `savedAt` | Extension-origin IndexedDB in the current browser profile |
+| Local record envelope: record ID, schema version, origin, `savedAt`, `expiresAt`                             | Save                                             | With the record                                                                                              | Extension-origin IndexedDB in the current browser profile |
+| Validated imported report                                                                                    | Future #9 explicit file selection, then save     | Future contract                                                                                              | Not implemented                                           |
+| Report preview                                                                                               | Explicit prepare action                          | Owning view memory                                                                                           | View memory                                               |
+| Markdown download                                                                                            | Explicit download after preview                  | Browser or filesystem controls                                                                               | User-chosen local destination                             |
+| Printable HTML, print output, clipboard text and JSON                                                        | Future #8 through #11                            | Future contract                                                                                              | Not implemented                                           |
 
 The archive is immutable and read-only. Reopening collects no inventory or page
 data, prompts for no management or scripting permission, reattaches no source tab
@@ -188,30 +188,75 @@ product-level actions, browser and OS backups or profile copies may retain
 bytes, uninstall clearing is browser-controlled and can have exceptions, and
 exported files, prints and clipboard content leave AddonRay's control.
 
-The #6 candidate is extension-origin IndexedDB without a new manifest
-permission. It needs a separate feasibility gate for quota, persistence across
-restart, eviction and clearing, multi-view notification and the approved bounds
-on Firefox 140.0, 153.5.1esr, 158.0.1 and Chrome for Testing 156.0.8078.47. If
-that fails, #6 returns with evidence before proposing `storage` or
-`unlimitedStorage`. No storage permission is approved by #5.
+The #6 mechanism is extension-origin IndexedDB without a new manifest
+permission. The Stage 1 candidate gate observed availability, exact bounds,
+transactional refusal, deletion epochs, store-instance identity, controlled
+store loss, restart persistence and the reachable private popup guard on Firefox
+140.0, 153.5.1esr, 158.0.1 and Chrome for Testing 156.0.8078.47. The supervisor
+accepted that mechanism for the bounded product slice on 2026-10-30. Natural
+eviction, an actual Chrome `QuotaExceededError`, verified post-clear Firefox
+emptiness and a reachable Chrome private main-frame route remain unobserved.
+The 50-record, 5 MiB and 1 MiB limits are product bounds, not IndexedDB quota or
+durability promises. No `storage`, `unlimitedStorage`, sync or backup policy is
+approved.
+
+### Implemented #6 entrypoints
+
+`lib/saved-record.ts` builds one immutable schema-version-1 record from a
+completed idle investigation. It copies only the approved inventory rows,
+precomputed ID-based changes, assessment, optional timing and page-error
+summaries, observation limits, local times and a random local record ID. It
+omits extension IDs, live/source/document/attempt/transfer identifiers,
+permission and host metadata, URLs, titles and page content. Strings, nesting,
+inventory rows, changes, complete stored bytes including the local envelope,
+exact would-be exported JSON bytes and the 5 MiB aggregate are checked without
+truncation.
+
+`lib/saved-store.ts` is the extension-origin IndexedDB adapter. One private meta
+record supplies a store-instance ID and deletion epoch; saves and deletes bind
+both inside one readwrite transaction after rechecking metadata and bounds.
+Missing, corrupt or exhausted metadata fails closed. The adapter bounds open,
+blocked and transaction waits, aborts pending writes on reset, and reports
+success only after transaction completion. A store recreation or deletion epoch
+change rejects a pending write instead of resurrecting data. `lib/saved-save.ts`
+holds the exclusive save lease, checks normal context and current permissions
+through the last abortable point, and preserves the live investigation on
+ordinary storage, quota or size failure. `lib/saved-context.ts` fails closed on
+missing or non-normal own-tab classification.
+
+`entrypoints/library` lists records and opens one inline read-only archive. It
+uses no collection API, permission prompt, collector or source-tab reattachment,
+and remains usable after management or scripting removal. Unsupported and
+unreadable rows stay visible for explicit deletion. Expiry refuses open and
+removes the row lazily. The library and investigation surfaces recheck normal
+context before reading or mutating; a cross-view `BroadcastChannel` message is
+only a refresh hint, and every action re-reads storage. The popup launcher uses
+the active tab of the current window and requires a positive
+`incognito === false` classification before opening the library. Private,
+incognito and unknown contexts expose no saved rows.
+
+The save section shows all approved storage/privacy disclosures before the
+explicit Save action. The library and archive render stored names and versions as
+text with no HTML injection. The existing live Markdown report remains unchanged.
 
 ### Retention, deletion and physical limits
 
-The default retention is 30 days from `savedAt`. #7 may offer 7, 30 or 90 days,
-with a 90-day maximum from the original save time. An expired record is not
-listed as available and cannot be opened, exported, printed, copied or re-saved.
-AddonRay removes it when it next accesses storage. There is no background timer
-in v1. Expiry is product-level refusal plus lazy cleanup, not a hard physical
-on-disk deletion deadline. Browser and OS backups, profile copies and lower
-layers may retain bytes. The contract does not claim that every retained byte
-disappears at 90 days.
+The default retention is 30 days from `savedAt`. #6 implements that fixed
+default; #7 may offer 7, 30 or 90 days, with a 90-day maximum from the original
+save time. An expired record is not listed as available and cannot be opened,
+exported, printed, copied or re-saved. AddonRay removes it when it next accesses
+storage. There is no background timer in v1. Expiry is product-level refusal
+plus lazy cleanup, not a hard physical on-disk deletion deadline. Browser and OS
+backups, profile copies and lower layers may retain bytes. The contract does not
+claim that every retained byte disappears at 90 days.
 
 Deleting one record removes it across AddonRay views and invalidates pending
-actions. Delete-all requires confirmation. A deleted or expired record cannot be
-reopened, exported, printed, copied or resurrected by a pending write. A view
-that is suspended may not run code instantly; its next read or action fails.
-Deletion removes the product's record, but it cannot erase browser or OS backups
-or recall a file, print or clipboard content already handed off.
+actions. #6 implements single-record delete only; #7 adds bulk deletion and
+delete-all. A deleted or expired record cannot be reopened, exported, printed,
+copied or resurrected by a pending write. A view that is suspended may not run
+code instantly; its next read or action fails. Deletion removes the product's
+record, but it cannot erase browser or OS backups or recall a file, print or
+clipboard content already handed off.
 
 Unsupported saved records remain listed for explicit deletion. AddonRay does not
 auto-migrate, rewrite or silently delete them. A future migration needs its own

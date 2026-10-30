@@ -34,6 +34,7 @@ export async function preparePageErrorComparisonFixture(directory, target) {
     'comparison',
     'inspector',
     'investigation',
+    'live-activity',
     'page-error-check',
     'page-error-handoff',
   ]) {

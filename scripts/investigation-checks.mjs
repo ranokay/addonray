@@ -3,6 +3,11 @@ import { By, until } from 'selenium-webdriver';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { checkReportExport } from './report-export-checks.mjs';
+import {
+  checkFirefoxSavedPrivate,
+  checkSavedInvestigations,
+  finishSavedInvestigations,
+} from './saved-checks.mjs';
 
 const beforeSelector = '[data-testid="before-snapshot"]';
 const afterSelector = '[data-testid="after-snapshot"]';
@@ -24,6 +29,8 @@ export async function checkInvestigation({
   authority,
   passed,
   reportDirectory,
+  simulateSavedQuota = false,
+  privateSavedId = null,
 }) {
   await driver.get(popupUrl);
   await driver.wait(until.elementLocated(By.id('new-investigation')), 10000);
@@ -122,6 +129,9 @@ export async function checkInvestigation({
   }
 
   const first = await launch();
+  const investigationLabel = await driver
+    .findElement(By.id('investigation-label'))
+    .getText();
   assert.equal(
     await driver.executeAsyncScript((done) =>
       (globalThis.browser ?? globalThis.chrome).permissions
@@ -245,6 +255,25 @@ export async function checkInvestigation({
     passed,
   });
 
+  const libraryUrl = investigationUrl.replace(
+    'investigation.html',
+    'library.html',
+  );
+  const changeKind = fixtureInitiallyEnabled ? 'Disabled' : 'Enabled';
+  await checkSavedInvestigations({
+    driver,
+    popupWindow,
+    investigationUrl,
+    libraryUrl,
+    fixtureId,
+    fixtureName,
+    investigationLabel,
+    changeKind,
+    authority,
+    passed,
+    simulateQuota: simulateSavedQuota,
+  });
+
   async function verifyRetainedReport(phase) {
     const observation = { phase, status: 'reading' };
     (reportEvidence.lifetimeObservations ??= []).push(observation);
@@ -318,6 +347,17 @@ export async function checkInvestigation({
     );
   }
 
+  await finishSavedInvestigations({
+    driver,
+    libraryUrl,
+    returnWindow: first,
+    authority,
+    passed,
+    revoked: Boolean(revokeManagement),
+    fixtureName,
+    changeKind,
+  });
+
   for (const handle of investigationWindows) {
     await driver.switchTo().window(handle);
     await driver.close();
@@ -329,4 +369,15 @@ export async function checkInvestigation({
     { reportExport: { completedFilePreservedAfterOwnerClose: true } },
   );
   await driver.switchTo().window(popupWindow);
+
+  if (privateSavedId)
+    await checkFirefoxSavedPrivate({
+      driver,
+      id: privateSavedId,
+      popupUrl,
+      libraryUrl,
+      authority,
+      passed,
+      returnWindow: popupWindow,
+    });
 }

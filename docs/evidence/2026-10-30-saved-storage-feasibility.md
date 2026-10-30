@@ -1,8 +1,12 @@
 # Saved-investigation storage feasibility
 
-Status: Stage 1 candidate evidence after review rounds F1 through F7. The
-product runtime, schema, storage adapter and UI are not implemented. Product
-wiring remains stopped.
+Status: Stage 1 candidate evidence after review rounds F1 through F7. The Stage 1
+mechanism was accepted for the bounded #6 implementation on 2026-10-30. Stage 2
+product save/list/reopen/delete code is now implemented and locally qualified;
+see the separate [product evidence](2026-10-30-saved-investigations.md). This
+record preserves the candidate gate, its exact raw reports and its explicit
+qualification gaps. No storage permission, sync, cloud or durability promise is
+approved.
 
 The candidate commit named by the final browser reports is signed
 `e9fa95848d876a339bfc48168c45af91d37daaab`, based on integration
@@ -180,6 +184,36 @@ candidate's main-frame page remained browser-blocked with
 unavailable; the popup route passes. There is no combined waiver: the gate
 remains incomplete and Stage 2 must test every actual product entrypoint.
 
+## Supervisor disposition, 2026-10-30
+
+The supervisor reviewed the complete delta and all four raw reports after four
+rounds. F1 through F7 are closed. The four raw report hashes and the frozen gate
+receipt verified. Stage 1 is **accepted for the bounded #6 implementation**. This
+is not a four-browser qualification pass and does not alter any raw verdict.
+
+Accepted basis:
+
+- Exact capacity/refusal, restart, same-extension content isolation,
+  transactional deletion/epoch/store-instance barriers and controlled store-loss
+  recovery were observed on Firefox 140.0, 153.5.1esr, 158.0.1 and Chrome
+  156.0.8078.47.
+- Firefox produced a real low-quota `QuotaExceededError` and recovered.
+- Chrome's authentic action popup rejected private access with zero storage
+  reads. Its allowed main-frame route was browser-blocked. This supports the
+  private-access mechanism boundary, not a main-frame passing verdict.
+- Natural pressure eviction, an actual Chrome `QuotaExceededError` and a verified
+  empty Firefox origin after scoped clear remain explicit gaps. The Firefox
+  scoped request returned `NS_OK`; its post-clear navigation timed out.
+- Store loss/recreation is controlled evidence, not natural eviction. No
+  persistence grant, storage permission, backup/sync policy or support expansion
+  is approved.
+
+The supervisor authorized Stage 2: implement explicit save, list, read-only
+reopen and single-record delete end to end, then return a clean committed report
+for independent review. Push and PR creation remain prohibited. The final
+repository gate and shipping approval remain pending. The prior reviewed
+boundary is `a5d2b8accc7fa2e0fc6ac551ed7d172868976c64`.
+
 ## Remaining gaps
 
 1. **Eviction unobserved.** Firefox and Chrome `persisted()` were `false`;
@@ -200,8 +234,11 @@ remains incomplete and Stage 2 must test every actual product entrypoint.
 
 The ordinary IndexedDB mechanism, exact bounds, atomic refusal, content-script
 isolation, restart sentinel, fail-closed epoch, controlled store-loss handling
-and reachable popup private guard passed where observable. Product wiring is
-stopped.
+and reachable popup private guard passed where observable. Stage 2 product
+implementation is recorded separately; natural eviction, Chrome engine quota,
+product browser restart and a reachable Chrome private main-frame library route
+remain unqualified. Product wiring for the bounded #6 scope no longer waits on
+the accepted mechanism, but release qualification still does.
 
 ## Retained raw reports
 
@@ -223,4 +260,7 @@ same ignored directory and were not deleted or relabelled.
 The shared check runs through the receipt runner before signed local commits.
 The candidate commit's pre-commit hook ran the full native gate. The final
 frozen receipt for the documentation head is recorded outside the repository.
-No push, pull request, permission change, product UI or runtime is included.
+The Stage 2 product change adds no permission, dependency or native integration.
+Its final local gate and product browser reports are recorded in the
+[product evidence](2026-10-30-saved-investigations.md). No push, pull request,
+permission change or release approval is included.

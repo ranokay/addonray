@@ -21,6 +21,7 @@ import { checkPageErrors } from './page-error-checks.mjs';
 import { pageErrorDriverControls } from './page-error-driver-controls.mjs';
 import { preparePageErrorComparisonFixture } from './page-error-comparison-fixture.mjs';
 import { checkPageErrorComparisons } from './page-error-comparison-checks.mjs';
+import { checkChromeSavedPrivate } from './chrome-saved-private.mjs';
 import {
   checkTimings,
   prepareTimingModule,
@@ -348,6 +349,7 @@ try {
     },
     authority: 'Chrome pre-granted UI fixture with unchanged production assets',
     passed,
+    simulateSavedQuota: true,
   });
 
   await driver.get(localUrl);
@@ -683,6 +685,18 @@ try {
     report,
     passed,
   });
+  const privateSaved = await checkChromeSavedPrivate({
+    uiDirectory,
+    profileDirectory: join(work, 'saved-private-profile'),
+    authority: 'Chrome pre-granted UI fixture with unchanged production assets',
+    passed,
+  });
+  report.savedPrivate = privateSaved;
+  if (privateSaved.status === 'browser-blocked') {
+    report.gaps.push(
+      `Chrome incognito main-frame library route was browser-blocked (${privateSaved.error}); the authentic incognito popup launcher still refused the library.`,
+    );
+  }
   report.result = 'passed-with-qualification-gaps';
 } catch (error) {
   report.result = 'failed';

@@ -69,7 +69,12 @@ export async function browserProtocol(debuggerAddress) {
   };
 }
 
-export async function launchChrome({ headless = true } = {}) {
+export async function launchChrome({
+  headless = true,
+  userDataDir = null,
+  loadExtensions = [],
+  incognito = false,
+} = {}) {
   const version = process.env.CHROME_VERSION ?? chromeVersion;
   assert.equal(
     version,
@@ -87,6 +92,17 @@ export async function launchChrome({ headless = true } = {}) {
     .setBrowserVersion(version)
     .addArguments('--no-first-run', '--no-default-browser-check');
   if (headless) options.addArguments('--headless=new');
+  if (incognito) options.addArguments('--incognito');
+  if (userDataDir)
+    options.addArguments(`--user-data-dir=${resolve(userDataDir)}`);
+  for (const extension of loadExtensions)
+    options.addArguments(`--load-extension=${resolve(extension)}`);
+  if (loadExtensions.length)
+    options.addArguments(
+      `--disable-extensions-except=${loadExtensions
+        .map((extension) => resolve(extension))
+        .join(',')}`,
+    );
   await mkdir('.scratch', { recursive: true });
   const service = new chrome.ServiceBuilder()
     .loggingTo(resolve('.scratch/chromedriver.log'))
