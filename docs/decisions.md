@@ -232,11 +232,11 @@ the scope record. [The v1 contract](v1-contract.md) records the support matrix,
 supersession map, release acceptance and exclusions.
 
 The approval fixes scope. It does not answer #4 (license, visibility,
-identities, publisher and pre-release route), #5 (saved and exchanged data
-rules), #13 (mutation and request-failure collector contracts) or #20 (companion
-capability). Those remain decision gates. It also does not authorize signing,
-publication, a license grant or a visibility change. The #5 decision was answered
-on 2026-10-30; see the saved-investigation and report-exchange interview below.
+identities, publisher and pre-release route), #13 (mutation and request-failure
+collector contracts) or #20 (companion capability). Those remain decision gates.
+It also does not authorize signing, publication, a license grant or a visibility
+change. The #5 saved-data decision was answered on 2026-10-30; see the
+saved-investigation and report-exchange interview below.
 
 The user also agreed in the same conversation that macOS arm64, Windows x64 and
 Linux x64 are the intended v1 operating-system and architecture targets. Exact
