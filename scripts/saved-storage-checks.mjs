@@ -856,16 +856,20 @@ async function firefoxMain() {
     await ensurePage(session.candidate.url);
     await waitReady();
     const records = await pages();
-    if (!cleared?.cleared) {
-      clearEntry.status = 'unavailable';
-      report.gaps.push(
-        `Firefox forced browser-origin clearing could not be observed: ${cleared?.error ?? 'no clear method'}.`,
-      );
-    } else {
-      assert.equal(records.length, 0, 'Forced clear left records behind');
-    }
     return { cleared, recordsAfter: records };
   });
+  if (clearEntry.status === 'passed' && !clearEntry.details?.cleared?.cleared) {
+    clearEntry.status = 'unavailable';
+    report.gaps.push(
+      `Firefox forced browser-origin clearing could not be observed: ${clearEntry.details?.cleared?.error ?? 'no clear method'}.`,
+    );
+  } else if (clearEntry.status === 'passed') {
+    assert.equal(
+      clearEntry.details.recordsAfter.length,
+      0,
+      'Forced clear left records behind',
+    );
+  }
 
   const contentEntry = record(
     'content-script-boundary',
@@ -1255,6 +1259,15 @@ async function firefoxMain() {
       const records = await pages();
       return { removed, recordsAfterReinstall: records };
     });
+    if (
+      uninstallEntry.status === 'passed' &&
+      uninstallEntry.details?.removed?.uninstalled !== true
+    ) {
+      uninstallEntry.status = 'unavailable';
+      report.gaps.push(
+        `Firefox uninstall/reinstall could not be observed: ${JSON.stringify(uninstallEntry.details?.removed)}`,
+      );
+    }
   }
 }
 
@@ -1737,10 +1750,6 @@ async function chromeMain() {
       reinstallError = String(error);
     }
     if (!reinstalled) {
-      uninstallEntry.status = 'unavailable';
-      report.gaps.push(
-        `Chrome uninstall/reinstall could not be completed: ${reinstallError}`,
-      );
       return { before, requested, reinstallError };
     }
     await ensurePage(
@@ -1755,6 +1764,17 @@ async function chromeMain() {
       after,
     };
   });
+
+  if (
+    uninstallEntry.status === 'passed' &&
+    (uninstallEntry.details?.reinstallError ||
+      uninstallEntry.details?.requested?.requested !== true)
+  ) {
+    uninstallEntry.status = 'unavailable';
+    report.gaps.push(
+      `Chrome uninstall/reinstall could not be completed: ${uninstallEntry.details?.reinstallError ?? JSON.stringify(uninstallEntry.details?.requested)}`,
+    );
+  }
 
   const clearEntry = record(
     'forced-clear',
@@ -1822,16 +1842,20 @@ async function chromeMain() {
     await driver.navigate().refresh();
     await waitReady();
     const records = await pages();
-    if (!cleared) {
-      clearEntry.status = 'unavailable';
-      report.gaps.push(
-        `Chrome forced browser-origin clearing could not be observed through CDP. Attempts: ${JSON.stringify(attempts)}.`,
-      );
-    } else {
-      assert.equal(records.length, 0, 'Forced clear left records behind');
-    }
     return { cleared, attempts, recordsAfter: records };
   });
+  if (clearEntry.status === 'passed' && !clearEntry.details?.cleared) {
+    clearEntry.status = 'unavailable';
+    report.gaps.push(
+      `Chrome forced browser-origin clearing could not be observed through CDP. Attempts: ${JSON.stringify(clearEntry.details?.attempts)}.`,
+    );
+  } else if (clearEntry.status === 'passed') {
+    assert.equal(
+      clearEntry.details.recordsAfter.length,
+      0,
+      'Forced clear left records behind',
+    );
+  }
 
   const privateEntry = record(
     'private-context',
