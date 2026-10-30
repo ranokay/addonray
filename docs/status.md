@@ -41,17 +41,21 @@ and native type checking of 81 files. Exact browser runs from clean local
 156.0.8078.47**. They cover save/list/open/delete, reload,
 stale-view deletion, the normal popup launcher, a seeded archive after Firefox
 management removal, a Firefox authentic private window, a Chrome authentic
-incognito popup, and a simulated Chrome `QuotaExceededError`. Chrome private
+incognito popup, and a simulated Chrome `QuotaExceededError`. A separate
+five-check product restart probe passes on all four pins: explicit Save, full
+browser process restart with retained profile/origin, read-only list/reopen,
+live-state loss, no permission prompt, and deletion persistence across another
+restart. Chrome private
 main-frame library access remains browser-blocked; the launcher refusal is the
 observed guard. Chrome product checks use the named pre-granted UI fixture with
 unchanged production assets. See
 [product evidence](evidence/2026-10-30-saved-investigations.md) and the preserved
 [Stage 1 feasibility record](evidence/2026-10-30-saved-storage-feasibility.md).
 
-Still open for #6 release qualification: product browser restart (page reload is
-tested), natural eviction, an actual Chrome engine quota error, a reachable Chrome
-private main-frame library route, unmodified Chrome optional-permission consent,
-the exact-OS/hosted matrix, independent review and release approval. The local
+Still open for #6 release qualification: natural eviction, an actual Chrome
+engine quota error, a reachable Chrome private main-frame library route,
+unmodified Chrome optional-permission consent, the exact-OS/hosted matrix,
+independent review and release approval. The local
 frozen gate passed at the delivery head. #7 through #11 remain unimplemented. No
 push, PR, permission, publication or durability claim is included.
 
@@ -405,8 +409,9 @@ Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.m
 is the current scope and support record. #5's
 [saved-investigation and report-exchange contract](plans/saved-investigation-data-rules.md)
 was approved and recorded on 2026-10-30. The bounded #6 slice is implemented and
-locally qualified with explicit gaps; its local frozen gate passed, while the
-final release matrix and independent review remain. The next v1 decisions are #4, #13 and #20. #7 through #11 may start
+locally qualified with explicit gaps, including product browser restart; its
+local frozen gate passed, while the final release matrix and independent review
+remain. The next v1 decisions are #4, #13 and #20. #7 through #11 may start
 only under the approved #5 contract and their own gates. This implementation task
 authorizes no push or PR. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and

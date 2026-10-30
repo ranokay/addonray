@@ -2,11 +2,12 @@
 
 Status: bounded #6 save, list, read-only reopen and single-record delete are
 implemented in signed local `e0d129346aacbb54461fe0a581e43d9d8c9fafa8` and
-locally qualified on the pinned macOS browsers. Product browser restart, natural
-eviction, an actual Chrome engine quota error, a reachable Chrome private
-main-frame library route, the exact-OS and hosted matrix, and independent review
-remain open. The local frozen gate passed at the implementation boundary. No
-push, PR, permission, publication or durability claim is included.
+locally qualified on the pinned macOS browsers. Product browser restart and
+deletion persistence now pass separately. Natural eviction, an actual Chrome
+engine quota error, a reachable Chrome private main-frame library route, the
+exact-OS and hosted matrix, and independent review remain open. The local frozen
+gate passed at the implementation boundary. No push, PR, permission,
+publication or durability claim is included.
 
 This record follows the accepted Stage 1 mechanism in the
 [storage feasibility record](2026-10-30-saved-storage-feasibility.md). The prior
@@ -124,6 +125,58 @@ Product observations:
   `IDBObjectStore.prototype.put` produces the bounded quota message and preserves
   the live pair. This is not an observed Chrome engine quota failure.
 
+## Product browser restart
+
+The restart probe is `scripts/saved-restart-checks.mjs`. It uses the packaged
+product assets and runs at clean test commit `f235f34`. Each target performs
+three bounded processes: explicit product Save with a completed live pair;
+restart with the retained profile/origin; and a second restart after single
+delete.
+
+| Target                           | Checks   | Raw report                                       | SHA-256                                                            |
+| -------------------------------- | -------- | ------------------------------------------------ | ------------------------------------------------------------------ |
+| Firefox 140.0                    | 5 passed | `.scratch/saved-restart-firefox-140.0.json`      | `216895cc893b882788829857d870070318e02ca86dbff7c329467ebe88a351ed` |
+| Firefox 153.5.1esr               | 5 passed | `.scratch/saved-restart-firefox-153.5.1esr.json` | `f1a2e8980a024313869663145d3c9ef04e704323d9d29af539ffda231c3ad6d3` |
+| Firefox 158.0.1                  | 5 passed | `.scratch/saved-restart-firefox-158.0.1.json`    | `3d423a34fd574c83d7fe1c696fd93e5740f0752fb397299d32bc5eb7791f5aad` |
+| Chrome for Testing 156.0.8078.47 | 5 passed | `.scratch/saved-restart-chrome.json`             | `c05dd6dc474a6ade65e696cba6ae8d4bf3ccc2feff4cb68f1403215a5cd9497e` |
+
+Commands:
+
+```sh
+FIREFOX_VERSION=140.0 bun run test:saved-restart:firefox
+FIREFOX_VERSION=153.5.1esr bun run test:saved-restart:firefox
+FIREFOX_VERSION=158.0.1 bun run test:saved-restart:firefox
+bun run test:saved-restart:chrome
+```
+
+Observed on macOS 27.2 arm64:
+
+- The product UI performed one explicit Save; the live Before/After pair and
+  `uncertain` assessment remained before shutdown.
+- After a full browser process restart, a fresh investigation page had no
+  Before/After snapshots and no assessment. The archived row and inline
+  read-only archive were present, and the archive text matched the pre-restart
+  archive exactly.
+- Firefox kept the same `moz-extension://4f0d9a9e-...` origin after reinstall;
+  Chrome kept the same path-derived extension origin. `management` was still
+  granted and no permission prompt was visible; the library itself exposes no
+  capture controls.
+- Deleting the record after restart and restarting again left the library empty
+  and the investigation fresh.
+
+Firefox authority: the session profile is copied to a retained directory before
+browser shutdown; the product and controlled fixture are reinstalled from the
+same directories with a fixed test `extensions.webextensions.uuids` mapping.
+The optional `management` grant is supplied by test browser authority, not a
+native consent observation. This is a temporary-extension, retained-profile
+probe, not an installed-product claim.
+
+Chrome authority: the explicitly named pre-granted UI fixture with unchanged
+production assets runs with a controlled ordinary fixture extension. The same
+user-data directory and extension path are reused across launches. Required
+`management`/`scripting` permissions are test-fixture authority; native optional
+consent remains unqualified.
+
 ## Gaps and limits
 
 1. **Chrome private main-frame library route.** Creating or navigating an
@@ -138,16 +191,14 @@ Product observations:
 3. **Firefox private allowance.** The private product check adds the test-only
    `internal:privateBrowsingAllowed` permission and reloads the extension in a
    disposable profile. It does not claim private-window product support.
-4. **Product restart not observed.** Page reload is tested. Browser restart
-   persistence is Stage 1 candidate evidence, not this product patch.
-5. **Natural eviction and engine quota.** Natural pressure eviction is unobserved.
+4. **Natural eviction and engine quota.** Natural pressure eviction is unobserved.
    Firefox's real low-quota failure is Stage 1 candidate evidence; Chrome's
    product quota path is simulated only.
-6. **Source state.** Browser reports were produced from clean `e0d1293`. The
+5. **Source state.** Browser reports were produced from clean `e0d1293`. The
    final documentation head and frozen gate are recorded separately.
-7. **One OS/architecture.** macOS arm64 only. Linux/Windows, retail installs,
+6. **One OS/architecture.** macOS arm64 only. Linux/Windows, retail installs,
    store distribution and native UI usability are outside this run.
-8. **Scope.** No import, JSON export, printable HTML, clipboard, retention
+7. **Scope.** No import, JSON export, printable HTML, clipboard, retention
    control, bulk deletion, delete-all, sync, cloud, telemetry or new permission.
 
 ## Source and package rebuilds

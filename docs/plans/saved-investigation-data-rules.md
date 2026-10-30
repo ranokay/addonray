@@ -463,11 +463,11 @@ The #6 IndexedDB feasibility gate has run and its mechanism is accepted for the
 bounded implementation. The remaining gates below are future work, not current
 evidence:
 
-- #6: product browser restart, natural eviction, an actual Chrome engine quota
-  error, a reachable Chrome private main-frame library route, the exact-OS/hosted
-  matrix and the final frozen gate. Page reload, controlled store loss, deletion,
-  expiry, stale-view failure, permission removal and reachable private popup
-  guards are observed.
+- #6: natural eviction, an actual Chrome engine quota error, a reachable Chrome
+  private main-frame library route, the exact-OS/hosted matrix and release
+  review. Page reload, full browser process restart with retained profile/origin,
+  deletion persistence, controlled store loss, expiry, stale-view failure,
+  permission removal and reachable private popup guards are observed.
 - #7: 7/30/90-day retention, 90-day maximum, lazy cleanup, delete-all, stale-view
   invalidation and no resurrection.
 - #8: exact JSON serialization, preview, stale-action guards, 1 MiB accounting and
