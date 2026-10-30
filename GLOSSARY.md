@@ -65,12 +65,32 @@ The exact report text offered for the user's review before a download. It belong
 _Avoid_: Editable report, live recorder, completed download.
 
 **Saved investigation**:
-An investigation the user explicitly stored locally and can reopen without collecting new observations or resuming collectors. It is separate from the temporary live session.
-_Avoid_: Automatic history, live session.
+An immutable local archive of one completed investigation, reopened read-only without collecting new observations or resuming collectors.
+_Avoid_: Editable record, live session, automatic history.
+
+**Saved record**:
+A local library entry that holds one saved investigation or imported report, its record ID, schema version, origin and save or expiry times.
+_Avoid_: Live session, browser tab, cache entry.
+
+**Imported report**:
+A report read from a user-selected file, always untrusted and shown read-only. It never becomes a live investigation or a locally captured observation.
+_Avoid_: Verified report, restored session, trusted provenance.
 
 **Report exchange**:
-User-initiated export or import of reviewed report content under an approved versioned schema. It is not sync or a sharing service.
-_Avoid_: Cloud sharing, automatic submission.
+User-initiated export or import of reviewed report content under the approved versioned schema. Imported content is untrusted and never authenticated as local capture.
+_Avoid_: Cloud sharing, automatic submission, sync.
+
+**Report schema**:
+The explicit versioned field contract for saved records and exchanged reports. It fixes which fields may exist and how unknown or missing values are represented.
+_Avoid_: Best-effort JSON, implicit format.
+
+**Archive expiry**:
+The point after which AddonRay refuses to use a saved record and lazy cleanup may remove it. It is not a promise of physical erasure.
+_Avoid_: Hard deletion deadline, forensic erasure.
+
+**Delete-all**:
+A confirmed library action that removes every saved record. It is distinct from clearing a live investigation.
+_Avoid_: Clear session, automatic cleanup.
 
 **Mutation check**:
 A deliberate, bounded count of DOM mutation notifications for one selected source during an approved observation window. It does not retain DOM content or identify a cause.

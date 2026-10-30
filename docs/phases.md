@@ -43,7 +43,7 @@ Add previewed, minimized export and reproducible comparison records. Decide what
 
 Exit when export tests cover sensitive fields and a user can inspect exactly what leaves the session. Update the Firefox data declaration if the behavior requires it.
 
-The approved v1 backlog extends this phase through #5 to #12. #5 settles persistence and exchange rules before #6 to #11 implement them. #12 adds guided trials on top of the approved history contract.
+The approved v1 backlog extends this phase through #5 to #12. [#5 settled the persistence and exchange rules](plans/saved-investigation-data-rules.md) on 2026-10-30. #6 to #11 implement them under their own feasibility and qualification gates. #12 adds guided trials on top of the approved history contract.
 
 ## Phase 4: optional Rust companion feasibility
 

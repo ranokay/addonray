@@ -232,10 +232,11 @@ the scope record. [The v1 contract](v1-contract.md) records the support matrix,
 supersession map, release acceptance and exclusions.
 
 The approval fixes scope. It does not answer #4 (license, visibility,
-identities, publisher and pre-release route), #5 (saved and exchanged data
-rules), #13 (mutation and request-failure collector contracts) or #20 (companion
-capability). Those remain decision gates. It also does not authorize signing,
-publication, a license grant or a visibility change.
+identities, publisher and pre-release route), #13 (mutation and request-failure
+collector contracts) or #20 (companion capability). Those remain decision gates.
+It also does not authorize signing, publication, a license grant or a visibility
+change. The #5 saved-data decision was answered on 2026-10-30; see the
+saved-investigation and report-exchange interview below.
 
 The user also agreed in the same conversation that macOS arm64, Windows x64 and
 Linux x64 are the intended v1 operating-system and architecture targets. Exact
@@ -265,3 +266,53 @@ Store and companion compositions in the kit are reusable material. This
 decision does not approve a companion package identity, store listing,
 publisher, license, publication or support claim. Those remain with #4 and the
 release tickets.
+
+## Saved-investigation and report-exchange interview
+
+On 2026-10-30 the user approved Q1 through Q16 for
+[issue #5](https://github.com/ranokay/addonray/issues/5). The
+[saved-investigation and report-exchange data contract](plans/saved-investigation-data-rules.md)
+records the lifecycle and trust boundaries. This is a documentation-only
+decision. It authorizes no saved-data runtime, storage permission, JSON
+exchange, import, printable HTML, clipboard action or browser qualification.
+The current session-only investigation, Markdown-only report and permission
+limits remain effective until #6 through #11 pass their feasibility gates and are
+implemented and qualified.
+
+| Question | Approved answer                                                                                                                                                                                                                                                                                                                                                                    |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q1       | Saved investigations are immutable, read-only archives. Reopening never starts collection automatically.                                                                                                                                                                                                                                                                           |
+| Q2       | Saves stay within the current browser profile with disclosure before saving. No automatic sync, cloud or companion transfer.                                                                                                                                                                                                                                                       |
+| Q3       | Saved-data and exchange actions require a verified normal window. Private and unknown contexts are blocked.                                                                                                                                                                                                                                                                        |
+| Q4       | v1 includes Markdown, JSON export and import, printable HTML using the browser Print/Save-as-PDF path, and explicit clipboard copy.                                                                                                                                                                                                                                                |
+| Q5       | Saving and exchange use fixed approved field sets without per-field editing or redaction controls.                                                                                                                                                                                                                                                                                 |
+| Q6       | Saved records and exchanged reports carry explicit schema versions.                                                                                                                                                                                                                                                                                                                |
+| Q7       | Save only completed, idle investigations. Keep both inventories, changes, assessment, optional timing and error summaries and observation limits. Each explicit save creates a new archive.                                                                                                                                                                                        |
+| Q8       | Compute inventory changes before saving with the existing ID-based comparison. Retain those changes, but omit extension IDs and live tab or session identifiers. Give each archive a new local-only record ID.                                                                                                                                                                     |
+| Q9       | Use generated labels and local save and expiry times. Include no user notes, custom titles, page context or browser or OS context. Keep local timestamps and record IDs out of exchanged reports.                                                                                                                                                                                  |
+| Q10      | Use 30-day default retention, with 7, 30 or 90-day choices; 50 records, 5 MiB total and 1 MiB per record. Expired records become unavailable, with cleanup when AddonRay next accesses storage. When full, refuse the save rather than evict unexpired records.                                                                                                                    |
+| Q11      | Keep saved archives accessible after inventory and page permissions are revoked. Revocation still cancels pending live saves; saving also fails if its source changes or resets.                                                                                                                                                                                                   |
+| Q12      | Make deletion apply across AddonRay views, invalidating pending actions and preventing resurrection. Confirm delete-all. Explain that deletion cannot erase browser backups or recall already handed-off files, prints or clipboard content.                                                                                                                                       |
+| Q13      | Open imports as explicitly labelled, untrusted, read-only reports. Saving an import requires a separate action. Retain its imported provenance on re-export; store neither its filename nor path.                                                                                                                                                                                  |
+| Q14      | Start with schema version 1 and strict validation. Reject unsupported versions, unknown fields, duplicate keys and malformed values. Apply matching save, export and import bounds: 1 MiB, 1,000 inventory entries per side, 2,000 changes, 4,096 characters per string and nesting depth 8. Preserve unknown states. Keep unsupported saved records listed for explicit deletion. |
+| Q15      | Try IndexedDB without new permissions in #6, behind Firefox and Chrome feasibility checks. Return with evidence before proposing additional permissions if that fails.                                                                                                                                                                                                             |
+| Q16      | Preview each output in its own format. Download or copy the reviewed content; use self-contained printable HTML without scripts or remote resources. Report clipboard success only after a successful write, and avoid claiming completed downloads or printing from request dispatch.                                                                                             |
+
+The contract applies these drafting clarifications, which do not add product
+scope. The size and count limits are product bounds, not IndexedDB or browser
+quota promises. The 5 MiB bound does not derive headroom from `storage.local`'s
+unrelated quota. Unknown, missing and unrecorded values stay distinct, including
+duplicate extension names. Archived changes are never recomputed from names.
+Expiry is product-level refusal plus lazy cleanup, not a hard physical on-disk
+deletion deadline. Unsupported saved records stay listed for explicit deletion.
+Deletion and expiry block further AddonRay use across views and pending actions,
+but browser-accepted files, prints and clipboard content remain outside recall.
+Normal-window guards apply to archives and imports regardless of collection
+permission. Imported files are always untrusted regardless of any self-asserted
+origin. Each format preview matches its representation. Clipboard success is
+reported after a successful write. The shared save, JSON export and import bounds
+must permit an accepted export to re-import without truncation.
+
+These answers settle #5. They do not authorize #6 through #11 implementation,
+storage permission, output mechanism or any support, publication or licensing
+change. Future feasibility remains unperformed.

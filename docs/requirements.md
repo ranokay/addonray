@@ -6,7 +6,7 @@ Status: Phase 0 scope approved on 2026-10-22 and scaffold implemented. The user 
 
 On 2026-10-29 the user approved private milestone `v1.0.0`, tickets #2 through #46, as the finite v1 target. [The v1 contract](v1-contract.md) records the dated scope snapshot, intended support, existing exact evidence, supersession map, release acceptance and exclusions. This file describes implemented or individually approved behavior. It is not the complete v1 promise.
 
-Current runtime limits remain effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4, #5, #13 and #20 remain decision gates.
+Current runtime limits remain effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #5 is approved and recorded. #4, #13 and #20 remain decision gates.
 
 ## User stories
 
@@ -126,11 +126,23 @@ for this new path are pending. The original immediate-owner-close candidate
 failures remain failed; revised feasibility, including ESR, must pass before
 product wiring.
 
+## Approved saved-investigation and report-exchange contract
+
+On 2026-10-30 the user approved Q1 through Q16 and the [saved-data contract](plans/saved-investigation-data-rules.md). This is an approved future contract, not implemented behavior. The current investigation remains session-only, and the Markdown download remains the only report output.
+
+An explicit Save may create an immutable, read-only local archive of one completed, idle investigation. Each save creates a new record. The archive keeps both inventories, precomputed ID-based changes, the assessment, optional timing and page-error summaries and observation limits. It omits extension IDs, live or ephemeral identifiers, page and browser context, user notes and exchanged timestamps. Reopening collects no inventory or page data, prompts for no collection permission and resumes no collector. It performs only the narrow current-view context and storage eligibility checks needed for the approved normal-window boundary.
+
+Saved records stay in extension-origin storage in the current browser profile with disclosure before the first save. There is no sync, cloud, telemetry or companion transfer. The #6 candidate is IndexedDB without a new permission, subject to a separate feasibility gate. The default retention is 30 days with 7, 30 or 90-day choices and a 90-day maximum. The library allows 50 records, 5 MiB total and 1 MiB per record. It refuses a save when full and never evicts unexpired records. An ordinary save failure preserves the current valid live investigation; reset or permission revocation keeps its existing clearing behavior and cannot be undone by a pending save. Expiry refuses product use and triggers lazy cleanup, not a hard physical deletion deadline.
+
+Saved archives remain available after management or scripting revocation. Revocation still clears live investigations and cancels pending live saves. Deletion applies across views and prevents resurrection. Delete-all requires confirmation. A deleted or expired record cannot be reopened or used, while browser backups and already handed-off files, prints or clipboard content remain outside recall. Unsupported records stay listed for explicit deletion.
+
+Every saved-data and exchange action requires a verified normal window. Private, incognito and unknown contexts expose no saved data. The approved exchange formats are Markdown, schema version 1 JSON export and import, self-contained printable HTML through browser Print/Save as PDF, and explicit clipboard copy. Each has its own exact preview. Imports are untrusted, read-only and persist only after a separate save. Save imported report applies the stored-record bound including the local envelope, so a maximum-size import is view-only if the envelope would exceed that bound. Strict validation rejects malformed, negative and above-range duration values. The shared bounds are 1 MiB, 1,000 inventory entries per side, 2,000 changes, 4,096 characters per string and nesting depth 8. Accepted JSON exports re-import for read-only inspection without truncation. No runtime, permission, dependency or support change is authorized by this contract.
+
 ## Out of scope for Phase 0
 
 Continuous recording, network collection, page-world instrumentation, console interception, automatic culprit ranking, automated extension state changes, theme management, report export, persistent history, mobile support, additional Chromium browsers, accounts, sync, AMO publication, and a native companion implementation.
 
-That list was the Phase 0 boundary. The later expanded v1 target approves report exchange, local saved investigations and an optional companion as future work under [the v1 contract](v1-contract.md). It does not approve their data rules, permissions or implementation.
+That list was the Phase 0 boundary. The later expanded v1 target approves report exchange, local saved investigations and an optional companion as future work under [the v1 contract](v1-contract.md). The [#5 saved-data contract](plans/saved-investigation-data-rules.md) now records the saved-data rules. It does not approve runtime, permissions or implementation.
 
 ## Important edge cases
 
