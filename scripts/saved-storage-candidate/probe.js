@@ -5,12 +5,40 @@ const DB_VERSION = 1;
 const RECORDS = 'records';
 const META = 'meta';
 const EPOCH_KEY = 'deletionEpoch';
+const MAX_SAFE = Number.MAX_SAFE_INTEGER;
+const encoder = new TextEncoder();
+
+class BarrierStateError extends Error {
+  constructor(reason) {
+    super(reason);
+    this.name = 'BarrierStateError';
+  }
+}
 
 function failure(error) {
   return {
     name: error?.name ?? 'Error',
     message: error?.message ? String(error.message) : String(error),
   };
+}
+
+function canonicalRecord(record) {
+  const ordered = {};
+  for (const key of Object.keys(record).sort()) ordered[key] = record[key];
+  return ordered;
+}
+
+function serializedBytes(record) {
+  return encoder.encode(JSON.stringify(canonicalRecord(record))).length;
+}
+
+function validEpoch(record) {
+  if (!record || record.key !== EPOCH_KEY)
+    throw new BarrierStateError('missing-deletion-epoch');
+  const value = record.value;
+  if (!Number.isSafeInteger(value) || value < 0)
+    throw new BarrierStateError('invalid-deletion-epoch');
+  return value;
 }
 
 function openDatabase() {
@@ -22,6 +50,9 @@ function openDatabase() {
         database.createObjectStore(RECORDS, { keyPath: 'recordId' });
       if (!database.objectStoreNames.contains(META))
         database.createObjectStore(META, { keyPath: 'key' });
+      // A genuinely new database starts at a valid epoch. Existing metadata is
+      // never repaired by an upgrade; invalid state fails closed on read.
+      request.transaction.objectStore(META).put({ key: EPOCH_KEY, value: 0 });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -30,20 +61,19 @@ function openDatabase() {
   });
 }
 
-function epochValue(value) {
-  const epoch = value?.value;
-  return Number.isSafeInteger(epoch) && epoch >= 0 ? epoch : 0;
+function readEpochRecord(database) {
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(META, 'readonly');
+    const request = transaction.objectStore(META).get(EPOCH_KEY);
+    request.onsuccess = () => resolve(request.result ?? null);
+    request.onerror = () => reject(request.error);
+  });
 }
 
 // Calling this creates the readonly transaction synchronously. A later
 // readwrite delete transaction over the same stores must wait behind it.
 function readEpoch(database) {
-  return new Promise((resolve, reject) => {
-    const transaction = database.transaction(META, 'readonly');
-    const request = transaction.objectStore(META).get(EPOCH_KEY);
-    request.onsuccess = () => resolve(epochValue(request.result));
-    request.onerror = () => reject(request.error);
-  });
+  return readEpochRecord(database).then((record) => validEpoch(record));
 }
 
 function readAll(database) {
@@ -67,38 +97,77 @@ function putRawRecord(database, record) {
 }
 
 function deleteWithEpoch(database, recordId) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const events = {};
     const transaction = database.transaction([RECORDS, META], 'readwrite');
     const records = transaction.objectStore(RECORDS);
     const meta = transaction.objectStore(META);
     const epochRequest = meta.get(EPOCH_KEY);
+    let outcome = null;
     let nextEpoch = null;
     epochRequest.onsuccess = () => {
       events.epochReadAt = performance.now();
-      nextEpoch = epochValue(epochRequest.result) + 1;
-      records.delete(recordId);
-      meta.put({ key: EPOCH_KEY, value: nextEpoch });
-      events.deleteQueuedAt = performance.now();
+      try {
+        const current = validEpoch(epochRequest.result);
+        if (current >= MAX_SAFE) {
+          outcome = {
+            status: 'barrier-exhausted',
+            error: { name: 'BarrierStateError', message: 'epoch-at-max' },
+            events,
+          };
+          transaction.abort();
+          return;
+        }
+        nextEpoch = current + 1;
+        records.delete(recordId);
+        meta.put({ key: EPOCH_KEY, value: nextEpoch });
+        events.deleteQueuedAt = performance.now();
+      } catch (error) {
+        outcome = {
+          status: 'barrier-invalid',
+          error: failure(error),
+          events,
+        };
+        transaction.abort();
+      }
     };
-    epochRequest.onerror = () => transaction.abort();
+    epochRequest.onerror = () => {
+      outcome = {
+        status: 'barrier-invalid',
+        error: failure(epochRequest.error),
+        events,
+      };
+      transaction.abort();
+    };
     transaction.oncomplete = () => {
       events.completeAt = performance.now();
       resolve({ status: 'deleted', epoch: nextEpoch, events });
     };
-    transaction.onabort = () =>
-      reject(transaction.error ?? new Error('Delete transaction aborted.'));
+    transaction.onabort = () => {
+      events.abortAt = performance.now();
+      resolve(
+        outcome ?? {
+          status: 'aborted',
+          error: failure(transaction.error),
+          events,
+        },
+      );
+    };
     transaction.onerror = () => {
       /* onabort follows. */
     };
   });
 }
 
-// One readwrite transaction reads the epoch, compares it, and only then puts
-// the record. The transaction callbacks are the only work after enqueueing.
+// One readwrite transaction reads the epoch, compares it, checks optional
+// bounds against complete serialized records, and only then puts the record.
 function saveWithEpoch(database, record, expectedEpoch, options = {}) {
   return new Promise((resolve) => {
-    const events = { expectedEpoch, recordId: record.recordId };
+    const events = {
+      expectedEpoch,
+      recordId: record.recordId,
+      recordBytes: serializedBytes(record),
+    };
     let transaction;
     try {
       transaction = database.transaction([RECORDS, META], 'readwrite');
@@ -110,25 +179,90 @@ function saveWithEpoch(database, record, expectedEpoch, options = {}) {
     const records = transaction.objectStore(RECORDS);
     const meta = transaction.objectStore(META);
     const epochRequest = meta.get(EPOCH_KEY);
-    let matched = false;
+    let outcome = null;
     epochRequest.onsuccess = () => {
-      const current = epochValue(epochRequest.result);
       events.epochReadAt = performance.now();
-      events.currentEpoch = current;
-      if (current !== expectedEpoch) {
-        events.mismatch = true;
-        return;
-      }
-      matched = true;
-      records.put(record);
-      events.putQueuedAt = performance.now();
-      if (options.abortSynchronously) {
-        events.synchronousAbortAt = performance.now();
+      try {
+        const current = validEpoch(epochRequest.result);
+        events.currentEpoch = current;
+        if (current >= MAX_SAFE) {
+          events.limit = 'barrier-exhausted';
+          outcome = {
+            status: 'barrier-exhausted',
+            events,
+          };
+          transaction.abort();
+          return;
+        }
+        if (current !== expectedEpoch) {
+          events.mismatch = true;
+          outcome = { status: 'stale', events };
+          return;
+        }
+        if (!options.limits) {
+          records.put(record);
+          events.putQueuedAt = performance.now();
+          if (options.abortSynchronously) {
+            events.synchronousAbortAt = performance.now();
+            transaction.abort();
+          }
+          return;
+        }
+        const allRequest = records.getAll();
+        allRequest.onsuccess = () => {
+          const existing = allRequest.result;
+          const total = existing.reduce(
+            (sum, entry) => sum + serializedBytes(entry),
+            0,
+          );
+          events.existingRecords = existing.length;
+          events.existingBytes = total;
+          if (existing.length >= options.limits.records) {
+            events.limit = 'records';
+            outcome = { status: 'refused', reason: 'records', events };
+            return;
+          }
+          if (events.recordBytes > options.limits.perRecord) {
+            events.limit = 'per-record';
+            outcome = { status: 'refused', reason: 'per-record', events };
+            return;
+          }
+          if (total + events.recordBytes > options.limits.totalBytes) {
+            events.limit = 'total-bytes';
+            outcome = { status: 'refused', reason: 'total-bytes', events };
+            return;
+          }
+          records.put(record);
+          events.putQueuedAt = performance.now();
+          if (options.abortSynchronously) {
+            events.synchronousAbortAt = performance.now();
+            transaction.abort();
+          }
+        };
+        allRequest.onerror = () => {
+          outcome = {
+            status: 'error',
+            error: failure(allRequest.error),
+            events,
+          };
+          transaction.abort();
+        };
+      } catch (error) {
+        outcome = {
+          status: 'barrier-invalid',
+          error: failure(error),
+          events,
+        };
         transaction.abort();
       }
     };
     epochRequest.onerror = () => {
       events.epochReadError = failure(epochRequest.error);
+      outcome = {
+        status: 'barrier-invalid',
+        error: failure(epochRequest.error),
+        events,
+      };
       try {
         transaction.abort();
       } catch {
@@ -137,23 +271,41 @@ function saveWithEpoch(database, record, expectedEpoch, options = {}) {
     };
     transaction.oncomplete = () => {
       events.completeAt = performance.now();
-      resolve({
-        status: matched ? 'saved' : 'stale',
-        events,
-      });
+      resolve(outcome ?? { status: 'saved', events });
     };
     transaction.onabort = () => {
       events.abortAt = performance.now();
-      resolve({
-        status: 'aborted',
-        error: failure(transaction.error),
-        events,
-      });
+      resolve(outcome ?? { status: 'aborted', events });
     };
     transaction.onerror = () => {
       events.errorAt = performance.now();
     };
   });
+}
+
+function makeExactRecord(recordId, targetBytes, prefix = '') {
+  const base = { recordId, payload: prefix };
+  const baseBytes = serializedBytes(base);
+  if (!Number.isSafeInteger(targetBytes) || targetBytes < baseBytes)
+    throw new Error(
+      `Target ${targetBytes} is smaller than the ${baseBytes}-byte record base.`,
+    );
+  const record = {
+    recordId,
+    payload: prefix + 'x'.repeat(targetBytes - baseBytes),
+  };
+  const bytes = serializedBytes(record);
+  if (bytes !== targetBytes)
+    throw new Error(`Expected ${targetBytes} bytes, built ${bytes}.`);
+  return { record, bytes };
+}
+
+async function digest(record) {
+  const bytes = encoder.encode(JSON.stringify(canonicalRecord(record)));
+  const hash = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(hash)]
+    .map((value) => value.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 const probe = {
@@ -175,17 +327,97 @@ const probe = {
   async all() {
     return readAll(probe.database);
   },
+  async allWithBytes() {
+    const records = await readAll(probe.database);
+    return {
+      records: await Promise.all(
+        records.map(async (record) => ({
+          recordId: record.recordId,
+          bytes: serializedBytes(record),
+          sha256: await digest(record),
+          payloadLength:
+            typeof record.payload === 'string' ? record.payload.length : null,
+        })),
+      ),
+      totalBytes: records.reduce(
+        (sum, record) => sum + serializedBytes(record),
+        0,
+      ),
+    };
+  },
+  async getEpochRaw() {
+    return readEpochRecord(probe.database);
+  },
+  async deleteEpochRaw() {
+    return new Promise((resolve, reject) => {
+      const transaction = probe.database.transaction(META, 'readwrite');
+      transaction.objectStore(META).delete(EPOCH_KEY);
+      transaction.oncomplete = () => resolve({ status: 'deleted' });
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () =>
+        reject(transaction.error ?? new Error('Metadata transaction aborted.'));
+    });
+  },
+  async setEpochRaw(value) {
+    return new Promise((resolve, reject) => {
+      const transaction = probe.database.transaction(META, 'readwrite');
+      const meta = transaction.objectStore(META);
+      if (value === undefined) meta.delete(EPOCH_KEY);
+      else meta.put({ key: EPOCH_KEY, value });
+      transaction.oncomplete = () => resolve({ status: 'set' });
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () =>
+        reject(transaction.error ?? new Error('Metadata transaction aborted.'));
+    });
+  },
+  async openNow() {
+    if (!probe.database) {
+      try {
+        probe.database = await openDatabase();
+        await readEpoch(probe.database);
+        probe.ready = true;
+        probe.readyState = 'ready';
+        return { status: 'opened' };
+      } catch (error) {
+        probe.readyState = 'error';
+        probe.error = failure(error);
+        return { status: 'error', error: failure(error) };
+      }
+    }
+    return { status: 'already-ready' };
+  },
   async putRaw(record) {
     await putRawRecord(probe.database, record);
-    return { status: 'saved' };
+    return { status: 'saved', bytes: serializedBytes(record) };
   },
   // The candidate refuses before reading an epoch while the database is not
   // ready. Product Save uses the same readiness gate, not a delayed open.
   async beginPendingSave(recordId) {
     if (!probe.ready) return { status: 'not-ready' };
-    const expectedEpoch = await readEpoch(probe.database);
-    probe.pending = { recordId, expectedEpoch };
-    return { status: 'pending', expectedEpoch };
+    try {
+      const expectedEpoch = await readEpoch(probe.database);
+      probe.pending = {
+        record: { recordId, payload: `payload-${recordId}` },
+        expectedEpoch,
+      };
+      return { status: 'pending', expectedEpoch };
+    } catch (error) {
+      return { status: 'barrier-invalid', error: failure(error) };
+    }
+  },
+  async beginPendingRecord(record) {
+    if (!probe.ready) return { status: 'not-ready' };
+    try {
+      const expectedEpoch = await readEpoch(probe.database);
+      probe.pending = { record, expectedEpoch };
+      return {
+        status: 'pending',
+        expectedEpoch,
+        recordBytes: serializedBytes(record),
+      };
+    } catch (error) {
+      return { status: 'barrier-invalid', error: failure(error) };
+    }
   },
   async releasePending(options = {}) {
     const pending = probe.pending;
@@ -193,7 +425,7 @@ const probe = {
     if (!pending) return { status: 'no-pending-save' };
     const result = await saveWithEpoch(
       probe.database,
-      { recordId: pending.recordId, payload: `payload-${pending.recordId}` },
+      pending.record,
       pending.expectedEpoch,
       options,
     );
@@ -204,6 +436,48 @@ const probe = {
     const begun = await probe.beginPendingSave(recordId);
     if (begun.status !== 'pending') return begun;
     return probe.releasePending(options);
+  },
+  async saveBoundedRecord(record, limits, options = {}) {
+    if (!probe.ready) return { status: 'not-ready' };
+    let expectedEpoch;
+    try {
+      expectedEpoch = await readEpoch(probe.database);
+    } catch (error) {
+      return { status: 'barrier-invalid', error: failure(error) };
+    }
+    const result = await saveWithEpoch(probe.database, record, expectedEpoch, {
+      ...options,
+      limits,
+    });
+    probe.lastEvents = result.events;
+    return result;
+  },
+  async makeExactRecord(recordId, targetBytes, prefix = '') {
+    const built = makeExactRecord(recordId, targetBytes, prefix);
+    return {
+      record: built.record,
+      bytes: built.bytes,
+      sha256: await digest(built.record),
+    };
+  },
+  async makeExactRecords(plan) {
+    const records = [];
+    for (const item of plan) {
+      const built = makeExactRecord(
+        item.recordId,
+        item.bytes,
+        item.prefix ?? '',
+      );
+      records.push({
+        record: built.record,
+        bytes: built.bytes,
+        sha256: await digest(built.record),
+      });
+    }
+    return {
+      records,
+      totalBytes: records.reduce((sum, item) => sum + item.bytes, 0),
+    };
   },
   async deleteRecord(recordId) {
     return deleteWithEpoch(probe.database, recordId);
@@ -312,7 +586,7 @@ const probe = {
   },
   async writePayload(recordId, bytes) {
     const record = { recordId, payload: 'x'.repeat(bytes) };
-    const serialized = JSON.stringify(record).length;
+    const serialized = serializedBytes(record);
     await putRawRecord(probe.database, record);
     return { status: 'saved', serialized };
   },

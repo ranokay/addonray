@@ -84,7 +84,32 @@ const report = {
 };
 
 const checks = report.checks;
+const declared = new Map();
+function declareChecks(list) {
+  for (const [id, name, authority, essential = true] of list) {
+    if (declared.has(id)) continue;
+    const entry = {
+      id,
+      name,
+      authority,
+      essential,
+      status: 'not-run',
+      stage: null,
+      details: null,
+      error: null,
+    };
+    checks.push(entry);
+    declared.set(id, entry);
+  }
+}
 function record(id, name, authority, essential = true) {
+  const existing = declared.get(id);
+  if (existing) {
+    if (name) existing.name = name;
+    if (authority) existing.authority = authority;
+    existing.essential = essential;
+    return existing;
+  }
   const entry = {
     id,
     name,
@@ -96,31 +121,107 @@ function record(id, name, authority, essential = true) {
     error: null,
   };
   checks.push(entry);
+  declared.set(id, entry);
   return entry;
 }
-async function run(entry, stage, workFn) {
-  entry.stage = stage;
+async function collectFailureSnapshot() {
+  if (!driver) return null;
   try {
-    const details = await workFn();
-    entry.details = details ?? null;
+    return await driver.executeScript(() => ({
+      url: location.href,
+      probe: globalThis.savedStorageProbe
+        ? {
+            ready: globalThis.savedStorageProbe.ready,
+            readyState: globalThis.savedStorageProbe.readyState,
+            lastEvents: globalThis.savedStorageProbe.lastEvents,
+            error: globalThis.savedStorageProbe.error ?? null,
+            epoch: globalThis.savedStorageProbe.epoch ?? null,
+          }
+        : null,
+    }));
+  } catch (error) {
+    return { error: String(error) };
+  }
+}
+async function run(entry, stage, workFn, options = {}) {
+  entry.stage = stage;
+  const observations = {};
+  try {
+    const details = await workFn(observations);
+    entry.details = details ?? observations;
     entry.status = 'passed';
-    console.log(`Passed: ${entry.id} — ${entry.name}`);
+    if (!options.quiet) console.log(`Passed: ${entry.id} — ${entry.name}`);
     return entry;
   } catch (error) {
+    if (error?.unavailable) {
+      entry.status = 'unavailable';
+      entry.details = error.details ?? observations;
+      entry.failureSnapshot = await collectFailureSnapshot();
+      entry.error = {
+        name: error?.name ?? 'Unavailable',
+        message: String(error?.message ?? error),
+        stack: error?.stack ? String(error.stack) : null,
+      };
+      console.error(
+        `Unavailable: ${entry.id} — ${entry.name}: ${entry.error.message}`,
+      );
+      return entry;
+    }
     entry.status = 'failed';
-    if (error?.details) entry.details = error.details;
+    entry.details = error?.details ?? observations;
+    entry.failureSnapshot = await collectFailureSnapshot();
     entry.error = {
       name: error?.name ?? 'Error',
       message: String(error?.message ?? error),
       stack: error?.stack ? String(error.stack) : null,
     };
     if (entry.essential) report.essentialFailures.push(entry.id);
-    console.error(
-      `Failed: ${entry.id} — ${entry.name}: ${entry.error.message}`,
-    );
+    if (!options.quiet)
+      console.error(
+        `Failed: ${entry.id} — ${entry.name}: ${entry.error.message}`,
+      );
     return entry;
   }
 }
+
+const firefoxCheckList = [
+  ['availability', 'availability'],
+  ['ordinary-prompt', 'ordinary prompt'],
+  ['raw-headroom', 'raw headroom'],
+  ['exact-boundary-capacity', 'exact boundary capacity'],
+  ['bound-refusal', 'bound refusal'],
+  ['persistence-grant', 'persistence grant', undefined, false],
+  ['quota-observation', 'quota observation', undefined, false],
+  ['forced-clear', 'forced clear', undefined, false],
+  ['content-script-boundary', 'content-script boundary'],
+  ['deletion-epoch-barrier', 'deletion epoch barrier'],
+  ['epoch-fail-closed', 'epoch fail closed'],
+  ['readiness-gate', 'readiness gate'],
+  ['delete-expiry-unsupported', 'delete expiry unsupported'],
+  ['private-context', 'private context'],
+  ['restart-persistence', 'restart persistence'],
+  ['uninstall-behavior', 'uninstall behavior', undefined, false],
+  ['negative-fixtures', 'negative fixtures'],
+];
+const chromeCheckList = [
+  ['availability', 'availability'],
+  ['raw-headroom', 'raw headroom'],
+  ['ordinary-prompt', 'ordinary prompt'],
+  ['exact-boundary-capacity', 'exact boundary capacity'],
+  ['bound-refusal', 'bound refusal'],
+  ['persistence-grant', 'persistence grant', undefined, false],
+  ['quota-observation', 'quota observation', undefined, false],
+  ['content-script-boundary', 'content-script boundary'],
+  ['deletion-epoch-barrier', 'deletion epoch barrier'],
+  ['epoch-fail-closed', 'epoch fail closed'],
+  ['readiness-gate', 'readiness gate'],
+  ['delete-expiry-unsupported', 'delete expiry unsupported'],
+  ['restart-persistence', 'restart persistence'],
+  ['uninstall-behavior', 'uninstall behavior', undefined, false],
+  ['forced-clear', 'forced clear', undefined, false],
+  ['private-context', 'private context'],
+  ['negative-fixtures', 'negative fixtures'],
+];
 
 function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
@@ -302,6 +403,548 @@ async function ensurePage(url) {
   }
 }
 
+const BOUNDS = {
+  records: 50,
+  totalBytes: 5_242_880,
+  perRecord: 1_048_576,
+};
+
+function assertPrivateRoute(route) {
+  assert.equal(route.context?.status, 'success');
+  assert.equal(route.context?.incognito, true);
+  assert.equal(route.blocked?.status, 'blocked');
+  assert.equal(route.blocked?.reason, 'private-or-unknown-context');
+  assert.equal(route.blocked?.storageAccessed, false);
+}
+
+function assertContentBoundary(details) {
+  assert.equal(details.fixturePage?.sentinelPresent, true);
+  assert.equal(details.fixturePage?.sentinel, 'fixture-extension');
+  assert.equal(
+    details.contentProbe?.runtimeId,
+    details.fixturePage?.extensionId,
+  );
+  assert.equal(details.contentProbe?.pageReady, true);
+  assert.equal(details.contentProbe?.error, null);
+  assert.equal(details.contentProbe?.readSentinels?.includes('page'), true);
+  assert.equal(
+    details.contentProbe?.readSentinels?.includes('fixture-extension'),
+    false,
+  );
+  assert.equal(
+    details.contentProbe?.readSentinels?.includes('extension-candidate'),
+    false,
+  );
+  assert.equal(details.extensionAfter?.fixture?.sentinelPresent, true);
+  assert.equal(details.extensionAfter?.candidate?.sentinelPresent, true);
+}
+
+function assertRestartPersistence(details) {
+  const sentinelRecord = details.records?.find(
+    (record) => record.recordId === 'restart-sentinel',
+  );
+  assert.equal(sentinelRecord?.payload, 'restart');
+}
+
+function assertUninstall(details) {
+  assert(
+    details.removed?.uninstalled === true ||
+      details.requested?.requested === true,
+  );
+  assert.equal(
+    details.before?.some((record) => record.recordId === 'uninstall-seed'),
+    true,
+  );
+  assert.equal(
+    details.after?.some((record) => record.recordId === 'uninstall-seed'),
+    false,
+  );
+}
+
+function assertDeleteExpiry(details) {
+  assert.deepEqual(details.listed?.removedExpired, ['expired']);
+  assert.deepEqual(details.listed?.unsupported, ['future']);
+  assert.deepEqual(details.listed?.invalid, ['malformed']);
+  assert.equal(details.listed?.available?.includes('valid'), true);
+  assert.equal(details.listed?.available?.includes('expired'), false);
+  assert.equal(
+    details.remaining?.some((record) => record.recordId === 'expired'),
+    false,
+  );
+  assert.equal(
+    details.remaining?.some((record) => record.recordId === 'valid'),
+    true,
+  );
+  assert.equal(
+    details.remaining?.some((record) => record.recordId === 'malformed'),
+    true,
+  );
+  assert.equal(
+    details.remaining?.some((record) => record.recordId === 'future'),
+    true,
+  );
+  assert.equal(details.deleteUnsupported?.status, 'deleted');
+  assert.equal(
+    details.afterDelete?.some((record) => record.recordId === 'future'),
+    false,
+  );
+}
+
+async function openFreshProbe(baseUrl, dbName) {
+  const navigation = await ensurePage(
+    `${baseUrl}?guardOnly=1&db=${encodeURIComponent(dbName)}`,
+  );
+  const opened = await callRaw('openNow');
+  assert.equal(opened?.status, 'ok', JSON.stringify(opened));
+  assert.notEqual(opened.value?.status, 'error', JSON.stringify(opened));
+  const state = await callRaw('status');
+  assert.equal(state?.status, 'ok', JSON.stringify(state));
+  assert.equal(state.value?.ready, true);
+  return { navigation, state: state.value };
+}
+
+async function saveExactRecords(records, limits = BOUNDS) {
+  const saved = [];
+  for (const item of records) {
+    const result = await callRaw('saveBoundedRecord', item.record, limits);
+    assert.equal(result?.status, 'ok', JSON.stringify(result));
+    assert.equal(result.value?.status, 'saved', JSON.stringify(result.value));
+    saved.push(result.value);
+  }
+  return saved;
+}
+
+function exactPlan(count, size, prefix = '') {
+  return Array.from({ length: count }, (_, index) => ({
+    recordId: `cap-${index}`,
+    bytes: size,
+    prefix: index % 3 === 0 ? prefix : '',
+  }));
+}
+
+async function runExactCapacity(baseUrl, observations) {
+  const opened = await openFreshProbe(baseUrl, `exact-capacity-${stamp}`);
+  observations.open = opened;
+  const plan = exactPlan(49, 100_000, 'é中');
+  plan.push({
+    recordId: 'cap-large',
+    bytes: 342_880,
+    prefix: 'é中',
+  });
+  const built = await call('makeExactRecords', plan);
+  observations.expectedTotalBytes = BOUNDS.totalBytes;
+  observations.builtTotalBytes = built.totalBytes;
+  observations.builtRecords = built.records.map((entry) => ({
+    recordId: entry.record.recordId,
+    bytes: entry.bytes,
+    sha256: entry.sha256,
+  }));
+  assert.equal(built.totalBytes, BOUNDS.totalBytes);
+  assert.equal(built.records.length, 50);
+  assert.equal(
+    built.records.every((entry) => entry.bytes <= BOUNDS.perRecord),
+    true,
+  );
+  observations.nonAsciiRecordIds = built.records
+    .filter((entry) => entry.record.payload.includes('é中'))
+    .map((entry) => entry.record.recordId);
+  assert(observations.nonAsciiRecordIds.length > 0);
+  await saveExactRecords(built.records);
+  const read = await call('allWithBytes');
+  observations.readCount = read.records.length;
+  observations.readTotalBytes = read.totalBytes;
+  assert.equal(read.records.length, 50);
+  assert.equal(read.totalBytes, BOUNDS.totalBytes);
+  const byId = new Map(read.records.map((record) => [record.recordId, record]));
+  for (const entry of built.records) {
+    const stored = byId.get(entry.record.recordId);
+    assert.equal(stored?.bytes, entry.bytes);
+    assert.equal(stored?.sha256, entry.sha256);
+  }
+  await call('clearRecords');
+  await call('setEpochRaw', 0);
+  const one = await call('makeExactRecord', 'exact-1mib', 1_048_576, 'é中');
+  observations.oneMibExpectedBytes = 1_048_576;
+  observations.oneMibBuiltBytes = one.bytes;
+  assert.equal(one.bytes, 1_048_576);
+  const saved = await saveExactRecords([one]);
+  observations.oneMibSaved = saved;
+  const oneRead = await call('allWithBytes');
+  observations.oneMibRead = oneRead.records[0];
+  assert.equal(oneRead.records.length, 1);
+  assert.equal(oneRead.records[0].bytes, 1_048_576);
+  assert.equal(oneRead.records[0].sha256, one.sha256);
+  return observations;
+}
+
+async function runBoundRefusal(baseUrl, observations) {
+  // 51st record at a full set.
+  await openFreshProbe(baseUrl, `refuse-count-${stamp}`);
+  const countPlan = exactPlan(49, 100_000, 'é');
+  countPlan.push({ recordId: 'cap-large', bytes: 342_880 });
+  const countBuilt = await call('makeExactRecords', countPlan);
+  await saveExactRecords(countBuilt.records);
+  const fiftyFirst = await call('makeExactRecord', 'fifty-first', 200);
+  const countRefused = await callRaw(
+    'saveBoundedRecord',
+    fiftyFirst.record,
+    BOUNDS,
+  );
+  observations.countRefusal = countRefused;
+  assert.equal(countRefused.value?.status, 'refused');
+  assert.equal(countRefused.value?.reason, 'records');
+  const afterCount = await call('allWithBytes');
+  observations.afterCount = {
+    count: afterCount.records.length,
+    totalBytes: afterCount.totalBytes,
+    ids: afterCount.records.map((record) => record.recordId),
+  };
+  assert.equal(afterCount.records.length, 50);
+  assert.equal(afterCount.totalBytes, BOUNDS.totalBytes);
+  assert.equal(
+    afterCount.records.some((record) => record.recordId === 'fifty-first'),
+    false,
+  );
+
+  // Total-byte overflow with 49 unexpired records.
+  await openFreshProbe(baseUrl, `refuse-total-${stamp}`);
+  const totalPlan = exactPlan(48, 100_000, 'é');
+  totalPlan.push({ recordId: 'cap-large', bytes: 442_780 });
+  const totalBuilt = await call('makeExactRecords', totalPlan);
+  assert.equal(totalBuilt.totalBytes, BOUNDS.totalBytes - 100);
+  await saveExactRecords(totalBuilt.records);
+  const over = await call('makeExactRecord', 'total-overflow', 101);
+  const totalRefused = await callRaw('saveBoundedRecord', over.record, BOUNDS);
+  observations.totalRefusal = totalRefused;
+  assert.equal(totalRefused.value?.status, 'refused');
+  assert.equal(totalRefused.value?.reason, 'total-bytes');
+  const afterTotal = await call('allWithBytes');
+  observations.afterTotal = {
+    count: afterTotal.records.length,
+    totalBytes: afterTotal.totalBytes,
+  };
+  assert.equal(afterTotal.records.length, 49);
+  assert.equal(afterTotal.totalBytes, BOUNDS.totalBytes - 100);
+  assert.equal(
+    afterTotal.records.some((record) => record.recordId === 'total-overflow'),
+    false,
+  );
+
+  // Per-record overflow on an empty store.
+  await openFreshProbe(baseUrl, `refuse-per-record-${stamp}`);
+  const tooBig = await call('makeExactRecord', 'too-big', 1_048_577);
+  const perRefused = await callRaw('saveBoundedRecord', tooBig.record, BOUNDS);
+  observations.perRecordRefusal = perRefused;
+  assert.equal(perRefused.value?.status, 'refused');
+  assert.equal(perRefused.value?.reason, 'per-record');
+  const afterPer = await call('allWithBytes');
+  observations.afterPerRecord = {
+    count: afterPer.records.length,
+    totalBytes: afterPer.totalBytes,
+  };
+  assert.equal(afterPer.records.length, 0);
+  return observations;
+}
+
+async function runEpochFailClosed(baseUrl, observations) {
+  await openFreshProbe(baseUrl, `epoch-invalid-${stamp}`);
+  const seed = await callRaw('saveNow', 'record-a');
+  observations.seed = seed;
+  assert.equal(seed.value?.status, 'saved');
+  const pending = await callRaw('beginPendingSave', 'record-b');
+  observations.pending = pending;
+  assert.equal(pending.value?.status, 'pending');
+  await call('deleteEpochRaw');
+  const released = await callRaw('releasePending');
+  observations.releasedAfterLoss = released;
+  assert.equal(released.value?.status, 'barrier-invalid');
+  assert.equal(released.value?.error?.message, 'missing-deletion-epoch');
+  const afterLoss = await call('allWithBytes');
+  observations.afterLoss = {
+    count: afterLoss.records.length,
+    ids: afterLoss.records.map((record) => record.recordId),
+  };
+  assert.equal(
+    afterLoss.records.some((record) => record.recordId === 'record-b'),
+    false,
+  );
+  assert.equal(
+    afterLoss.records.some((record) => record.recordId === 'record-a'),
+    true,
+  );
+
+  await call('setEpochRaw', 'corrupt');
+  const deleteCorrupt = await callRaw('deleteRecord', 'record-a');
+  const saveCorrupt = await callRaw(
+    'saveBoundedRecord',
+    { recordId: 'corrupt-save', payload: 'x' },
+    BOUNDS,
+  );
+  observations.corrupt = { deleteCorrupt, saveCorrupt };
+  assert.equal(deleteCorrupt.value?.status, 'barrier-invalid');
+  assert.equal(saveCorrupt.value?.status, 'barrier-invalid');
+  const afterCorrupt = await call('allWithBytes');
+  observations.afterCorrupt = {
+    count: afterCorrupt.records.length,
+    ids: afterCorrupt.records.map((record) => record.recordId),
+  };
+  assert.equal(
+    afterCorrupt.records.some((record) => record.recordId === 'corrupt-save'),
+    false,
+  );
+  assert.equal(
+    afterCorrupt.records.some((record) => record.recordId === 'record-a'),
+    true,
+  );
+
+  const invalidValues = [-1, 1.5, '1', Number.MAX_SAFE_INTEGER + 1];
+  observations.invalidValues = [];
+  for (const value of invalidValues) {
+    await call('setEpochRaw', value);
+    const deleted = await callRaw('deleteRecord', 'record-a');
+    const saved = await callRaw(
+      'saveBoundedRecord',
+      { recordId: `invalid-${String(value)}`, payload: 'x' },
+      BOUNDS,
+    );
+    observations.invalidValues.push({ value, deleted, saved });
+    assert.equal(deleted.value?.status, 'barrier-invalid');
+    assert.equal(saved.value?.status, 'barrier-invalid');
+  }
+  const afterInvalid = await call('allWithBytes');
+  observations.afterInvalid = {
+    count: afterInvalid.records.length,
+    ids: afterInvalid.records.map((record) => record.recordId),
+  };
+  assert.equal(
+    afterInvalid.records.some((record) => record.recordId === 'record-a'),
+    true,
+  );
+
+  await call('setEpochRaw', Number.MAX_SAFE_INTEGER);
+  const deleteExhausted = await callRaw('deleteRecord', 'record-a');
+  const saveExhausted = await callRaw(
+    'saveBoundedRecord',
+    { recordId: 'exhausted-save', payload: 'x' },
+    BOUNDS,
+  );
+  observations.exhaustion = { deleteExhausted, saveExhausted };
+  assert.equal(deleteExhausted.value?.status, 'barrier-exhausted');
+  assert.equal(saveExhausted.value?.status, 'barrier-exhausted');
+  const afterExhausted = await call('allWithBytes');
+  const rawEpoch = await call('getEpochRaw');
+  observations.afterExhausted = {
+    count: afterExhausted.records.length,
+    ids: afterExhausted.records.map((record) => record.recordId),
+    epoch: rawEpoch,
+  };
+  assert.equal(rawEpoch.value, Number.MAX_SAFE_INTEGER);
+  assert.equal(
+    afterExhausted.records.some((record) => record.recordId === 'record-a'),
+    true,
+  );
+
+  await call('setEpochRaw', 0);
+  const idempotentDelete = await callRaw('deleteRecord', 'already-missing');
+  observations.idempotentDelete = idempotentDelete;
+  assert.equal(idempotentDelete.value?.status, 'deleted');
+  assert.equal(idempotentDelete.value?.epoch, 1);
+  const pendingAfterIdempotent = await callRaw('beginPendingSave', 'record-c');
+  observations.pendingAfterIdempotent = pendingAfterIdempotent;
+  assert.equal(pendingAfterIdempotent.value?.expectedEpoch, 1);
+  const secondIdempotent = await callRaw('deleteRecord', 'already-missing');
+  observations.secondIdempotent = secondIdempotent;
+  assert.equal(secondIdempotent.value?.epoch, 2);
+  const stale = await callRaw('releasePending');
+  observations.staleAfterIdempotent = stale;
+  assert.equal(stale.value?.status, 'stale');
+  const finalRecords = await call('allWithBytes');
+  observations.final = {
+    count: finalRecords.records.length,
+    ids: finalRecords.records.map((record) => record.recordId),
+  };
+  assert.equal(
+    finalRecords.records.some((record) => record.recordId === 'record-c'),
+    false,
+  );
+  return observations;
+}
+
+async function runNegativeFixtures() {
+  const validContent = {
+    fixturePage: {
+      extensionId: 'fixture',
+      sentinel: 'fixture-extension',
+      sentinelPresent: true,
+    },
+    contentProbe: {
+      runtimeId: 'fixture',
+      pageReady: true,
+      error: null,
+      readSentinels: ['page'],
+    },
+    extensionAfter: {
+      fixture: { sentinelPresent: true },
+      candidate: { sentinelPresent: true },
+    },
+  };
+  const validRestart = {
+    records: [{ recordId: 'restart-sentinel', payload: 'restart' }],
+  };
+  const validUninstall = {
+    removed: { uninstalled: true },
+    before: [{ recordId: 'uninstall-seed', payload: 'uninstall-seed' }],
+    after: [],
+  };
+  const validDelete = {
+    listed: {
+      removedExpired: ['expired'],
+      unsupported: ['future'],
+      invalid: ['malformed'],
+      available: ['valid'],
+    },
+    remaining: [
+      { recordId: 'valid' },
+      { recordId: 'malformed' },
+      { recordId: 'future' },
+    ],
+    deleteUnsupported: { status: 'deleted' },
+    afterDelete: [{ recordId: 'valid' }],
+  };
+  assertRestartPersistence(validRestart);
+  const cases = [];
+  const reject = (name, fn) => {
+    try {
+      fn();
+      throw new Error(`Negative fixture ${name} was accepted.`);
+    } catch (error) {
+      if (String(error.message).includes('was accepted')) throw error;
+      cases.push({ name, rejected: true, message: String(error.message) });
+    }
+  };
+  reject('content-empty-read', () =>
+    assertContentBoundary({
+      ...validContent,
+      contentProbe: {
+        ...validContent.contentProbe,
+        readSentinels: [],
+        error: 'read failed',
+      },
+    }),
+  );
+  reject('content-missing-page-sentinel', () =>
+    assertContentBoundary({
+      ...validContent,
+      contentProbe: { ...validContent.contentProbe, readSentinels: [] },
+    }),
+  );
+  reject('content-extension-sentinel-leak', () =>
+    assertContentBoundary({
+      ...validContent,
+      contentProbe: {
+        ...validContent.contentProbe,
+        readSentinels: ['page', 'extension-candidate'],
+      },
+    }),
+  );
+  reject('restart-missing-sentinel', () =>
+    assertRestartPersistence({
+      records: [{ recordId: 'other', payload: 'x' }],
+    }),
+  );
+  reject('restart-wrong-payload', () =>
+    assertRestartPersistence({
+      records: [{ recordId: 'restart-sentinel', payload: 'wrong' }],
+    }),
+  );
+  reject('uninstall-seed-survived', () =>
+    assertUninstall({ ...validUninstall, after: validUninstall.before }),
+  );
+  reject('uninstall-no-removal', () =>
+    assertUninstall({ ...validUninstall, removed: { uninstalled: false } }),
+  );
+  reject('expired-still-available', () =>
+    assertDeleteExpiry({
+      ...validDelete,
+      listed: { ...validDelete.listed, available: ['valid', 'expired'] },
+    }),
+  );
+  reject('unsupported-not-deleted', () =>
+    assertDeleteExpiry({
+      ...validDelete,
+      deleteUnsupported: { status: 'not-deleted' },
+    }),
+  );
+  reject('private-double-unwrap', () =>
+    assertPrivateRoute({
+      context: { value: { status: 'success', incognito: true } },
+      blocked: {
+        value: {
+          status: 'blocked',
+          reason: 'private-or-unknown-context',
+          storageAccessed: false,
+        },
+      },
+    }),
+  );
+  assert.equal(cases.length, 10);
+  const popupOnly = classifyStoragePrompt({
+    notifications: [],
+    popupNotifications: [
+      {
+        id: 'persistent-storage',
+        message: 'Allow <> to store data in persistent storage?',
+      },
+    ],
+    notificationsError: null,
+    popupError: null,
+  });
+  assert.equal(popupOnly.available, true);
+  assert.equal(popupOnly.entries.length, 1);
+  assert.equal(popupOnly.entries[0].route, 'popup-notifications');
+  const inspectionUnavailable = classifyStoragePrompt({
+    notifications: [],
+    popupNotifications: [],
+    notificationsError: 'notification route unavailable',
+    popupError: null,
+  });
+  assert.equal(inspectionUnavailable.available, false);
+  const synthetic = {
+    id: 'synthetic-failure-retention',
+    name: 'synthetic failure retention',
+    authority: 'test-of-test',
+    essential: false,
+    status: 'not-run',
+    stage: null,
+    details: null,
+    error: null,
+  };
+  await run(
+    synthetic,
+    'synthetic-failure',
+    async (observations) => {
+      observations.observedCounter = 42;
+      observations.stage = 'before-assertion';
+      assert.equal(1, 2);
+    },
+    { quiet: true },
+  );
+  assert.equal(synthetic.status, 'failed');
+  assert.equal(synthetic.details?.observedCounter, 42);
+  assert.equal(synthetic.details?.stage, 'before-assertion');
+  assert(synthetic.failureSnapshot);
+  return {
+    cases,
+    popupOnly,
+    inspectionUnavailable,
+    failureRetention: {
+      status: synthetic.status,
+      details: synthetic.details,
+      failureSnapshot: synthetic.failureSnapshot,
+    },
+  };
+}
+
 async function launchFirefox(templateProfile = null) {
   const options = new firefox.Options().addArguments('-headless');
   if (templateProfile) options.setProfile(templateProfile);
@@ -352,6 +995,7 @@ async function firefoxPromptState() {
   try {
     return await driver.executeScript((extensionId) => {
       const notifications = [];
+      let notificationsError = null;
       try {
         const box = gBrowser.getNotificationBox(gBrowser.selectedBrowser);
         for (const notification of box?.allNotifications ?? []) {
@@ -361,8 +1005,8 @@ async function firefoxPromptState() {
             priority: notification.priority ?? null,
           });
         }
-      } catch {
-        /* The selected window may not expose a notification box. */
+      } catch (error) {
+        notificationsError = String(error);
       }
       let storagePermissionState;
       try {
@@ -384,8 +1028,9 @@ async function firefoxPromptState() {
       } catch (error) {
         storagePermissionState = `lookup-failed: ${String(error)}`;
       }
-      let popupNotifications;
-      let popupPanelState;
+      let popupNotifications = [];
+      let popupPanelState = null;
+      let popupError = null;
       try {
         const chromeWindow = gBrowser.ownerDocument?.defaultView ?? globalThis;
         const popup = chromeWindow.PopupNotifications;
@@ -398,18 +1043,64 @@ async function firefoxPromptState() {
           }),
         );
       } catch (error) {
-        popupNotifications = [{ lookupError: String(error) }];
+        popupError = String(error);
       }
       return {
         notifications,
+        notificationsError,
         storagePermissionState,
         popupNotifications,
         popupPanelState,
+        popupError,
       };
     }, candidateId);
   } finally {
     await driver.setContext('content');
   }
+}
+
+function classifyStoragePrompt(state) {
+  if (!state)
+    return {
+      available: false,
+      reason: 'missing-state',
+      entries: [],
+    };
+  if (state.notificationsError || state.popupError)
+    return {
+      available: false,
+      reason: 'inspection-unavailable',
+      errors: {
+        notifications: state.notificationsError ?? null,
+        popup: state.popupError ?? null,
+      },
+      entries: [],
+    };
+  const entries = [
+    ...(state.notifications ?? [])
+      .filter((entry) =>
+        /storage|persistent|data/i.test(
+          `${entry.id ?? ''} ${entry.label ?? ''}`,
+        ),
+      )
+      .map((entry) => ({
+        route: 'notification-box',
+        id: entry.id ?? null,
+        message: entry.label ?? null,
+      })),
+    ...(state.popupNotifications ?? [])
+      .filter((entry) =>
+        /storage|persistent|data/i.test(
+          `${entry.id ?? ''} ${entry.message ?? ''}`,
+        ),
+      )
+      .map((entry) => ({
+        route: 'popup-notifications',
+        id: entry.id ?? null,
+        message: entry.message ?? null,
+      })),
+  ];
+  return { available: true, entries };
 }
 
 async function dismissFirefoxStoragePrompt() {
@@ -593,6 +1284,7 @@ async function firefoxRestartSession(profile) {
 }
 
 async function firefoxMain() {
+  declareChecks(firefoxCheckList);
   const session = await firefoxSession();
   report.candidateExtension = session.candidate;
   report.contentFixtureExtension = session.content;
@@ -632,76 +1324,110 @@ async function firefoxMain() {
     'Ordinary IndexedDB use does not require a storage permission prompt',
     'Observed browser notification/permission state at each exact operation.',
   );
-  await run(promptEntry, 'ordinary-operations', async () => {
-    const before = await firefoxPromptState();
-    await call('writePayload', 'prompt-write', 4096);
-    const afterSmall = await firefoxPromptState();
-    await call('writePayload', 'prompt-large', 1024 * 1024);
-    const afterLarge = await firefoxPromptState();
-    const storageNotifications = (state) =>
-      state.notifications.filter((notification) =>
-        /storage|persistent|data/i.test(
-          `${notification.id ?? ''} ${notification.label ?? ''}`,
-        ),
+  await run(promptEntry, 'ordinary-operations', async (observations) => {
+    const db = `ordinary-prompt-${stamp}`;
+    observations.navigation = await ensurePage(
+      `${session.candidate.url}?guardOnly=1&db=${db}`,
+    );
+    observations.before = await firefoxPromptState();
+    observations.open = await callRaw('openNow');
+    assert.equal(observations.open?.status, 'ok');
+    assert.notEqual(observations.open.value?.status, 'error');
+    await waitReady();
+    observations.afterOpen = await firefoxPromptState();
+    observations.smallWrite = await call('writePayload', 'prompt-small', 4096);
+    observations.afterSmall = await firefoxPromptState();
+    observations.largeWrite = await call(
+      'writePayload',
+      'prompt-large',
+      1024 * 1024,
+    );
+    observations.afterLarge = await firefoxPromptState();
+    observations.read = await call('allWithBytes');
+    observations.afterRead = await firefoxPromptState();
+    const states = [
+      ['before', observations.before],
+      ['afterOpen', observations.afterOpen],
+      ['afterSmall', observations.afterSmall],
+      ['afterLarge', observations.afterLarge],
+      ['afterRead', observations.afterRead],
+    ];
+    observations.classifications = states.map(([stage, state]) => ({
+      stage,
+      ...classifyStoragePrompt(state),
+    }));
+    const unavailable = observations.classifications.find(
+      (entry) => !entry.available,
+    );
+    if (unavailable) {
+      const error = new Error(
+        `Prompt inspection unavailable at ${unavailable.stage}: ${unavailable.reason}`,
       );
-    return {
-      before,
-      afterSmall,
-      afterLarge,
-      storageNotifications: {
-        before: storageNotifications(before),
-        afterSmall: storageNotifications(afterSmall),
-        afterLarge: storageNotifications(afterLarge),
-      },
-      prompted: [before, afterSmall, afterLarge].some(
-        (state) => storageNotifications(state).length > 0,
-      ),
-    };
+      error.unavailable = true;
+      error.details = observations;
+      throw error;
+    }
+    const prompted = observations.classifications.find(
+      (entry) => entry.entries.length > 0,
+    );
+    assert.equal(
+      prompted,
+      undefined,
+      `Ordinary storage prompt observed: ${JSON.stringify(prompted)}`,
+    );
+    return observations;
   });
-  if (promptEntry.status === 'passed' && promptEntry.details.prompted) {
-    promptEntry.status = 'failed';
-    promptEntry.error = {
-      name: 'StoragePromptObserved',
-      message:
-        'A storage-related browser prompt/notification appeared during ordinary IndexedDB operations.',
-      stack: null,
-    };
-    report.essentialFailures.push(promptEntry.id);
-  }
 
-  const bounds = record(
-    'bounds-capacity',
-    'Store 50 records, 5 MiB total and one 1 MiB record without truncation',
-    'Observed candidate writes and reads; product enforcement is tested later.',
+  const rawHeadroom = record(
+    'raw-headroom',
+    'Raw storage headroom separately from product-bound enforcement',
+    'Observed candidate writes and reads; this is not the exact 5 MiB/1 MiB product boundary.',
+    false,
   );
-  await run(bounds, 'bounded-writes', async () => {
+  await run(rawHeadroom, 'raw-headroom', async (observations) => {
+    await ensurePage(session.candidate.url);
+    await waitReady();
     await call('clearRecords');
-    const before = await call('estimate');
+    observations.estimateBefore = await call('estimate');
     const records = [];
     for (let index = 0; index < 50; index += 1) {
-      const result = await call('writePayload', `bound-${index}`, 100_000);
+      const result = await call('writePayload', `raw-${index}`, 100_000);
       records.push(result.serialized);
     }
-    const large = await call('writePayload', 'one-mib', 1_000_000);
-    const after = await call('estimate');
-    const all = await pages();
-    assert.equal(all.length, 51);
-    assert.equal(
-      all.find((entry) => entry.recordId === 'one-mib')?.payload.length,
-      1_000_000,
+    observations.large = await call('writePayload', 'raw-large', 1_000_000);
+    observations.estimateAfter = await call('estimate');
+    const all = await call('allWithBytes');
+    observations.recordCount = all.records.length;
+    observations.totalBytes = all.totalBytes;
+    observations.serializedBytes = records.reduce(
+      (sum, value) => sum + value,
+      0,
     );
-    return {
-      estimateBefore: before,
-      estimateAfter: after,
-      serializedBytes: records.reduce((sum, value) => sum + value, 0),
-      oneMibSerializedBytes: large.serialized,
-      recordCount: all.length,
-      usageDelta:
-        before.usage !== null && after.usage !== null
-          ? after.usage - before.usage
-          : null,
-    };
+    assert.equal(all.records.length, 51);
+    assert.equal(
+      all.records.find((entry) => entry.recordId === 'raw-large')?.bytes,
+      observations.large.serialized,
+    );
+    return observations;
   });
+
+  const exactBoundary = record(
+    'exact-boundary-capacity',
+    'Exact 5,242,880-byte complete-record set and 1,048,576-byte record',
+    'Observed candidate writes, full readback hashes and complete serialized UTF-8 accounting.',
+  );
+  await run(exactBoundary, 'exact-boundary-capacity', (observations) =>
+    runExactCapacity(session.candidate.url, observations),
+  );
+
+  const boundRefusal = record(
+    'bound-refusal',
+    'Atomic candidate refusal at 51 records, total-byte overflow and per-record overflow',
+    'Observed no partial write, no truncation and no unexpired eviction.',
+  );
+  await run(boundRefusal, 'bound-refusal', (observations) =>
+    runBoundRefusal(session.candidate.url, observations),
+  );
 
   const persistEntry = record(
     'persistence-grant',
@@ -748,14 +1474,12 @@ async function firefoxMain() {
     'Observed/controlled; estimates and simulated aborts are not quota errors.',
     false,
   );
-  await run(quotaEntry, 'quota-probe', async () => {
-    const estimate = await call('estimate');
-    const result = {
-      estimate,
-      attempt: null,
-      quotaErrorObserved: false,
-      simulatedAbort: null,
-    };
+  await run(quotaEntry, 'quota-probe', async (observations) => {
+    observations.estimate = await call('estimate');
+    const estimate = observations.estimate;
+    observations.attempt = { stage: 'start' };
+    observations.quotaErrorObserved = false;
+    observations.simulatedAbort = null;
     const cap = 64 * 1024 * 1024;
     if (
       typeof estimate.quota === 'number' &&
@@ -764,6 +1488,7 @@ async function firefoxMain() {
     ) {
       const records = [];
       let filled = 0;
+      let observedError = null;
       try {
         while (filled < Math.min(estimate.quota + 8 * 1024 * 1024, cap)) {
           const reply = await callRaw(
@@ -772,30 +1497,31 @@ async function firefoxMain() {
             1024 * 1024,
           );
           if (reply.status !== 'ok') {
-            result.quotaErrorObserved = /quota/i.test(
-              `${reply.error?.name} ${reply.error?.message}`,
-            );
-            result.attempt = {
-              stoppedAfterBytes: filled,
-              error: reply.error,
+            observedError = reply.error ?? {
+              name: 'Error',
+              message: String(reply.error),
             };
+            observations.quotaErrorObserved = /quota/i.test(
+              `${observedError.name} ${observedError.message}`,
+            );
             break;
           }
           records.push(reply.value.serialized);
           filled += 1024 * 1024;
           if (filled > (estimate.quota ?? 0) + 2 * 1024 * 1024) break;
         }
-        result.attempt = {
+        observations.attempt = {
+          stage: observedError ? 'write' : 'completed',
           filledBytes: filled,
           recordCount: records.length,
           stoppedAfterBytes: filled,
-          error: null,
+          error: observedError,
         };
       } finally {
         await call('clearRecords');
       }
     } else {
-      result.attempt = {
+      observations.attempt = {
         skipped: true,
         reason:
           'Quota estimate is absent, zero, or above the fixed 64 MiB pressure cap; no disk-pressure experiment was run.',
@@ -808,10 +1534,10 @@ async function firefoxMain() {
     const abort = await callRaw('saveNow', 'quota-abort', {
       abortSynchronously: true,
     });
-    result.simulatedAbort = abort;
+    observations.simulatedAbort = abort;
     assert.equal(abort.status, 'ok');
     assert.equal(abort.value.status, 'aborted');
-    return result;
+    return observations;
   });
 
   const clearEntry = record(
@@ -915,34 +1641,25 @@ async function firefoxMain() {
       ),
     );
     await closeTab(pageHandle, candidateHandle);
-    assert.equal(
-      contentProbe.runtimeId,
-      fixture.extensionId,
-      'Content script runtime did not match the fixture extension',
+    const candidateAfter = await call('allWithBytes');
+    await driver.get(session.content.url);
+    await driver.wait(
+      async () =>
+        (await driver.executeScript(
+          () => document.documentElement.dataset.contentFixtureReady === 'true',
+        )) === true,
+      10000,
     );
-    assert.equal(fixture.sentinelPresent, true);
-    assert.equal(
-      contentProbe.readSentinels.includes('fixture-extension'),
-      false,
-      'Content script read the fixture extension archive',
+    const fixtureAfter = await driver.executeScript(
+      () => window.contentFixtureProbe,
     );
-    assert.equal(
-      contentProbe.readSentinels.includes('extension-candidate'),
-      false,
-      'Content script read the candidate extension archive',
-    );
-    assert.equal(
-      candidateRecords.some((record) => record.payload === sentinel),
-      true,
-    );
-    const fixtureManifest = JSON.parse(
-      await readFile(join(contentFixtureDirectory, 'manifest.json'), 'utf8'),
-    );
-    return {
-      fixtureManifest,
+    const observations = {
+      fixtureManifest: JSON.parse(
+        await readFile(join(contentFixtureDirectory, 'manifest.json'), 'utf8'),
+      ),
       fixtureExtension: report.contentFixtureExtension,
       fixturePage: fixture,
-      candidateRecords: candidateRecords.map((record) => ({
+      candidateRecordsBefore: candidateRecords.map((record) => ({
         recordId: record.recordId,
         payload:
           typeof record.payload === 'string' && record.payload.length > 64
@@ -950,12 +1667,38 @@ async function firefoxMain() {
             : record.payload,
       })),
       contentProbe,
+      extensionAfter: {
+        fixture: { sentinelPresent: fixtureAfter?.sentinelPresent === true },
+        candidate: {
+          sentinelPresent: candidateAfter.records.some(
+            (record) => record.recordId === 'candidate-sentinel',
+          ),
+        },
+      },
       sameExtension:
         contentProbe.runtimeId === fixture.extensionId
           ? 'runtime-id-equals-extension-id'
           : 'runtime-id-mismatch',
     };
+    assertContentBoundary(observations);
+    return observations;
   });
+
+  const negativeFixtures = record(
+    'negative-fixtures',
+    'Focused negative fixtures reject wrong content, restart, uninstall and deletion observations',
+    'Test-of-test only; no product claim.',
+  );
+  await run(negativeFixtures, 'negative-fixtures', () => runNegativeFixtures());
+
+  const epochFailClosed = record(
+    'epoch-fail-closed',
+    'Missing, corrupt, unsafe and exhausted deletion epochs fail closed',
+    'Observed pending saves and deletes write nothing when the barrier metadata is invalid.',
+  );
+  await run(epochFailClosed, 'epoch-fail-closed', (observations) =>
+    runEpochFailClosed(session.candidate.url, observations),
+  );
 
   const epochEntry = record(
     'deletion-epoch-barrier',
@@ -1078,8 +1821,8 @@ async function firefoxMain() {
     'Expired records are refused/removed; unsupported versions stay listed and deletable',
     'Candidate-level behaviour, not the product library.',
   );
-  await run(lazyEntry, 'list-valid', async () => {
-    const navigation = await ensurePage(session.candidate.url);
+  await run(lazyEntry, 'list-valid', async (observations) => {
+    observations.navigation = await ensurePage(session.candidate.url);
     await waitReady();
     await call('clearRecords');
     const now = Date.now();
@@ -1090,33 +1833,14 @@ async function firefoxMain() {
       { recordId: 'malformed', schemaVersion: 1 },
     ])
       await call('putRaw', recordValue);
-    const listed = await call('listValid', now);
-    const remaining = await pages();
-    assert.deepEqual(listed.available, ['valid']);
-    assert.deepEqual(listed.unsupported, ['future']);
-    assert.deepEqual(listed.invalid, ['malformed']);
-    assert.deepEqual(listed.removedExpired, ['expired']);
-    assert.equal(
-      remaining.some((entry) => entry.recordId === 'expired'),
-      false,
-    );
-    assert.equal(
-      remaining.some((entry) => entry.recordId === 'future'),
-      true,
-    );
+    observations.listed = await call('listValid', now);
+    observations.remaining = await pages();
     const deleteUnsupported = await callRaw('deleteRecord', 'future');
     assert.equal(deleteUnsupported.status, 'ok');
-    const afterDelete = await pages();
-    assert.equal(
-      afterDelete.some((entry) => entry.recordId === 'future'),
-      false,
-    );
-    return {
-      navigation,
-      listed,
-      remaining,
-      deleteUnsupported: deleteUnsupported.value,
-    };
+    observations.deleteUnsupported = deleteUnsupported.value;
+    observations.afterDelete = await pages();
+    assertDeleteExpiry(observations);
+    return observations;
   });
 
   const privateEntry = record(
@@ -1195,28 +1919,20 @@ async function firefoxMain() {
     'Records persist across a real browser process restart with the same profile',
     'Observed Firefox restart; session 2 copies the session-1 profile.',
   );
-  await run(restartEntry, 'firefox-restart', async () => {
+  await run(restartEntry, 'firefox-restart', async (observations) => {
     assert(report.sessionProfile?.retained, 'Retained profile unavailable');
     const candidate = await firefoxRestartSession(
       report.sessionProfile.retained,
     );
     await driver.get(candidate.url);
     await waitReady();
-    const records = await pages();
-    return {
-      sessionProfile: report.sessionProfile,
-      restartSessionProfile: report.restart.sessionProfile,
-      origin: candidate.origin,
-      records,
-    };
+    observations.sessionProfile = report.sessionProfile;
+    observations.restartSessionProfile = report.restart.sessionProfile;
+    observations.origin = candidate.origin;
+    observations.records = await pages();
+    assertRestartPersistence(observations);
+    return observations;
   });
-  if (restartEntry.status === 'passed') {
-    const records = restartEntry.details.records;
-    assert(
-      records.some((entry) => entry.recordId === 'restart-sentinel'),
-      'Restart sentinel missing',
-    );
-  }
 
   const uninstallEntry = record(
     'uninstall-behavior',
@@ -1235,9 +1951,17 @@ async function firefoxMain() {
       'Uninstall behavior was not run because restart did not pass.',
     );
   } else {
-    await run(uninstallEntry, 'uninstall', async () => {
+    await run(uninstallEntry, 'uninstall', async (observations) => {
+      const candidate = await firefoxExtensionInfo(candidateId, 'probe.html');
+      await driver.get(candidate.url);
+      await waitReady();
+      await call('putRaw', {
+        recordId: 'uninstall-seed',
+        payload: 'uninstall-seed',
+      });
+      observations.before = await pages();
       await driver.setContext('chrome');
-      const removed = await driver.executeAsyncScript((id, done) => {
+      observations.removed = await driver.executeAsyncScript((id, done) => {
         (async () => {
           try {
             const { AddonManager } = ChromeUtils.importESModule(
@@ -1253,11 +1977,12 @@ async function firefoxMain() {
       }, candidateId);
       await driver.setContext('content');
       await installTemporaryExtension(driver, candidateDirectory);
-      const candidate = await firefoxExtensionInfo(candidateId, 'probe.html');
-      await driver.get(candidate.url);
+      const reinstalled = await firefoxExtensionInfo(candidateId, 'probe.html');
+      await driver.get(reinstalled.url);
       await waitReady();
-      const records = await pages();
-      return { removed, recordsAfterReinstall: records };
+      observations.after = await pages();
+      assertUninstall(observations);
+      return observations;
     });
     if (
       uninstallEntry.status === 'passed' &&
@@ -1317,6 +2042,7 @@ async function chromeInstall(candidatePath, fixturePath) {
 }
 
 async function chromeMain() {
+  declareChecks(chromeCheckList);
   const userDataDir = join(work, 'chrome-profile');
   await mkdir(userDataDir, { recursive: true });
   driver = await chromeSession({ userDataDir });
@@ -1370,31 +2096,49 @@ async function chromeMain() {
     };
   });
 
-  const bounds = record(
-    'bounds-capacity',
-    'Store 50 records, 5 MiB total and one 1 MiB record without truncation',
-    'Observed candidate writes and reads; product enforcement is tested later.',
+  const rawHeadroom = record(
+    'raw-headroom',
+    'Raw storage headroom separately from product-bound enforcement',
+    'Observed candidate writes and reads; this is not the exact 5 MiB/1 MiB product boundary.',
+    false,
   );
-  await run(bounds, 'bounded-writes', async () => {
+  await run(rawHeadroom, 'raw-headroom', async (observations) => {
+    await ensurePage(candidateUrl);
+    await waitReady();
     await call('clearRecords');
-    const before = await call('estimate');
+    observations.estimateBefore = await call('estimate');
     let serialized = 0;
     for (let index = 0; index < 50; index += 1) {
-      const result = await call('writePayload', `bound-${index}`, 100_000);
+      const result = await call('writePayload', `raw-${index}`, 100_000);
       serialized += result.serialized;
     }
-    const large = await call('writePayload', 'one-mib', 1_000_000);
-    const after = await call('estimate');
-    const all = await pages();
-    assert.equal(all.length, 51);
-    return {
-      estimateBefore: before,
-      estimateAfter: after,
-      serializedTotal: serialized,
-      oneMibSerializedBytes: large.serialized,
-      recordCount: all.length,
-    };
+    observations.large = await call('writePayload', 'raw-large', 1_000_000);
+    observations.estimateAfter = await call('estimate');
+    const all = await call('allWithBytes');
+    observations.serializedTotal = serialized;
+    observations.recordCount = all.records.length;
+    observations.totalBytes = all.totalBytes;
+    assert.equal(all.records.length, 51);
+    return observations;
   });
+
+  const exactBoundary = record(
+    'exact-boundary-capacity',
+    'Exact 5,242,880-byte complete-record set and 1,048,576-byte record',
+    'Observed candidate writes, full readback hashes and complete serialized UTF-8 accounting.',
+  );
+  await run(exactBoundary, 'exact-boundary-capacity', (observations) =>
+    runExactCapacity(candidateUrl, observations),
+  );
+
+  const boundRefusal = record(
+    'bound-refusal',
+    'Atomic candidate refusal at 51 records, total-byte overflow and per-record overflow',
+    'Observed no partial write, no truncation and no unexpired eviction.',
+  );
+  await run(boundRefusal, 'bound-refusal', (observations) =>
+    runBoundRefusal(candidateUrl, observations),
+  );
 
   const ordinaryEntry = record(
     'ordinary-prompt',
@@ -1451,27 +2195,25 @@ async function chromeMain() {
     'Observed/controlled; estimates and simulated aborts are not quota errors.',
     false,
   );
-  await run(quotaEntry, 'quota-probe', async () => {
-    await ensurePage(candidateUrl);
+  await run(quotaEntry, 'quota-probe', async (observations) => {
+    observations.navigation = await ensurePage(candidateUrl);
     await waitReady();
-    const estimate = await call('estimate');
-    const abort = await callRaw('saveNow', 'quota-abort', {
+    observations.estimate = await call('estimate');
+    observations.attempt = { stage: 'estimate-only' };
+    observations.quotaErrorObserved = false;
+    observations.simulatedAbort = await callRaw('saveNow', 'quota-abort', {
       abortSynchronously: true,
     });
-    assert.equal(abort.value.status, 'aborted');
+    assert.equal(observations.simulatedAbort.value.status, 'aborted');
     if (
-      typeof estimate.quota !== 'number' ||
-      estimate.quota <= 0 ||
-      estimate.quota > 64 * 1024 * 1024
+      typeof observations.estimate.quota !== 'number' ||
+      observations.estimate.quota <= 0 ||
+      observations.estimate.quota > 64 * 1024 * 1024
     )
       report.gaps.push(
-        `Natural quota exhaustion was not induced: the Chrome quota estimate (${estimate.quota ?? 'absent'} bytes) is absent or above the fixed 64 MiB pressure cap. No real QuotaExceededError observation exists for this target.`,
+        `Natural quota exhaustion was not induced: the Chrome quota estimate (${observations.estimate.quota ?? 'absent'} bytes) is absent or above the fixed 64 MiB pressure cap. No real QuotaExceededError observation exists for this target.`,
       );
-    return {
-      estimate,
-      quotaErrorObserved: false,
-      simulatedAbort: abort.value,
-    };
+    return observations;
   });
 
   const contentEntry = record(
@@ -1515,28 +2257,24 @@ async function chromeMain() {
       ),
     );
     await closeTab(pageHandle, candidateHandle);
-    assert.equal(
-      contentProbe.runtimeId,
-      fixture.extensionId,
-      'Content script runtime did not match the fixture extension',
+    const candidateAfter = await call('allWithBytes');
+    await driver.get(contentUrl);
+    await driver.wait(async () => {
+      return (
+        (await driver.executeScript(
+          () => document.documentElement.dataset.contentFixtureReady === 'true',
+        )) === true
+      );
+    }, 10000);
+    const fixtureAfter = await driver.executeScript(
+      () => window.contentFixtureProbe,
     );
-    assert.equal(fixture.sentinelPresent, true);
-    assert.equal(
-      contentProbe.readSentinels.includes('fixture-extension'),
-      false,
-      'Content script read the fixture extension archive',
-    );
-    assert.equal(
-      contentProbe.readSentinels.includes('extension-candidate'),
-      false,
-      'Content script read the candidate extension archive',
-    );
-    return {
+    const observations = {
       fixtureManifest: JSON.parse(
         await readFile(join(contentFixtureDirectory, 'manifest.json'), 'utf8'),
       ),
       fixturePage: fixture,
-      candidateRecords: candidateRecords.map((record) => ({
+      candidateRecordsBefore: candidateRecords.map((record) => ({
         recordId: record.recordId,
         payload:
           typeof record.payload === 'string' && record.payload.length > 64
@@ -1544,12 +2282,38 @@ async function chromeMain() {
             : record.payload,
       })),
       contentProbe,
+      extensionAfter: {
+        fixture: { sentinelPresent: fixtureAfter?.sentinelPresent === true },
+        candidate: {
+          sentinelPresent: candidateAfter.records.some(
+            (record) => record.recordId === 'candidate-sentinel',
+          ),
+        },
+      },
       sameExtension:
         contentProbe.runtimeId === fixture.extensionId
           ? 'runtime-id-equals-extension-id'
           : 'runtime-id-mismatch',
     };
+    assertContentBoundary(observations);
+    return observations;
   });
+
+  const negativeFixtures = record(
+    'negative-fixtures',
+    'Focused negative fixtures reject wrong content, restart, uninstall and deletion observations',
+    'Test-of-test only; no product claim.',
+  );
+  await run(negativeFixtures, 'negative-fixtures', () => runNegativeFixtures());
+
+  const epochFailClosed = record(
+    'epoch-fail-closed',
+    'Missing, corrupt, unsafe and exhausted deletion epochs fail closed',
+    'Observed pending saves and deletes write nothing when the barrier metadata is invalid.',
+  );
+  await run(epochFailClosed, 'epoch-fail-closed', (observations) =>
+    runEpochFailClosed(candidateUrl, observations),
+  );
 
   const epochEntry = record(
     'deletion-epoch-barrier',
@@ -1664,8 +2428,8 @@ async function chromeMain() {
     'Expired records are refused/removed; unsupported versions stay listed and deletable',
     'Candidate-level behaviour, not the product library.',
   );
-  await run(lazyEntry, 'list-valid', async () => {
-    const navigation = await ensurePage(candidateUrl);
+  await run(lazyEntry, 'list-valid', async (observations) => {
+    observations.navigation = await ensurePage(candidateUrl);
     await waitReady();
     await call('clearRecords');
     const now = Date.now();
@@ -1676,12 +2440,14 @@ async function chromeMain() {
       { recordId: 'malformed', schemaVersion: 1 },
     ])
       await call('putRaw', recordValue);
-    const listed = await call('listValid', now);
-    const remaining = await pages();
-    assert.deepEqual(listed.available, ['valid']);
-    assert.deepEqual(listed.unsupported, ['future']);
-    assert.deepEqual(listed.removedExpired, ['expired']);
-    return { navigation, listed, remaining };
+    observations.listed = await call('listValid', now);
+    observations.remaining = await pages();
+    const deleteUnsupported = await callRaw('deleteRecord', 'future');
+    assert.equal(deleteUnsupported.status, 'ok');
+    observations.deleteUnsupported = deleteUnsupported.value;
+    observations.afterDelete = await pages();
+    assertDeleteExpiry(observations);
+    return observations;
   });
 
   // Restart with the same profile and unpacked path.
@@ -1696,7 +2462,7 @@ async function chromeMain() {
     'Records persist across a real browser process restart with the same profile',
     'Observed Chrome for Testing restart with the same user-data directory.',
   );
-  await run(restartEntry, 'chrome-restart', async () => {
+  await run(restartEntry, 'chrome-restart', async (observations) => {
     driver = await chromeSession({ userDataDir });
     const reinstalled = await chromeInstall(
       candidateDirectory,
@@ -1705,12 +2471,11 @@ async function chromeMain() {
     assert.equal(reinstalled.candidateId, installed.candidateId);
     await driver.get(candidateUrl);
     await waitReady();
-    const records = await pages();
-    return {
-      userDataDir,
-      extensionId: reinstalled.candidateId,
-      records,
-    };
+    observations.userDataDir = userDataDir;
+    observations.extensionId = reinstalled.candidateId;
+    observations.records = await pages();
+    assertRestartPersistence(observations);
+    return observations;
   });
 
   const uninstallEntry = record(
@@ -1719,10 +2484,14 @@ async function chromeMain() {
     'Test-authority chrome.management.uninstallSelf in the same profile; not a product claim.',
     false,
   );
-  await run(uninstallEntry, 'chrome-uninstall', async () => {
+  await run(uninstallEntry, 'chrome-uninstall', async (observations) => {
     await ensurePage(candidateUrl);
     await waitReady();
-    const before = await pages();
+    await call('putRaw', {
+      recordId: 'uninstall-seed',
+      payload: 'uninstall-seed',
+    });
+    observations.before = await pages();
     const requested = await driver.executeScript(() => {
       try {
         if (!globalThis.chrome?.management?.uninstallSelf)
@@ -1749,20 +2518,17 @@ async function chromeMain() {
     } catch (error) {
       reinstallError = String(error);
     }
-    if (!reinstalled) {
-      return { before, requested, reinstallError };
-    }
+    observations.requested = requested;
+    observations.reinstallError = reinstallError;
+    if (!reinstalled) return observations;
     await ensurePage(
       `chrome-extension://${reinstalled.candidateId}/probe.html`,
     );
     await waitReady();
-    const after = await pages();
-    return {
-      before,
-      requested,
-      extensionId: reinstalled.candidateId,
-      after,
-    };
+    observations.extensionId = reinstalled.candidateId;
+    observations.after = await pages();
+    if (requested.requested === true) assertUninstall(observations);
+    return observations;
   });
 
   if (
@@ -1862,7 +2628,7 @@ async function chromeMain() {
     'Incognito extension routes are attempted and the guard fails closed',
     'Authentic Chrome incognito attempt; blocked routes are recorded as unavailable.',
   );
-  await run(privateEntry, 'chrome-private', async () => {
+  await run(privateEntry, 'chrome-private', async (observations) => {
     await driver.quit();
     driver = null;
     driver = await chromeSession({ userDataDir, incognito: true });
@@ -1892,10 +2658,11 @@ async function chromeMain() {
     if (loaded) {
       const context = await callRaw('context');
       const blocked = await callRaw('guardedRead', true);
-      route.context = context.value ?? context;
-      route.blocked = blocked.value ?? blocked;
-      assert.equal(route.context?.value?.incognito, true);
-      assert.equal(route.blocked?.value?.storageAccessed, false);
+      const contextValue = context.value ?? context;
+      const blockedValue = blocked.value ?? blocked;
+      route.context = contextValue;
+      route.blocked = blockedValue;
+      assertPrivateRoute(route);
     } else {
       route.body = await driver
         .findElement(By.css('body'))
@@ -1904,7 +2671,9 @@ async function chromeMain() {
       route.outcome = 'browser-blocked-or-error-page';
     }
     routes.push(route);
-    return { routes, incognito: true };
+    observations.routes = routes;
+    observations.incognito = true;
+    return observations;
   });
   if (
     privateEntry.status === 'passed' &&
@@ -1942,7 +2711,11 @@ try {
   report.durationMs = Date.now() - started.getTime();
   report.checks = checks;
   report.incomplete = checks
-    .filter((entry) => entry.essential && entry.status === 'not-run')
+    .filter(
+      (entry) =>
+        entry.essential &&
+        (entry.status === 'not-run' || entry.status === 'unavailable'),
+    )
     .map((entry) => entry.id);
   report.essentialFailures = checks
     .filter((entry) => entry.essential && entry.status === 'failed')
