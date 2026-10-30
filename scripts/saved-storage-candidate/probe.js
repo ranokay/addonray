@@ -53,6 +53,9 @@ function openDatabase() {
       // A genuinely new database starts at a valid epoch. Existing metadata is
       // never repaired by an upgrade; invalid state fails closed on read.
       request.transaction.objectStore(META).put({ key: EPOCH_KEY, value: 0 });
+      request.transaction
+        .objectStore(META)
+        .put({ key: 'storeId', value: crypto.randomUUID() });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -61,11 +64,26 @@ function openDatabase() {
   });
 }
 
-function readEpochRecord(database) {
+function parseState(records) {
+  const epoch = records?.find((record) => record?.key === EPOCH_KEY);
+  const store = records?.find((record) => record?.key === 'storeId');
+  const value = validEpoch(epoch);
+  if (typeof store?.value !== 'string' || store.value.length < 16)
+    throw new BarrierStateError('missing-store-id');
+  return { epoch: value, storeId: store.value };
+}
+
+function readStoreState(database) {
   return new Promise((resolve, reject) => {
     const transaction = database.transaction(META, 'readonly');
-    const request = transaction.objectStore(META).get(EPOCH_KEY);
-    request.onsuccess = () => resolve(request.result ?? null);
+    const request = transaction.objectStore(META).getAll();
+    request.onsuccess = () => {
+      try {
+        resolve(parseState(request.result));
+      } catch (error) {
+        reject(error);
+      }
+    };
     request.onerror = () => reject(request.error);
   });
 }
@@ -73,7 +91,7 @@ function readEpochRecord(database) {
 // Calling this creates the readonly transaction synchronously. A later
 // readwrite delete transaction over the same stores must wait behind it.
 function readEpoch(database) {
-  return readEpochRecord(database).then((record) => validEpoch(record));
+  return readStoreState(database).then((state) => state.epoch);
 }
 
 function readAll(database) {
@@ -110,13 +128,13 @@ function deleteWithEpoch(database, recordId) {
     const transaction = database.transaction([RECORDS, META], 'readwrite');
     const records = transaction.objectStore(RECORDS);
     const meta = transaction.objectStore(META);
-    const epochRequest = meta.get(EPOCH_KEY);
+    const stateRequest = meta.getAll();
     let outcome = null;
     let nextEpoch = null;
-    epochRequest.onsuccess = () => {
+    stateRequest.onsuccess = () => {
       events.epochReadAt = performance.now();
       try {
-        const current = validEpoch(epochRequest.result);
+        const current = parseState(stateRequest.result).epoch;
         if (current >= MAX_SAFE) {
           outcome = {
             status: 'barrier-exhausted',
@@ -139,10 +157,10 @@ function deleteWithEpoch(database, recordId) {
         transaction.abort();
       }
     };
-    epochRequest.onerror = () => {
+    stateRequest.onerror = () => {
       outcome = {
         status: 'barrier-invalid',
-        error: failure(epochRequest.error),
+        error: failure(stateRequest.error),
         events,
       };
       transaction.abort();
@@ -186,13 +204,24 @@ function saveWithEpoch(database, record, expectedEpoch, options = {}) {
     }
     const records = transaction.objectStore(RECORDS);
     const meta = transaction.objectStore(META);
-    const epochRequest = meta.get(EPOCH_KEY);
+    const stateRequest = meta.getAll();
     let outcome = null;
-    epochRequest.onsuccess = () => {
+    stateRequest.onsuccess = () => {
       events.epochReadAt = performance.now();
       try {
-        const current = validEpoch(epochRequest.result);
+        const state = parseState(stateRequest.result);
+        const current = state.epoch;
         events.currentEpoch = current;
+        events.storeId = state.storeId;
+        if (
+          options.expectedStoreId &&
+          state.storeId !== options.expectedStoreId
+        ) {
+          events.storeMismatch = true;
+          events.limit = 'stale-store';
+          outcome = { status: 'stale-store', events };
+          return;
+        }
         if (current >= MAX_SAFE) {
           events.limit = 'barrier-exhausted';
           outcome = {
@@ -264,11 +293,11 @@ function saveWithEpoch(database, record, expectedEpoch, options = {}) {
         transaction.abort();
       }
     };
-    epochRequest.onerror = () => {
-      events.epochReadError = failure(epochRequest.error);
+    stateRequest.onerror = () => {
+      events.epochReadError = failure(stateRequest.error);
       outcome = {
         status: 'barrier-invalid',
-        error: failure(epochRequest.error),
+        error: failure(stateRequest.error),
         events,
       };
       try {
@@ -325,10 +354,12 @@ const probe = {
   async status() {
     if (probe.readyState !== 'ready')
       return { readyState: probe.readyState, ready: false };
+    const state = await readStoreState(probe.database);
     return {
       readyState: probe.readyState,
       ready: true,
-      epoch: await readEpoch(probe.database),
+      epoch: state.epoch,
+      storeId: state.storeId,
       records: (await readAll(probe.database)).length,
     };
   },
@@ -354,7 +385,12 @@ const probe = {
     };
   },
   async getEpochRaw() {
-    return readEpochRecord(probe.database);
+    return new Promise((resolve, reject) => {
+      const transaction = probe.database.transaction(META, 'readonly');
+      const request = transaction.objectStore(META).get(EPOCH_KEY);
+      request.onsuccess = () => resolve(request.result ?? null);
+      request.onerror = () => reject(request.error);
+    });
   },
   async deleteEpochRaw() {
     return new Promise((resolve, reject) => {
@@ -403,12 +439,17 @@ const probe = {
   async beginPendingSave(recordId) {
     if (!probe.ready) return { status: 'not-ready' };
     try {
-      const expectedEpoch = await readEpoch(probe.database);
+      const state = await readStoreState(probe.database);
       probe.pending = {
         record: { recordId, payload: `payload-${recordId}` },
-        expectedEpoch,
+        expectedEpoch: state.epoch,
+        expectedStoreId: state.storeId,
       };
-      return { status: 'pending', expectedEpoch };
+      return {
+        status: 'pending',
+        expectedEpoch: state.epoch,
+        expectedStoreId: state.storeId,
+      };
     } catch (error) {
       return { status: 'barrier-invalid', error: failure(error) };
     }
@@ -416,11 +457,16 @@ const probe = {
   async beginPendingRecord(record) {
     if (!probe.ready) return { status: 'not-ready' };
     try {
-      const expectedEpoch = await readEpoch(probe.database);
-      probe.pending = { record, expectedEpoch };
+      const state = await readStoreState(probe.database);
+      probe.pending = {
+        record,
+        expectedEpoch: state.epoch,
+        expectedStoreId: state.storeId,
+      };
       return {
         status: 'pending',
-        expectedEpoch,
+        expectedEpoch: state.epoch,
+        expectedStoreId: state.storeId,
         recordBytes: serializedBytes(record),
       };
     } catch (error) {
@@ -435,7 +481,7 @@ const probe = {
       probe.database,
       pending.record,
       pending.expectedEpoch,
-      options,
+      { ...options, expectedStoreId: pending.expectedStoreId },
     );
     probe.lastEvents = result.events;
     return result;
@@ -447,14 +493,15 @@ const probe = {
   },
   async saveBoundedRecord(record, limits, options = {}) {
     if (!probe.ready) return { status: 'not-ready' };
-    let expectedEpoch;
+    let state;
     try {
-      expectedEpoch = await readEpoch(probe.database);
+      state = await readStoreState(probe.database);
     } catch (error) {
       return { status: 'barrier-invalid', error: failure(error) };
     }
-    const result = await saveWithEpoch(probe.database, record, expectedEpoch, {
+    const result = await saveWithEpoch(probe.database, record, state.epoch, {
       ...options,
+      expectedStoreId: state.storeId,
       limits,
     });
     probe.lastEvents = result.events;

@@ -201,6 +201,7 @@ const firefoxCheckList = [
   ['epoch-fail-closed', 'epoch fail closed'],
   ['readiness-gate', 'readiness gate'],
   ['delete-expiry-unsupported', 'delete expiry unsupported'],
+  ['store-loss', 'store loss'],
   ['private-context', 'private context'],
   ['restart-persistence', 'restart persistence'],
   ['uninstall-behavior', 'uninstall behavior', undefined, false],
@@ -220,6 +221,7 @@ const chromeCheckList = [
   ['epoch-fail-closed', 'epoch fail closed'],
   ['readiness-gate', 'readiness gate'],
   ['delete-expiry-unsupported', 'delete expiry unsupported'],
+  ['store-loss', 'store loss'],
   ['restart-persistence', 'restart persistence'],
   ['uninstall-behavior', 'uninstall behavior', undefined, false],
   ['forced-clear', 'forced clear', undefined, false],
@@ -990,6 +992,62 @@ async function runChromeQuotaOverride(observations, extensionId) {
   }
 }
 
+function assertRealQuotaResult(details) {
+  assert.equal(details.quotaErrorObserved, true);
+  assert.equal(details.observedError?.name, 'QuotaExceededError');
+  assert.equal(details.recovery?.status, 'ok');
+  assert.equal(details.recovery?.value?.status, 'saved');
+}
+
+function assertUnenforcedQuota(details) {
+  assert.equal(details.quotaAfterOverride?.overrideActive, true);
+  assert.equal(details.quotaErrorObserved, false);
+  assert(details.attempts?.length > 0);
+  assert.equal(details.recovery?.status, 'ok');
+}
+
+function assertStoreLoss(details) {
+  assert.equal(details.oldStoreId !== details.newStoreId, true);
+  assert.equal(details.newEpoch, 0);
+  assert.equal(details.released?.value?.status, 'stale-store');
+  assert.equal(details.afterReleased?.length, 0);
+  assert.equal(details.fresh?.value?.status, 'saved');
+}
+
+async function runStoreLoss(baseUrl, observations) {
+  await openFreshProbe(
+    baseUrl,
+    `store-loss-${stamp}`,
+    observations,
+    'lossOpen',
+  );
+  const state = await call('status');
+  observations.oldStoreId = state.storeId;
+  observations.oldEpoch = state.epoch;
+  observations.seed = await callRaw('saveNow', 'loss-seed');
+  const pending = await callRaw('beginPendingSave', 'lost-pending');
+  observations.pending = pending;
+  assert.equal(pending.value?.status, 'pending');
+  assert.equal(pending.value?.expectedStoreId, state.storeId);
+  observations.closedHandles = await call('close');
+  observations.deleted = await call('deleteDatabase');
+  observations.reopened = await callRaw('openNow');
+  assert.equal(observations.reopened.value?.status, 'opened');
+  const newState = await call('status');
+  observations.newStoreId = newState.storeId;
+  observations.newEpoch = newState.epoch;
+  assert.notEqual(observations.newStoreId, observations.oldStoreId);
+  assert.equal(observations.newEpoch, 0);
+  observations.beforeReleased = await call('all');
+  assert.equal(observations.beforeReleased.length, 0);
+  observations.released = await callRaw('releasePending');
+  observations.afterReleased = await call('all');
+  observations.fresh = await callRaw('saveNow', 'fresh-after-loss');
+  observations.final = await call('all');
+  assertStoreLoss(observations);
+  return observations;
+}
+
 async function runNegativeFixtures(observations) {
   const validContent = {
     fixturePage: {
@@ -1058,6 +1116,45 @@ async function runNegativeFixtures(observations) {
       cases.push({ name, rejected: true, message: String(error.message) });
     }
   };
+  const validStore = {
+    oldStoreId: 'old',
+    newStoreId: 'new',
+    newEpoch: 0,
+    released: { value: { status: 'stale-store' } },
+    afterReleased: [],
+    fresh: { value: { status: 'saved' } },
+  };
+  const validQuota = {
+    quotaErrorObserved: true,
+    observedError: { name: 'QuotaExceededError' },
+    recovery: { status: 'ok', value: { status: 'saved' } },
+  };
+  assertStoreLoss(validStore);
+  assertRealQuotaResult(validQuota);
+  reject('store-loss-reused-store', () =>
+    assertStoreLoss({ ...validStore, newStoreId: 'old' }),
+  );
+  reject('store-loss-pending-accepted', () =>
+    assertStoreLoss({
+      ...validStore,
+      released: { value: { status: 'saved' } },
+    }),
+  );
+  reject('quota-false-error', () =>
+    assertRealQuotaResult({ ...validQuota, quotaErrorObserved: false }),
+  );
+  reject('quota-wrong-error', () =>
+    assertRealQuotaResult({
+      ...validQuota,
+      observedError: { name: 'AbortError' },
+    }),
+  );
+  reject('quota-failed-recovery', () =>
+    assertRealQuotaResult({
+      ...validQuota,
+      recovery: { status: 'error' },
+    }),
+  );
   reject('content-empty-read', () =>
     assertContentBoundary({
       ...validContent,
@@ -1135,7 +1232,7 @@ async function runNegativeFixtures(observations) {
       },
     }),
   );
-  assert.equal(cases.length, 11);
+  assert.equal(cases.length, 16);
   const popupOnly = classifyStoragePrompt({
     notifications: [],
     notificationRoutePresent: true,
@@ -2078,6 +2175,15 @@ async function firefoxMain() {
     return observations;
   });
 
+  const storeLoss = record(
+    'store-loss',
+    'Controlled database loss cannot reuse a stale store or resurrect a pending save',
+    'Controlled deleteDatabase and invalidated connections; not natural eviction.',
+  );
+  await run(storeLoss, 'store-loss', (observations) =>
+    runStoreLoss(session.candidate.url, observations),
+  );
+
   const privateEntry = record(
     'private-context',
     'Private-window extension page is classified and the guard blocks before storage',
@@ -2236,9 +2342,19 @@ async function firefoxMain() {
     'Firefox fixedLimit test pref in a fresh disposable profile; not a product setting.',
     false,
   );
-  await run(quotaOverride, 'firefox-quota-override', (observations) =>
-    runFirefoxQuotaOverride(observations),
-  );
+  await run(quotaOverride, 'firefox-quota-override', async (observations) => {
+    await runFirefoxQuotaOverride(observations);
+    if (observations.error) {
+      const error = new Error(
+        `Firefox low-quota setup/transport failed: ${observations.error.message}`,
+      );
+      error.unavailable = true;
+      error.details = observations;
+      throw error;
+    }
+    assertRealQuotaResult(observations);
+    return observations;
+  });
 
   const clearEntry = record(
     'forced-clear',
@@ -2255,64 +2371,101 @@ async function firefoxMain() {
     observations.closedHandles = await call('close');
     observations.navigatedAway = await ensurePage('about:blank');
     observations.clearMethod =
-      'Services.qms.clearStoragesForPrincipal(principal)';
+      'Services.qms.clearStoragesForPrincipal(principal) with nsIQuotaRequest.onComplete';
     observations.clearAuthority =
       'Test-only chrome-context call after closing candidate DB handles and navigating the candidate tab away.';
+    observations.stage = 'inspect-principal-and-call';
     await driver.setContext('chrome');
-    let cleared;
+    observations.clearResult = await driver.executeAsyncScript((id, done) => {
+      try {
+        const policy = WebExtensionPolicy.getByID(id);
+        const extension = policy?.extension;
+        const principal = policy?.principal ?? extension?.principal;
+        const expectedOrigin = policy?.getURL('')?.replace(/\/$/, '') ?? null;
+        const principalOrigin =
+          principal?.origin ?? principal?.URI?.spec?.replace(/\/$/, '') ?? null;
+        const info = {
+          stage: 'principal',
+          hasPolicy: Boolean(policy),
+          hasExtension: Boolean(extension),
+          hasPrincipal: Boolean(principal),
+          expectedOrigin,
+          principalOrigin,
+          mozExtensionHostname: policy?.mozExtensionHostname ?? null,
+          extensionId: extension?.id ?? policy?.id ?? null,
+          principalURI: principal?.URI?.spec ?? null,
+          extensionPrincipalURI: extension?.principal?.URI?.spec ?? null,
+        };
+        const valid =
+          Boolean(principal) &&
+          Boolean(expectedOrigin) &&
+          (principalOrigin === expectedOrigin ||
+            (info.mozExtensionHostname &&
+              String(principalOrigin).includes(info.mozExtensionHostname)));
+        if (!valid) {
+          done({ ...info, stage: 'principal-invalid' });
+          return;
+        }
+        const qms = Services.qms;
+        if (typeof qms.clearStoragesForPrincipal !== 'function') {
+          done({ ...info, stage: 'method-missing' });
+          return;
+        }
+        const request = qms.clearStoragesForPrincipal(principal);
+        if (!request) {
+          done({ ...info, stage: 'no-request' });
+          return;
+        }
+        let finished = false;
+        const timer = setTimeout(() => {
+          if (finished) return;
+          finished = true;
+          done({ ...info, stage: 'timeout' });
+        }, 15000);
+        request.callback = (completed) => {
+          if (finished) return;
+          finished = true;
+          clearTimeout(timer);
+          done({
+            ...info,
+            stage: 'callback',
+            cleared: completed.resultCode === 0,
+            resultCode: completed.resultCode,
+            resultName: completed.resultName ?? null,
+          });
+        };
+      } catch (error) {
+        done({ stage: 'exception', error: String(error) });
+      }
+    }, candidateId);
+    observations.stage = 'restore-content-context';
     try {
-      cleared = await driver.executeAsyncScript((id, done) => {
-        (async () => {
-          try {
-            const policy = WebExtensionPolicy.getByID(id);
-            const qms = Services.qms;
-            const methods = Object.getOwnPropertyNames(
-              Object.getPrototypeOf(qms),
-            ).filter((name) => /clear|reset/i.test(name));
-            const clearPrincipal = qms.clearStoragesForPrincipal;
-            if (typeof clearPrincipal !== 'function') {
-              done({
-                cleared: false,
-                error: 'clearStoragesForPrincipal unavailable',
-                methods,
-              });
-              return;
-            }
-            await clearPrincipal.call(qms, policy.principal);
-            done({
-              cleared: true,
-              method: 'clearStoragesForPrincipal',
-              methods,
-            });
-          } catch (error) {
-            done({ cleared: false, error: String(error) });
-          }
-        })();
-      }, candidateId);
-    } finally {
       await driver.setContext('content');
+      observations.contextRestored = true;
+    } catch (error) {
+      observations.contextRestored = false;
+      observations.restorationError = String(error);
     }
-    await ensurePage(session.candidate.url);
-    await waitReady();
-    observations.cleared = cleared;
-    observations.recordsAfter = await pages();
+    if (observations.contextRestored) {
+      await ensurePage(session.candidate.url);
+      await waitReady();
+      observations.recordsAfter = await pages();
+    }
     return observations;
   });
-  if (clearEntry.status === 'passed' && !clearEntry.details?.cleared?.cleared) {
+  if (
+    clearEntry.status === 'passed' &&
+    (clearEntry.details?.clearResult?.cleared !== true ||
+      clearEntry.details?.recordsAfter?.length !== 0)
+  ) {
     clearEntry.status = 'unavailable';
     report.gaps.push(
-      `Firefox forced browser-origin clearing could not be observed: ${clearEntry.details?.cleared?.error ?? 'no clear method'}.`,
+      `Firefox scoped clearStoragesForPrincipal did not produce a verified empty store: result ${JSON.stringify(clearEntry.details?.clearResult ?? null)}; contextRestored ${clearEntry.details?.contextRestored}; recordsAfter ${JSON.stringify(clearEntry.details?.recordsAfter ?? null)}; restorationError ${clearEntry.details?.restorationError ?? null}.`,
     );
   } else if (clearEntry.status === 'failed') {
     clearEntry.status = 'unavailable';
     report.gaps.push(
-      `Firefox scoped clearStoragesForPrincipal was attempted after closing candidate handles and navigating away; the session was lost: ${clearEntry.error?.message}.`,
-    );
-  } else if (clearEntry.status === 'passed') {
-    assert.equal(
-      clearEntry.details.recordsAfter.length,
-      0,
-      'Forced clear left records behind',
+      `Firefox scoped clearStoragesForPrincipal did not produce a verified empty store after closing handles and navigating away: ${clearEntry.error?.message}. Details: ${JSON.stringify(clearEntry.details ?? null)}.`,
     );
   }
 }
@@ -3137,13 +3290,32 @@ async function chromeMain() {
 
   const quotaOverride = record(
     'quota-override',
-    'Supported test-only low quota produces a real QuotaExceededError and recovery',
+    'Test-only quota override observation: active override but no enforced error',
     'Chrome CDP Storage.overrideQuotaForOrigin in the disposable profile; not a product setting.',
     false,
   );
-  await run(quotaOverride, 'chrome-quota-override', (observations) =>
-    runChromeQuotaOverride(observations, installed.candidateId),
-  );
+  await run(quotaOverride, 'chrome-quota-override', async (observations) => {
+    await runChromeQuotaOverride(observations, installed.candidateId);
+    if (observations.error) {
+      const error = new Error(
+        `Chrome quota override setup/transport failed: ${observations.error.message}`,
+      );
+      error.unavailable = true;
+      error.details = observations;
+      throw error;
+    }
+    assertUnenforcedQuota(observations);
+    return observations;
+  });
+  if (
+    quotaOverride.status === 'passed' &&
+    quotaOverride.details?.quotaErrorObserved !== true
+  ) {
+    quotaOverride.status = 'unavailable';
+    report.gaps.push(
+      'Chrome Storage.overrideQuotaForOrigin was active at 2,000,000 bytes but five 1 MiB writes succeeded; no real QuotaExceededError was observed. The override was reset and recovery succeeded. This is not a quota-error pass.',
+    );
+  }
 
   const clearEntry = record(
     'forced-clear',
@@ -3231,6 +3403,15 @@ async function chromeMain() {
       'Forced clear left records behind',
     );
   }
+
+  const storeLoss = record(
+    'store-loss',
+    'Controlled database loss cannot reuse a stale store or resurrect a pending save',
+    'Controlled deleteDatabase and invalidated connections; not natural eviction.',
+  );
+  await run(storeLoss, 'store-loss', (observations) =>
+    runStoreLoss(candidateUrl, observations),
+  );
 
   const privateEntry = record(
     'private-context',
