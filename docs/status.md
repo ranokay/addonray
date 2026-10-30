@@ -51,9 +51,9 @@ unchanged production assets. See
 Still open for #6 release qualification: product browser restart (page reload is
 tested), natural eviction, an actual Chrome engine quota error, a reachable Chrome
 private main-frame library route, unmodified Chrome optional-permission consent,
-the exact-OS/hosted matrix and the final frozen gate. #7 through #11 remain
-unimplemented. No push, PR, permission, publication or durability claim is
-included.
+the exact-OS/hosted matrix, independent review and release approval. The local
+frozen gate passed at the delivery head. #7 through #11 remain unimplemented. No
+push, PR, permission, publication or durability claim is included.
 
 ## Brand asset kit
 
@@ -405,8 +405,8 @@ Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.m
 is the current scope and support record. #5's
 [saved-investigation and report-exchange contract](plans/saved-investigation-data-rules.md)
 was approved and recorded on 2026-10-30. The bounded #6 slice is implemented and
-locally qualified with explicit gaps; its final release matrix, frozen gate and
-review remain. The next v1 decisions are #4, #13 and #20. #7 through #11 may start
+locally qualified with explicit gaps; its local frozen gate passed, while the
+final release matrix and independent review remain. The next v1 decisions are #4, #13 and #20. #7 through #11 may start
 only under the approved #5 contract and their own gates. This implementation task
 authorizes no push or PR. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
