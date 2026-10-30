@@ -150,6 +150,21 @@ Product observations:
 8. **Scope.** No import, JSON export, printable HTML, clipboard, retention
    control, bulk deletion, delete-all, sync, cloud, telemetry or new permission.
 
+## Source and package rebuilds
+
+At the final local head, both source rebuild comparisons pass:
+
+```sh
+mise run test-source-build
+mise run test-source-build-chrome
+```
+
+Each reports `Source archive rebuild matches every packaged extension file.` The
+evidence files are `.scratch/source-build-evidence.json` and
+`.scratch/source-build-evidence-chrome.json`. The shared gate independently
+packages and validates both targets and writes their SHA-256 identities. No
+signed distribution or retail installation is claimed.
+
 ## Release boundary
 
 This is a locally qualified implementation report, not a shipping approval. The
