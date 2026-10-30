@@ -734,8 +734,11 @@ async function firefoxMain() {
     persistEntry.details?.requested?.status !== 'resolved'
   ) {
     persistEntry.status = 'unavailable';
+    const popup = persistEntry.details?.promptAfter?.popupNotifications ?? [];
     report.gaps.push(
-      'navigator.storage.persist() remained unresolved after 5 s with no visible notification detected; the exact prompt/operation is unestablished. This is separate from ordinary IndexedDB creation and is not used by the product mechanism.',
+      popup.length
+        ? `Firefox persistent-storage prompt (${popup[0].id ?? 'unknown'}: ${popup[0].message ?? 'no message'}) was observed only after the explicit persist() probe and dismissed without granting. Ordinary DB open/write operations showed no prompt. The required product mechanism does not call persist().`
+        : 'navigator.storage.persist() remained unresolved after 5 s with no visible notification detected; the exact prompt/operation is unestablished. This is separate from ordinary IndexedDB creation and is not used by the product mechanism.',
     );
   }
 
@@ -827,8 +830,21 @@ async function firefoxMain() {
         (async () => {
           try {
             const policy = WebExtensionPolicy.getByID(id);
-            await Services.qms.clearStoragesForOrigin(policy.principal);
-            done({ cleared: true });
+            const qms = Services.qms;
+            if (typeof qms.clearStoragesForOrigin === 'function') {
+              await qms.clearStoragesForOrigin(policy.principal);
+              done({ cleared: true, method: 'clearStoragesForOrigin' });
+              return;
+            }
+            if (typeof qms.clear === 'function') {
+              await qms.clear();
+              done({ cleared: true, method: 'qms.clear' });
+              return;
+            }
+            done({
+              cleared: false,
+              error: 'No supported QMS clear method is exposed.',
+            });
           } catch (error) {
             done({ cleared: false, error: String(error) });
           }
@@ -837,9 +853,17 @@ async function firefoxMain() {
     } finally {
       await driver.setContext('content');
     }
-    await driver.navigate().refresh();
+    await ensurePage(session.candidate.url);
     await waitReady();
     const records = await pages();
+    if (!cleared?.cleared) {
+      clearEntry.status = 'unavailable';
+      report.gaps.push(
+        `Firefox forced browser-origin clearing could not be observed: ${cleared?.error ?? 'no clear method'}.`,
+      );
+    } else {
+      assert.equal(records.length, 0, 'Forced clear left records behind');
+    }
     return { cleared, recordsAfter: records };
   });
 
