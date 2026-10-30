@@ -329,8 +329,10 @@ export function createSavedLibrary(
         });
         hint?.notifyRemote?.();
       } catch (error) {
-        if (ticket !== operation) return;
-        if (!(await normalContext(api))) return deny();
+        if (!live || suspended || ticket !== operation) return;
+        const normal = await normalContext(api);
+        if (!live || suspended || ticket !== operation) return;
+        if (!normal) return deny();
         publish({
           ...state,
           pendingDeleteKey: null,
