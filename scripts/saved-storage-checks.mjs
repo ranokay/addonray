@@ -202,7 +202,6 @@ const firefoxCheckList = [
   ['readiness-gate', 'readiness gate'],
   ['delete-expiry-unsupported', 'delete expiry unsupported'],
   ['private-context', 'private context'],
-  ['private-popup-route', 'private popup route', undefined, false],
   ['restart-persistence', 'restart persistence'],
   ['uninstall-behavior', 'uninstall behavior', undefined, false],
   ['negative-fixtures', 'negative fixtures'],
