@@ -2,7 +2,7 @@
 
 Approved on 2026-10-22: no telemetry, no cloud service, session-only diagnostics, and explicit consent before inventory or selected-page inspection.
 
-The boundaries below describe the implemented runtime. The expanded v1 target may replace specific limits only through [the v1 contract](v1-contract.md) and the named data contract. #5 (saved and exchanged data), #13 (mutation and request-failure collectors) and #20 (companion) are open decisions. Until each contract is approved, recorded and its feasibility gates pass, the current session-only, permission and export limits stay effective.
+The boundaries below describe the implemented runtime. The expanded v1 target may replace specific limits only through [the v1 contract](v1-contract.md) and the named data contract. #5 (saved and exchanged data) was approved and recorded on 2026-10-30. #13 (mutation and request-failure collectors) and #20 (companion) remain open decisions. Until each approved contract's feasibility gates pass and its implementation is qualified, the current session-only, permission and export limits stay effective.
 
 ## Phase 0 and first Phase 1 slice data lifecycle
 
@@ -139,6 +139,137 @@ retains `none` for this explicit local-only download with no AddonRay network
 transfer. This is a documented interpretation for the selected scope, not
 qualified implementation, store approval or publication. Export browser/native
 qualification remains pending, and any future transmission needs reassessment.
+
+## Approved saved-investigation and report-exchange contract
+
+The user approved [the saved-data contract](plans/saved-investigation-data-rules.md)
+and Q1 through Q16 on 2026-10-30. This section describes the approved future
+boundary. No saved-data runtime, storage permission, JSON exchange, import,
+printable HTML or clipboard action is implemented. The current investigation
+remains in the owning view's memory, and the Markdown download remains the only
+report output.
+
+| Data                                                                                                         | Trigger                                          | Retention                                                                                              | Destination                                             |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| Immutable archive: inventories, precomputed changes, assessment, optional timing and error summaries, limits | Explicit Save of a completed, idle investigation | 30-day default. #7 may offer 7, 30 or 90 days, never beyond 90 days from `savedAt`, or explicit delete | Extension-origin storage in the current browser profile |
+| Local record envelope: record ID, schema version, origin, `savedAt`, `expiresAt`, imported `importedAt`      | Save or imported-report save                     | With the record                                                                                        | Extension-origin storage in the current browser profile |
+| Validated imported report                                                                                    | Explicit file selection, then separate save      | Same as a saved record                                                                                 | Extension-origin storage in the current browser profile |
+| Report preview                                                                                               | Explicit prepare action                          | Owning view memory                                                                                     | View memory                                             |
+| Markdown or JSON download                                                                                    | Explicit download after preview                  | Browser or filesystem controls                                                                         | User-chosen local destination                           |
+| Printable HTML and print output                                                                              | Explicit print after preview                     | Browser, print dialog or PDF destination controls                                                      | User-chosen printer or local PDF                        |
+| Clipboard text                                                                                               | Explicit copy after preview                      | Browser or OS clipboard controls                                                                       | OS clipboard                                            |
+
+The archive is immutable and read-only. Reopening collects nothing, prompts for
+no management or scripting permission, reattaches no source tab and resumes no
+collector. Each save creates a new record. The archive omits extension IDs,
+source tab IDs, live investigation identity and label, document, attempt and
+transfer IDs, permission and host metadata, page URL, title and content, browser
+and OS context, user notes, custom titles and exchanged timestamps. The local
+record ID and local times never enter an exchanged report. Extension names can
+duplicate, so the archive keeps the ID-based changes computed at save time and
+never recomputes them from names.
+
+### Local storage and disclosure
+
+Saved records stay in extension-origin storage in the current browser profile.
+There is no sync, cloud, telemetry, companion or cross-device transfer. Any
+AddonRay extension page in that profile can read the records. Other extensions
+and web pages cannot read AddonRay's extension origin. The chosen mechanism must
+keep records unreadable by AddonRay content scripts unless a later approved
+contract explicitly allows otherwise. AddonRay adds no encryption layer; browser
+and OS encryption of profile storage is outside this contract.
+
+Before the first save, the interface and this document disclose that records
+persist on the device and profile, AddonRay pages can read them, no sync or
+companion transfer exists, AddonRay adds no encryption, deletion and expiry are
+product-level actions, browser and OS backups or profile copies may retain
+bytes, uninstall clearing is browser-controlled and can have exceptions, and
+exported files, prints and clipboard content leave AddonRay's control.
+
+The #6 candidate is extension-origin IndexedDB without a new manifest
+permission. It needs a separate feasibility gate for quota, persistence across
+restart, eviction and clearing, multi-view notification and the approved bounds
+on Firefox 140.0, 153.5.1esr, 158.0.1 and Chrome for Testing 156.0.8078.47. If
+that fails, #6 returns with evidence before proposing `storage` or
+`unlimitedStorage`. No storage permission is approved by #5.
+
+### Retention, deletion and physical limits
+
+The default retention is 30 days from `savedAt`. #7 may offer 7, 30 or 90 days,
+with a 90-day maximum from the original save time. An expired record is not
+listed as available and cannot be opened, exported, printed, copied or re-saved.
+AddonRay removes it when it next accesses storage. There is no background timer
+in v1. Expiry is product-level refusal plus lazy cleanup, not a hard physical
+on-disk deletion deadline. Browser and OS backups, profile copies and lower
+layers may retain bytes. The contract does not claim that every retained byte
+disappears at 90 days.
+
+Deleting one record removes it across AddonRay views and invalidates pending
+actions. Delete-all requires confirmation. A deleted or expired record cannot be
+reopened, exported, printed, copied or resurrected by a pending write. A view
+that is suspended may not run code instantly; its next read or action fails.
+Deletion removes the product's record, but it cannot erase browser or OS backups
+or recall a file, print or clipboard content already handed off.
+
+Unsupported saved records remain listed for explicit deletion. AddonRay does not
+auto-migrate, rewrite or silently delete them. A future migration needs its own
+approved contract and evidence.
+
+### Permission revocation, pending saves and contexts
+
+Management or scripting revocation clears live investigations and cancels
+pending live saves. It does not delete, hide or lock a saved archive. Viewing,
+exporting, printing, copying or deleting a saved archive does not request a
+collection permission. New live captures still need the existing consent.
+
+A pending live save fails if its source investigation resets, a permission is
+removed, the investigation changes or normal context is lost before commit. No
+partial or post-revocation save is written.
+
+If a future storage or clipboard mechanism uses a permission, its removal
+behavior is not covered by this contract and must be defined and qualified before
+implementation.
+
+Every saved-data and exchange action requires a verified normal window. Save,
+list, reopen, delete, delete-all, import, save imported report, export, print and
+clipboard fail closed in private, incognito and unknown contexts. The guard is
+independent of management or scripting permission. Existing local inspection in
+private windows stays unchanged.
+
+### Import and exchange
+
+Import requires explicit file selection. AddonRay rejects a file larger than
+1 MiB before parsing, then accepts only schema version 1. It rejects unknown
+fields, duplicate keys, prototype-affecting keys, malformed values and
+out-of-range values. It preserves measured, unrecorded, unavailable and null
+states. A valid import opens as an explicitly labelled, untrusted, read-only
+report. It makes no browser call and resumes no collector. Import alone persists
+nothing. A separate Save imported report action stores it under the same library,
+retention, deletion and context rules. AddonRay stores no original filename or
+path and keeps the imported provenance on every re-export. A file's
+self-asserted provenance is never authenticated as local capture.
+
+The approved formats are Markdown, JSON, printable HTML and explicit clipboard
+copy. Each has its own exact preview. JSON export and import share schema version
+1 and the same save, export and import bounds: 1 MiB complete document, 1,000
+inventory entries per side, 2,000 changes, 4,096 characters per string and
+nesting depth 8. Save checks the exact would-be JSON export, so an accepted
+export re-imports without truncation. No operation truncates, repairs or
+silently drops content. A report that fits JSON but whose printable HTML exceeds
+1 MiB cannot be printed.
+
+Download and print are requests, not proof of acceptance or completion. Keep the
+view open until the browser shows a download. The print dialog outcome is not
+observable. Clipboard success is reported only after the clipboard write
+resolves. Accepted files, prints and clipboard content can outlive deletion,
+revocation or closing the view and cannot be recalled.
+
+Firefox's data declaration was reassessed for the local report download on
+2026-10-27. Saved records add local persistence but no transmission path. The
+existing `none` declaration remains for this local-only scope. This is a
+documented interpretation, not store approval, implementation qualification or
+publication. Reassess the Firefox declaration and Chrome Web Store privacy
+disclosure before publication.
 
 ## Companion
 

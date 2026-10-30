@@ -146,6 +146,18 @@ preserves the original immediate-owner-close failures separately from the passed
 revised candidate gate. Full product/browser/native qualification and signed
 delivery remain pending.
 
+## Approved saved investigation and exchange ownership
+
+The [saved-data contract](plans/saved-investigation-data-rules.md) adds a future saved-archive owner separate from the live investigation. The save controller copies approved observations from one completed, idle investigation into an immutable record. It binds to the exact live snapshot reference, reset generation and normal-window context. It writes no partial record and never reuses the live investigation identity. Reopening reads the stored record only, so no collector, source tab, permission listener or live browser API enters the archive view.
+
+The future library owner lists records, enforces retention and bounds, and coordinates delete and delete-all across extension views. Save is add-only and delete is the only mutation. Multi-view correctness must not depend on an instant DOM event. A suspended view must fail its next read or action. Pending saves cannot complete after a delete, delete-all or source reset. Unsupported records stay listed for explicit deletion.
+
+The #6 storage adapter candidate is extension-origin IndexedDB without a new permission. It is not approved until the storage, quota, restart, eviction, multi-view and private-context feasibility gates pass. No background owner, storage permission, sync path or companion transfer is added. If IndexedDB fails, #6 returns with evidence before proposing a storage permission.
+
+The future import owner validates a selected file, renders it as untrusted text and keeps it separate from live observations. Persistence requires a separate save and marks the record imported. The future report owner uses one bounded report model for Markdown, JSON, printable HTML and clipboard previews. Each format has its own exact preview and output lifetime. No PDF library, remote resource, automatic sharing or collector is introduced.
+
+The current runtime contains none of these owners. The existing investigation, report serializer and download controller stay in memory as described above.
+
 ## Expanded v1 target
 
 The finite target is [the v1 contract](v1-contract.md). The sections below describe implemented slices and the boundaries future work must change deliberately. Saved investigations and report exchange (#5 to #11), guided trials (#12), mutation and request-failure checks (#13 to #19) and the optional companion (#20 to #28) each need their approved contract and feasibility proof before they alter permission, storage, lifetime or native boundaries. The extension-only inspection path remains useful without the companion.

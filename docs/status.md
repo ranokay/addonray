@@ -4,7 +4,7 @@
 
 The user approved the private milestone [`v1.0.0`](https://github.com/ranokay/addonray/milestone/1) as the finite expanded v1 target on 2026-10-29. It contains tickets #2 through #46: saved investigations and report exchange, guided comparisons, mutation and request-failure diagnostics, an optional Rust companion, brand assets, qualification and release work. [The v1 contract](v1-contract.md) records the dated scope snapshot, intended support, existing evidence, supersession map, release acceptance and exclusions.
 
-The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4, #5, #13 and #20 are open decision gates. Backlog approval does not authorize signing, publication, licensing or visibility changes.
+The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4, #13 and #20 are open decision gates. #5 is approved and recorded as a prospective contract. Backlog approval does not authorize signing, publication, licensing or visibility changes.
 
 ## Brand asset kit
 
@@ -320,7 +320,8 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Record intended desktop architectures separately from exact OS versions and qualification evidence.
 - [x] Record the prospective supersession map and keep current runtime limits effective.
 - [x] Record final release acceptance, exclusions and the post-release support receipt.
-- [ ] Close the #4, #5, #13 and #20 decisions before their dependent implementation tickets.
+- [x] Close the #5 saved-investigation and report-exchange decision on 2026-10-30. See [the data contract](plans/saved-investigation-data-rules.md).
+- [ ] Close the #4, #13 and #20 decisions before their dependent implementation tickets.
 - [ ] Settle exact OS versions, Linux distribution and candidate release combinations before #39 candidate qualification.
 
 ## Brand asset checklist
@@ -334,11 +335,28 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Document canonical asset locations and usage rules without store qualification claims.
 - [x] Obtain explicit authorization and remove only `docs/prototypes/brand-assets/index.html`; retain the kit, proof, evidence, plan and inventory prototype.
 
+## Saved-investigation and report-exchange contract checklist
+
+- [x] Read issue #5, the v1 contract and the current investigation and report model.
+- [x] Obtain Q1 through Q16 answers on 2026-10-30.
+- [x] Record the approved archive, retention, bounds, deletion, permission, context and exchange contract in [the data contract](plans/saved-investigation-data-rules.md).
+- [x] Record the interview, privacy lifecycle, requirements summary, prospective ownership, documented API limits, future test seams, glossary terms and [ADR 0005](adr/0005-immutable-saved-investigations.md).
+- [x] Preserve the current session-only runtime and existing Markdown report; add no data persistence, permission, dependency, support or evidence claim.
+- [ ] Run the #6 IndexedDB feasibility gate on the pinned Firefox and Chrome targets before relying on local storage.
+- [ ] Implement and qualify #6 save, list, read-only reopen and delete.
+- [ ] Implement and qualify #7 retention choices, bulk deletion and delete-all.
+- [ ] Implement and qualify #8 JSON export, #9 untrusted import, #10 printable HTML/PDF and #11 clipboard.
+- [ ] Qualify private and unknown contexts, multi-view deletion, expiry, storage failure and the exact browser and OS matrix.
+- [ ] Reassess the Firefox declaration and Chrome Web Store privacy disclosure before publication.
+
 ## Next action
 
 Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
-is the current scope and support record. The next v1 action is to close the #4,
-#5, #13 and #20 decisions, then start executable work in dependency order. #32 is
+is the current scope and support record. #5's
+[saved-investigation and report-exchange contract](plans/saved-investigation-data-rules.md)
+was approved and recorded on 2026-10-30. The next v1 decisions are #4, #13 and
+#20. #6 through #11 may start only under the approved #5 contract and their own
+feasibility gates; this documentation task authorizes no implementation. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
 current main includes the change at `a708fb5`. #33's bounded collector-budget
 investigation is in PR #50. Study evidence is at `031ebff`; test-only
@@ -402,18 +420,22 @@ For fresh revision-bound evidence, run `/Users/ranokay/.agents/tools/run gate_ru
 
 ## Open v1 decisions
 
-Before the expanded v1 approval, the items below were recorded as unresolved future decisions. The approval moved them into the backlog and kept them as decision gates. They remain open:
+Before the expanded v1 approval, the items below were recorded as unresolved future decisions. The approval moved them into the backlog and kept them as decision gates. The remaining items are open:
 
 - #4: license and source visibility, final extension and companion identities,
   publisher ownership, and the pre-release signing and limited-distribution
   routes.
-- #5: saved-investigation and report-exchange data rules.
 - #13: mutation and request-failure collector contracts.
 - #20: the useful read-only companion capability.
 - Exact OS versions, Linux distribution and release combinations. The intended
   architectures are macOS arm64, Windows x64 and Linux x64. Exact versions must
   be settled before candidate qualification. Existing evidence does not set a
   minimum OS version or qualify retail, native or full-v1 support.
+
+#5 was closed on 2026-10-30. Its approved
+[saved-investigation and report-exchange contract](plans/saved-investigation-data-rules.md)
+records the future data rules. It authorizes no storage, permission, format or
+runtime implementation.
 
 These are approval gates inside the approved backlog, not open scope questions.
 Current runtime limits remain effective until each contract and its applicable

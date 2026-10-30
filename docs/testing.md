@@ -390,3 +390,65 @@ cleanup and close only the owned session. Native human observations, helper API
 assertions and raw file equality JSON are separate evidence. Private/unknown
 guards, other OSs, default browser settings and Save As behavior remain gaps
 until explicitly observed.
+
+## Saved-investigation and exchange checks
+
+The [saved-data contract](plans/saved-investigation-data-rules.md) is
+documentation-only. No saved-data, import, printable HTML or clipboard test or
+browser evidence exists. Future implementation must keep model tests, storage
+adapter tests, UI tests, browser evidence and native observations separate.
+
+Model and schema checks:
+
+- exact saved payload, precomputed ID-based changes, duplicate names, absent
+  assessment, optional timing and error summaries and observation limits;
+- omitted extension IDs, live identity and tab, document, attempt and transfer
+  identifiers, page and browser context, user notes and exchanged timestamps;
+- measured, unrecorded, unavailable and null states preserved without coercion;
+- strict schema version 1, unknown fields, duplicate keys, prototype-affecting
+  keys, malformed values, non-finite numbers and unsupported versions;
+- unsupported saved records listed for explicit deletion without migration,
+  rewrite or silent deletion;
+- 1,000 inventory entries per side, 2,000 changes, 4,096 characters per string,
+  nesting depth 8, 1 MiB complete JSON and no truncation;
+- save, export and import byte accounting, including the local envelope in the
+  stored record and the round-trip requirement for an accepted export;
+- read-only reopen with no collector, source tab, permission prompt or browser
+  call.
+
+Storage adapter checks:
+
+- IndexedDB availability, quota, persistence across restart, eviction and
+  clearing, and multi-view change notification;
+- 50 records, 5 MiB total and 1 MiB per record, refusal when full, no automatic
+  eviction of unexpired records;
+- 30-day default and 7/30/90-day choices with a 90-day maximum, expiry refusal,
+  lazy cleanup and no hard physical deletion claim;
+- single delete, confirmed delete-all, pending-action invalidation, no
+  resurrection and suspended-view behavior;
+- pending save failure on reset, permission removal or context loss;
+- unsupported record listing and explicit delete.
+
+UI checks:
+
+- disclosure before the first save, generated labels and read-only archive
+  views;
+- normal, private and unknown context guards for every saved-data and exchange
+  action;
+- imported label, untrusted rendering, separate Save imported report and no
+  automatic persistence;
+- exact Markdown, JSON and printable HTML previews, and exact clipboard text;
+- truthful clipboard success after a write and bounded denial or failure;
+- download and print reported as requests, not completion.
+
+Browser and native evidence:
+
+- actual persistence, clearing, eviction, file selection, download, browser
+  Print/Save as PDF, clipboard write and multi-view deletion on exact Firefox and
+  Chrome distributions, versions, OS and architecture;
+- authentic private-context evidence kept separate from simulated unknown cases;
+- native UI observations kept separate from fixtures and model tests.
+
+A passing model or fixture check does not qualify storage, output, native
+usability or support. Run these checks only when the corresponding implementation
+and qualification tickets are authorized.
