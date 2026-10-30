@@ -1,7 +1,7 @@
 # Saved-investigation product slice
 
 Status: bounded #6 save, list, read-only reopen and single-record delete are
-implemented in signed local `974b5690b0e1f47d6ef97329b99749b50e9f78b9` and
+implemented in signed local `e0d129346aacbb54461fe0a581e43d9d8c9fafa8` and
 locally qualified on the pinned macOS browsers. Product browser restart, natural
 eviction, an actual Chrome engine quota error, a reachable Chrome private
 main-frame library route, the exact-OS and hosted matrix, and independent review
@@ -54,7 +54,7 @@ does not enter either package.
 
 ## Deterministic tests
 
-The full suite at `974b569` passes **499 tests / 2,022,281 assertions across 35
+The full suite at `e0d1293` passes **500 tests / 2,022,284 assertions across 35
 files**. Native type checking passes **81 files**. Focused coverage includes:
 
 - exact archived payload, ID omission, duplicate names, state preservation and
@@ -88,16 +88,15 @@ Observed on macOS 27.2 (build 26B5091g) arm64 with pinned Bun
 and ChromeDriver were `156.0.8078.47`. All profiles were disposable and external
 to the user's profile.
 
-| Target                           | Result                         | Observed checks | Raw report                                  |
-| -------------------------------- | ------------------------------ | --------------- | ------------------------------------------- |
-| Firefox 140.0                    | passed-with-qualification-gaps | 87              | `.scratch/firefox-evidence-140.0.json`      |
-| Firefox 153.5.1esr               | passed-with-qualification-gaps | 87              | `.scratch/firefox-evidence-153.5.1esr.json` |
-| Firefox 158.0.1                  | passed-with-qualification-gaps | 87              | `.scratch/firefox-evidence-158.0.1.json`    |
-| Chrome for Testing 156.0.8078.47 | passed-with-qualification-gaps | 81              | `.scratch/chrome-evidence.json`             |
+| Target                           | Result                         | Observed checks | Raw report                                  | SHA-256                                                            |
+| -------------------------------- | ------------------------------ | --------------- | ------------------------------------------- | ------------------------------------------------------------------ |
+| Firefox 140.0                    | passed-with-qualification-gaps | 87              | `.scratch/firefox-evidence-140.0.json`      | `e538cf7b6447d09671b862f39db05fbee54c0496c60cf68c92c1cf10c83bb561` |
+| Firefox 153.5.1esr               | passed-with-qualification-gaps | 87              | `.scratch/firefox-evidence-153.5.1esr.json` | `a057e466c2a8fa1dc974bbedf008121e440897723f6c0e1b90f6ac7a9e5d19da` |
+| Firefox 158.0.1                  | passed-with-qualification-gaps | 87              | `.scratch/firefox-evidence-158.0.1.json`    | `373dfd9f698bd5a462e5630034d03039856171af6d9a274331f01b401def0c61` |
+| Chrome for Testing 156.0.8078.47 | passed-with-qualification-gaps | 81              | `.scratch/chrome-evidence.json`             | `924df2c06ddcde53f42c87e014c2fbd4c0196f9b862d8c5f8147c386a67b5961` |
 
-The final clean rerun at the implementation commit replaces these working-tree
-reports; exact hashes are retained with the report sidecars and the delivery
-receipt.
+All four reports record source commit
+`e0d129346aacbb54461fe0a581e43d9d8c9fafa8` and `sourceDirty:false`.
 
 Product observations:
 
@@ -144,7 +143,7 @@ Product observations:
 5. **Natural eviction and engine quota.** Natural pressure eviction is unobserved.
    Firefox's real low-quota failure is Stage 1 candidate evidence; Chrome's
    product quota path is simulated only.
-6. **Source state.** Browser reports were produced from clean `974b569`. The
+6. **Source state.** Browser reports were produced from clean `e0d1293`. The
    final documentation head and frozen gate are recorded separately.
 7. **One OS/architecture.** macOS arm64 only. Linux/Windows, retail installs,
    store distribution and native UI usability are outside this run.
