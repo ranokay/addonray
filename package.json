@@ -3,7 +3,7 @@
   "description": "A privacy-first Firefox and Chrome extension inspector with honest capability limits.",
   "version": "0.0.1",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "type": "module",
   "packageManager": "bun@1.4.3-canary.20261021.1",
   "engines": {

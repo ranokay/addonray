@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Issues and specs live in private `ranokay/addonray`. Use the `gh` CLI and pass `--repo ranokay/addonray` explicitly.
+Issues and specs live in `ranokay/addonray`. Use the `gh` CLI and pass `--repo ranokay/addonray` explicitly.
 
 `docs/status.md` remains the delivery checklist and resumption entry point. `.scratch/` holds ignored working artifacts, not canonical tickets.
 

@@ -10,7 +10,7 @@ Before changing development tools, hooks, or CI, read [docs/toolchain.md](docs/t
 
 Run `mise run check` before committing. Run `mise run test-firefox` and `mise run test-chrome` for shared browser API changes and record exact distributions, versions, observed results, and gaps in [docs/evidence](docs/evidence). Read [the Chrome plan](docs/plans/chrome-mv3.md) before changing target support or test authority. If a probe cannot run, leave its qualification incomplete. Keep raw local data in ignored `.scratch/`.
 
-The approved remote is private `ranokay/addonray`, integration branch `main`. Sign commits and stage authored paths explicitly. Preserve other work. Licensing, public visibility, AMO publication, and destructive operations need explicit user authorization. Current source has no license grant.
+The remote is `ranokay/addonray`, integration branch `main`. Owned code and documentation use Apache-2.0; preserve NOTICE and THIRD_PARTY_NOTICES.txt, including reserved branding and upstream terms. Sign commits and stage authored paths explicitly. Preserve other work. The repository stays private during publication preparation. Public visibility, license-policy changes, store publication and destructive operations need explicit user authorization.
 
 Use the locally installed Matt Pocock grilling/domain-modeling skills for unresolved product decisions. Record answers in [docs/decisions.md](docs/decisions.md), product terms in the glossary, and durable trade-offs in ADRs. Use [docs/status.md](docs/status.md) as the local delivery checklist; do not create tracker issues or labels unless requested.
 
@@ -18,7 +18,7 @@ Use the locally installed Matt Pocock grilling/domain-modeling skills for unreso
 
 ### Issue tracker
 
-Issues and specs live in private `ranokay/addonray` on GitHub. See `docs/agents/issue-tracker.md`.
+Issues and specs live in `ranokay/addonray` on GitHub. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

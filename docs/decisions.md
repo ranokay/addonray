@@ -12,7 +12,7 @@ Date: 2026-10-22, Europe/Bucharest.
 | Product name        | AddonRay.                                                                                                                                                                  |
 | Repository identity | `ranokay/addonray`, under the authenticated user account.                                                                                                                  |
 | Initial visibility  | Private.                                                                                                                                                                   |
-| License             | Decide later. No license grant in the initial source.                                                                                                                      |
+| License             | Initially deferred; superseded by the 2026-10-31 Apache-2.0 decision below.                                                                                                |
 
 ## Fixed by the request
 
@@ -316,3 +316,18 @@ must permit an accepted export to re-import without truncation.
 These answers settle #5. They do not authorize #6 through #11 implementation,
 storage permission, output mechanism or any support, publication or licensing
 change. Future feasibility remains unperformed.
+
+## Publication preparation (2026-10-31)
+
+The owner approved Apache-2.0 for owned source code and documentation, with
+copyright 2026 ranokay. Upstream terms remain effective for third-party material;
+project names and logo artwork are reserved for official branding as described
+in NOTICE. Existing Git authorship, development paths in history and normal
+issue/PR discussion remain intact. Current setup instructions should be portable.
+
+This approval authorizes the licensing, notice, packaging and documentation
+preparation. Repository visibility remains private until a separately authorized
+change. Store identities, signing, native/runtime qualification and publication
+remain separate release decisions. This settles the license choice within #4,
+not that ticket's remaining distribution responsibilities. Package metadata keeps
+`private: true`; npm publication is not authorized.

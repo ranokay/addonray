@@ -1,6 +1,6 @@
 # Contributing
 
-This is a private early-stage project with no license grant yet. Repository access does not establish a distribution license.
+This is development software. AddonRay-owned code and documentation use [Apache-2.0](LICENSE); preserve the [third-party notices](THIRD_PARTY_NOTICES.txt). The name and logo artwork are reserved as described in [NOTICE](NOTICE). Repository publication does not establish store-release readiness.
 
 Start with [status](docs/status.md), [requirements](docs/requirements.md), and the [glossary](GLOSSARY.md). Read [API limits](docs/api-limits.md) before changing capability claims or browser permissions. Read [privacy](docs/privacy.md) before collecting or retaining data.
 

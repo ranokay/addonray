@@ -61,6 +61,14 @@ export async function checkPackage(browser = 'firefox') {
     'Manifest must be at archive root',
   );
 
+  for (const name of ['LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.txt']) {
+    assert(extension.files.has(name), `Missing license notice: ${name}`);
+    assert.equal(
+      sha256(extension.files.get(name)),
+      sha256(await readFile(name)),
+    );
+  }
+
   const sources = await archiveFiles(sourceArchive);
   const expectedSources = new Map();
   for (const directory of ['entrypoints', 'lib', 'public']) {
@@ -76,6 +84,9 @@ export async function checkPackage(browser = 'firefox') {
     'package.json',
     'bun.lock',
     'SOURCE_CODE_REVIEW.md',
+    'LICENSE',
+    'NOTICE',
+    'THIRD_PARTY_NOTICES.txt',
   ]) {
     expectedSources.set(path, await readFile(path));
   }
