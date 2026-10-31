@@ -59,6 +59,8 @@ export interface SavedStore {
     signal?: AbortSignal,
   ): Promise<SavedStoreSaveResult>;
   delete(key: IDBValidKey): Promise<void>;
+  deleteMany(keys: readonly IDBValidKey[]): Promise<void>;
+  deleteAll(): Promise<void>;
   close(): void;
 }
 
@@ -351,6 +353,45 @@ export function createIndexedDbSavedStore(
     );
   }
 
+  // Every deletion form reads and updates the same metadata row inside one
+  // readwrite transaction. The transaction is created synchronously when the
+  // connection is ready, so a later save queues behind the deletion rather than
+  // slipping in before it. A pending save bound to the previous epoch therefore
+  // cannot commit after any delete, including a delete-all with no visible rows.
+  function deleteRecords(work: (records: IDBObjectStore) => void) {
+    const apply = async (tx: IDBTransaction) => {
+      const state = await readStateInTransaction(tx);
+      if (state.epoch >= Number.MAX_SAFE_INTEGER)
+        throw new SavedStoreError(
+          'invalid-metadata',
+          'The saved-record deletion counter is exhausted.',
+        );
+      work(tx.objectStore(RECORDS));
+      tx.objectStore(META).put({
+        key: STATE_KEY,
+        value: { storeId: state.storeId, epoch: state.epoch + 1 },
+      });
+    };
+    const db = database;
+    if (db) {
+      let current: IDBTransaction;
+      try {
+        current = db.transaction([RECORDS, META], 'readwrite');
+      } catch (error) {
+        if (database === db) database = null;
+        if (errorName(error) !== 'InvalidStateError')
+          return Promise.reject(failure(error, 'unavailable'));
+        return withConnection((fresh) =>
+          transaction(fresh, 'readwrite', [RECORDS, META], apply),
+        );
+      }
+      return transactionFrom(current, apply);
+    }
+    return withConnection((fresh) =>
+      transaction(fresh, 'readwrite', [RECORDS, META], apply),
+    );
+  }
+
   return {
     ready() {
       return withConnection(readStateOf);
@@ -470,22 +511,16 @@ export function createIndexedDbSavedStore(
       );
     },
     async delete(key) {
-      await this.ready();
-      await withConnection((db) =>
-        transaction(db, 'readwrite', [RECORDS, META], async (tx) => {
-          const state = await readStateInTransaction(tx);
-          if (state.epoch >= Number.MAX_SAFE_INTEGER)
-            throw new SavedStoreError(
-              'invalid-metadata',
-              'The saved-record deletion counter is exhausted.',
-            );
-          tx.objectStore(RECORDS).delete(key);
-          tx.objectStore(META).put({
-            key: STATE_KEY,
-            value: { storeId: state.storeId, epoch: state.epoch + 1 },
-          });
-        }),
-      );
+      await deleteRecords((records) => records.delete(key));
+    },
+    async deleteMany(keys) {
+      if (keys.length === 0) return;
+      await deleteRecords((records) => {
+        for (const key of keys) records.delete(key);
+      });
+    },
+    async deleteAll() {
+      await deleteRecords((records) => records.clear());
     },
     close() {
       live = false;

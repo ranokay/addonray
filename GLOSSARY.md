@@ -88,6 +88,14 @@ _Avoid_: Best-effort JSON, implicit format.
 The point after which AddonRay refuses to use a saved record and lazy cleanup may remove it. It is not a promise of physical erasure.
 _Avoid_: Hard deletion deadline, forensic erasure.
 
+**Retention choice**:
+The 7, 30 or 90-day lifetime selected when a new saved archive is created, capped at 90 days from its original save time. It does not rewrite existing records.
+_Avoid_: Global retention setting, history window.
+
+**Bulk delete**:
+A confirmed library action that removes a frozen selection of saved records in one storage transaction. It is distinct from delete-all and from clearing a live investigation.
+_Avoid_: Clear session, automatic cleanup.
+
 **Delete-all**:
 A confirmed library action that removes every saved record. It is distinct from clearing a live investigation.
 _Avoid_: Clear session, automatic cleanup.

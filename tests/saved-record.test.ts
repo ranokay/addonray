@@ -13,6 +13,7 @@ import {
   serializeStoredRecord,
   storedRecordBytes,
   type SavedRecord,
+  type SavedRetentionDays,
 } from '../lib/saved-record';
 
 type State = ReturnType<Investigation['getSnapshot']>;
@@ -168,6 +169,32 @@ it('applies the 30-day default retention and complete byte accounting', () => {
   expect(isExpired(saved, saved.expiresAt)).toBe(true);
   expect(recordLabel(saved)).toContain('Worse');
   expect(recordLabel(saved)).toContain(saved.recordId.slice(0, 8));
+});
+
+it('uses the chosen 7, 30 or 90-day retention from save time', () => {
+  for (const retentionDays of [7, 30, 90] as const) {
+    const saved = createSavedRecord(complete(), {
+      now: 1_800_000_000_000,
+      recordId: '12345678-1234-1234-1234-123456789abc',
+      retentionDays,
+    });
+    expect(saved.status).toBe('success');
+    if (saved.status !== 'success') continue;
+    expect(saved.value.expiresAt - saved.value.savedAt).toBe(
+      retentionDays * 24 * 60 * 60 * 1000,
+    );
+    expect(inspectStoredRecord(saved.value).status).toBe('valid');
+  }
+  expect(
+    createSavedRecord(complete(), {
+      now: 1_800_000_000_000,
+      recordId: '12345678-1234-1234-1234-123456789abc',
+      retentionDays: 14 as SavedRetentionDays,
+    }),
+  ).toEqual({
+    status: 'error',
+    reason: 'The selected retention is not an approved 7, 30 or 90 days.',
+  });
 });
 
 it('rejects inventories and change lists above their limits', () => {

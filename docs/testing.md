@@ -394,11 +394,12 @@ until explicitly observed.
 ## Saved-investigation and exchange checks
 
 The [saved-data contract](plans/saved-investigation-data-rules.md) governs the
-bounded #6 slice and the future exchange work. #6 save/list/read-only reopen and
-single-record delete are implemented with model, storage, UI and product browser
-checks. Import, printable HTML, clipboard, retention choices and bulk deletion
-remain future tests. Keep model tests, storage adapter tests, UI tests, browser
-evidence and native observations separate.
+bounded #6/#7 slices and the future exchange work. #6 save/list/read-only reopen
+and single-record delete are implemented with model, storage, UI and product
+browser checks. #7 adds per-save 7/30/90-day retention, bulk deletion and
+confirmed delete-all. Import, printable HTML and clipboard remain future tests.
+Keep model tests, storage adapter tests, UI tests, browser evidence and native
+observations separate.
 
 Model and schema checks:
 
@@ -432,10 +433,13 @@ Storage adapter checks:
   epochs, bounded waits and multi-view hint behavior;
 - 50 records, 5 MiB total and 1 MiB per complete record, refusal when full, no
   automatic eviction of unexpired records;
-- 30-day default retention, expiry refusal and lazy cleanup; #7 owns 7/90-day
-  choices and bulk deletion;
-- single-record delete, pending-action invalidation, no resurrection and
-  suspended-view next-action failure;
+- 30-day default retention, the 7/30/90-day per-save choice and the 90-day
+  maximum; expiry refusal and lazy cleanup;
+- single-record delete, frozen selection-based bulk delete and confirmed
+  delete-all, including unsupported and not-currently-listed rows;
+- pending-action invalidation, no resurrection and suspended-view next-action
+  failure; pending-save ordering on either side of selected-delete and
+  delete-all commits against the real adapter;
 - ordinary storage, quota, size or output save failure preserves the current
   valid live state, while reset, permission removal, source change or context
   loss invalidates the save and cannot restore discarded data or resurrect a
@@ -444,8 +448,10 @@ Storage adapter checks:
 
 UI checks:
 
-- disclosure before the first save, generated labels and read-only archive
-  views;
+- disclosure before the first save, generated labels, per-save retention
+  choice, expiry text and read-only archive views;
+- frozen bulk selection, explicit bulk and delete-all confirmations, and cleared
+  selection/confirmation on denied, unavailable and suspended transitions;
 - normal, private and unknown context guards for every saved-data action;
 - imported label, untrusted rendering, separate Save imported report and no
   automatic persistence (future #9);
@@ -488,21 +494,29 @@ Browser and native evidence:
   Chrome. Chrome product checks use the named pre-granted UI fixture with
   unchanged production assets.
 - `scripts/saved-store-checks.mjs` compiles the production storage adapter and
-  runs nine checks on all four pins: a bounded barrier timeout followed by a
-  later save, synchronous barrier capture, deletion after the barrier,
-  not-ready/recreated connections, idempotent delete, add-only duplicate refusal,
-  abort cancellation and oversized-row rejection. Run it with
+  runs fifteen checks on all four pins: a bounded barrier timeout followed by a
+  later save, synchronous barrier capture, deletion after the barrier, queued
+  save-versus-selected-delete and save-versus-delete-all ordering on either side
+  of commit, empty-list delete-all epoch advancement, corrupt/exhausted metadata
+  failing closed, not-ready/recreated connections, idempotent delete, add-only
+  duplicate refusal, abort cancellation and oversized-row rejection. Run it with
   `FIREFOX_VERSION=<pin> bun run test:saved-store:firefox` or
   `bun run test:saved-store:chrome`.
-- The separate `scripts/saved-restart-checks.mjs` probe passes five checks on
-  each of Firefox 140.0, 153.5.1esr, 158.0.1 and Chrome 156.0.8078.47. Run it
-  with `FIREFOX_VERSION=<pin> bun run test:saved-restart:firefox` or
+- The #7 product checks extend the packaged save flow with the stored 7-day
+  retention delta, a frozen two-record bulk delete and confirmed delete-all that
+  removes an unsupported row from the actual IndexedDB store. They are part of
+  the shared `mise run test-firefox` and `mise run test-chrome` probes, not
+  separate native evidence.
+- The separate `scripts/saved-restart-checks.mjs` probe passes six checks on
+  Firefox 158.0.1 and Chrome 156.0.8078.47 after #7. Run it with
+  `FIREFOX_VERSION=<pin> bun run test:saved-restart:firefox` or
   `bun run test:saved-restart:chrome`. It performs explicit product Save, a full
   browser restart with the retained profile/origin, read-only list/reopen,
-  live-state loss, no permission prompt and deletion persistence across another
-  restart. Firefox uses a retained temporary-install profile with a fixed test
-  UUID mapping; Chrome uses the named pre-granted UI fixture with unchanged
-  production assets. Neither is a native-consent or retail-install claim.
+  live-state loss, single-delete persistence and a confirmed delete-all of a
+  seeded unsupported record before another restart. Firefox uses a retained
+  temporary-install profile with a fixed test UUID mapping; Chrome uses the named
+  pre-granted UI fixture with unchanged production assets. Neither is a
+  native-consent or retail-install claim.
 - Natural eviction, an actual Chrome engine quota error and the hosted exact-OS
   matrix remain unqualified. See
   [product evidence](evidence/2026-10-30-saved-investigations.md) and the

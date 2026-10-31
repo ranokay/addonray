@@ -52,6 +52,30 @@
   padding: 7px 11px;
 }
 
+.library-bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.library-bulk-actions button {
+  padding: 7px 11px;
+}
+
+.library-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #b9b9b9;
+}
+
+.library-select input {
+  margin: 0;
+}
+
 .danger {
   color: #2a0d0d;
   background: #f0b4b4;

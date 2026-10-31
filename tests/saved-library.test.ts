@@ -49,6 +49,8 @@ class MemoryStore implements SavedStore {
   listCalls = 0;
   getCalls = 0;
   deleteCalls: IDBValidKey[] = [];
+  deleteManyCalls: IDBValidKey[][] = [];
+  deleteAllCalls = 0;
   failList: Error | null = null;
   failDelete: Error | null = null;
   listWait: Promise<void> | null = null;
@@ -82,6 +84,19 @@ class MemoryStore implements SavedStore {
     if (this.failDelete) throw this.failDelete;
     this.deleteCalls.push(key);
     this.entries.delete(key);
+    this.state = { ...this.state, epoch: this.state.epoch + 1 };
+  }
+  async deleteMany(keys: readonly IDBValidKey[]) {
+    if (this.failDelete) throw this.failDelete;
+    if (keys.length === 0) return;
+    this.deleteManyCalls.push([...keys]);
+    for (const key of keys) this.entries.delete(key);
+    this.state = { ...this.state, epoch: this.state.epoch + 1 };
+  }
+  async deleteAll() {
+    if (this.failDelete) throw this.failDelete;
+    this.deleteAllCalls += 1;
+    this.entries.clear();
     this.state = { ...this.state, epoch: this.state.epoch + 1 };
   }
   close() {}
@@ -179,7 +194,8 @@ it('lists valid, unsupported and unreadable rows and lazily removes only expired
   seed(store);
   await library.refresh();
   expect(store.listCalls).toBe(1);
-  expect(store.deleteCalls).toEqual([expiredId]);
+  expect(store.deleteManyCalls).toEqual([[expiredId]]);
+  expect(store.deleteCalls).toEqual([]);
   const snapshot = library.getSnapshot();
   expect(snapshot.phase).toBe('ready');
   expect(snapshot.entries.map((entry) => entry.status)).toEqual([
@@ -270,6 +286,160 @@ it('keeps the row when deletion fails and reports that it may remain', async () 
   await library.delete();
   expect(library.getSnapshot().entries).toHaveLength(3);
   expect(library.getSnapshot().message).toContain('may still exist');
+});
+
+it('freezes a selected set, confirms it and deletes unsupported rows in bulk', async () => {
+  const { store, library, hint } = fixture();
+  seed(store);
+  await library.refresh();
+  library.toggleChecked(validId);
+  library.toggleChecked('future-row');
+  expect(library.getSnapshot().checkedKeys).toEqual([validId, 'future-row']);
+  library.requestBulkDelete();
+  expect(library.getSnapshot().pendingBulk).toEqual({
+    kind: 'selected',
+    keys: [validId, 'future-row'],
+  });
+
+  library.toggleChecked('bad-row');
+  expect(library.getSnapshot().checkedKeys).toEqual([validId, 'future-row']);
+
+  await library.deleteChecked();
+  expect(store.deleteManyCalls).toEqual([[expiredId], [validId, 'future-row']]);
+  expect(library.getSnapshot().entries).toEqual([
+    { key: 'bad-row', status: 'invalid' },
+  ]);
+  expect(library.getSnapshot().checkedKeys).toEqual([]);
+  expect(library.getSnapshot().pendingBulk).toBeNull();
+  expect(library.getSnapshot().message).toBe('2 saved records deleted.');
+  expect(hint.hint.notifyRemote).toHaveBeenCalledTimes(1);
+});
+
+it('cancels a frozen bulk confirmation when its set changes on refresh', async () => {
+  const { store, library } = fixture();
+  seed(store);
+  await library.refresh();
+  library.toggleChecked(validId);
+  library.requestBulkDelete();
+  store.entries.delete(validId);
+  await library.refresh();
+  expect(library.getSnapshot().pendingBulk).toBeNull();
+  expect(library.getSnapshot().checkedKeys).toEqual([]);
+});
+
+it('delete-all clears the actual store, including rows saved after the list', async () => {
+  const { store, library } = fixture();
+  store.entries.set(validId, record(validId));
+  await library.refresh();
+  store.entries.set(
+    'unseen-record',
+    record('33333333-3333-3333-3333-333333333333'),
+  );
+  await library.open(validId);
+  library.toggleChecked(validId);
+
+  library.requestDeleteAll();
+  expect(library.getSnapshot().pendingBulk).toEqual({ kind: 'all' });
+  await library.deleteAll();
+  expect(store.deleteAllCalls).toBe(1);
+  expect(store.entries.size).toBe(0);
+  expect(library.getSnapshot()).toMatchObject({
+    phase: 'ready',
+    entries: [],
+    selected: null,
+    selectedKey: null,
+    checkedKeys: [],
+    pendingBulk: null,
+    message: 'All saved records deleted.',
+  });
+});
+
+it('delete-all advances the epoch even when the visible list is empty', async () => {
+  const { store, library } = fixture();
+  await library.refresh();
+  const before = store.state.epoch;
+  library.requestDeleteAll();
+  await library.deleteAll();
+  expect(store.deleteAllCalls).toBe(1);
+  expect(store.state.epoch).toBe(before + 1);
+  expect(library.getSnapshot().entries).toEqual([]);
+});
+
+it('clears selection and confirmation on suspend', async () => {
+  const { store, library } = fixture();
+  seed(store);
+  await library.refresh();
+  library.toggleChecked(validId);
+  library.requestBulkDelete();
+  library.suspend();
+  expect(library.getSnapshot()).toMatchObject({
+    phase: 'checking',
+    entries: [],
+    checkedKeys: [],
+    pendingBulk: null,
+    pendingDeleteKey: null,
+  });
+});
+
+it('clears selection and confirmation on a denied context transition', async () => {
+  const { store, library, context } = fixture();
+  seed(store);
+  await library.refresh();
+  library.toggleChecked(validId);
+  library.requestBulkDelete();
+  context.normal = false;
+  await library.refresh();
+  expect(library.getSnapshot()).toMatchObject({
+    phase: 'denied',
+    entries: [],
+    checkedKeys: [],
+    pendingBulk: null,
+    pendingDeleteKey: null,
+  });
+});
+
+it('clears selection and confirmation when storage becomes unavailable', async () => {
+  const { store, library } = fixture();
+  seed(store);
+  await library.refresh();
+  library.toggleChecked(validId);
+  library.requestBulkDelete();
+  store.failList = new Error('storage failed');
+  await library.refresh();
+  expect(library.getSnapshot()).toMatchObject({
+    phase: 'unavailable',
+    entries: [],
+    checkedKeys: [],
+    pendingBulk: null,
+    pendingDeleteKey: null,
+  });
+});
+
+it('cannot open a record after delete-all clears the store', async () => {
+  const { store, library } = fixture();
+  store.entries.set(validId, record(validId));
+  await library.refresh();
+  library.requestDeleteAll();
+  await library.deleteAll();
+  await library.open(validId);
+  expect(library.getSnapshot().selected).toBeNull();
+  expect(library.getSnapshot().message).toContain('no longer available');
+});
+
+it('a fresh library instance cannot see records after delete-all', async () => {
+  const store = new MemoryStore();
+  store.entries.set(validId, record(validId));
+  const api: SavedBrowser = {
+    tabs: { getCurrent: vi.fn(async () => ({ incognito: false })) },
+  };
+  const first = createSavedLibrary(api, store);
+  await first.refresh();
+  first.requestDeleteAll();
+  await first.deleteAll();
+  const reopened = createSavedLibrary(api, store);
+  await reopened.refresh();
+  expect(reopened.getSnapshot().entries).toEqual([]);
+  expect(reopened.getSnapshot().selected).toBeNull();
 });
 
 it('fails closed when context is lost after the list was rendered', async () => {

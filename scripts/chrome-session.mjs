@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { Builder } from 'selenium-webdriver';
@@ -6,6 +7,14 @@ import chrome from 'selenium-webdriver/chrome.js';
 import { checkPackage } from './check-package.mjs';
 
 export const chromeVersion = '156.0.8078.47';
+
+export function chromeExtensionId(path) {
+  const digest = createHash('sha256').update(resolve(path)).digest();
+  return [...digest.subarray(0, 16)]
+    .flatMap((byte) => [byte >> 4, byte & 0x0f])
+    .map((nibble) => String.fromCharCode(97 + nibble))
+    .join('');
+}
 
 // Browser-root commands must omit sessionId; Selenium's convenience CDP connection attaches a page.
 export async function browserProtocol(debuggerAddress) {

@@ -33,6 +33,7 @@ const beforeSelector = '[data-testid="before-snapshot"]';
 const afterSelector = '[data-testid="after-snapshot"]';
 const assessmentSelector = 'input[name="page-assessment"]:checked';
 const saveSection = 'section[aria-labelledby="save-heading"]';
+const databaseName = 'addonray-saved-investigations';
 const productId = 'addonray@ranokay.dev';
 const fixtureId = 'saved-restart-fixture@addonray.test';
 const productUuid = '4f0d9a9e-6b6e-4b7e-8f3b-0f1f8a2c7d11';
@@ -224,6 +225,69 @@ async function deleteLibraryRecord(driver, urls) {
   const text = await elementText(driver, 'body');
   assert(text.includes('No saved investigations.'));
   return text;
+}
+
+async function seedUnsupportedAndDeleteAll(driver, urls) {
+  if ((await driver.getCurrentUrl()) !== urls.library) {
+    await driver.get(urls.library);
+  }
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.css('.library-entry'))).length === 0,
+    15000,
+  );
+  const seeded = await driver.executeAsyncScript((name, done) => {
+    const request = indexedDB.open(name, 1);
+    request.onerror = () => done({ error: String(request.error) });
+    request.onsuccess = () => {
+      const database = request.result;
+      const transaction = database.transaction('records', 'readwrite');
+      transaction.objectStore('records').put({
+        schemaVersion: 2,
+        recordId: '88888888-8888-8888-8888-888888888888',
+      });
+      transaction.oncomplete = () => {
+        database.close();
+        done({ ok: true });
+      };
+      transaction.onerror = () => done({ error: String(transaction.error) });
+    };
+  }, databaseName);
+  assert.equal(seeded.ok, true, JSON.stringify(seeded));
+  await driver
+    .findElement(By.xpath('//button[normalize-space(.)="Refresh"]'))
+    .click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.css('.library-entry'))).length === 1 &&
+      (await elementText(driver, 'body')).includes('Unsupported saved record'),
+    15000,
+  );
+  await driver
+    .findElement(
+      By.xpath('//button[normalize-space(.)="Delete all saved records"]'),
+    )
+    .click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.css('[aria-label="Confirm delete all"]')))
+        .length === 1,
+    15000,
+  );
+  await driver
+    .findElement(
+      By.xpath(
+        '//div[@aria-label="Confirm delete all"]//button[normalize-space(.)="Delete all saved records"]',
+      ),
+    )
+    .click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.css('.library-entry'))).length === 0 &&
+      (await elementText(driver, 'body')).includes('No saved investigations.'),
+    15000,
+  );
+  return { unsupportedBeforeDeleteAll: true, rowsAfter: 0 };
 }
 
 async function assertFreshInvestigation(driver, urls) {
@@ -471,6 +535,11 @@ async function firefoxMain() {
       origin: product.origin,
       deleted: true,
     });
+    const deleteAll = await seedUnsupportedAndDeleteAll(driver, urls);
+    passed('confirmed delete-all clears a seeded unsupported record', {
+      origin: product.origin,
+      ...deleteAll,
+    });
     await driver.close();
     await driver.switchTo().window(library.investigationWindow);
     liveProfile = await firefoxSessionProfile(driver);
@@ -612,6 +681,11 @@ async function chromeMain() {
     await driver.switchTo().window(library.investigationWindow);
     await deleteLibraryRecord(driver, urls);
     passed('single-record delete is explicit after restart', { deleted: true });
+    const deleteAll = await seedUnsupportedAndDeleteAll(driver, urls);
+    passed(
+      'confirmed delete-all clears a seeded unsupported record',
+      deleteAll,
+    );
     await quit();
   } catch (error) {
     await quit();

@@ -11,6 +11,7 @@ function saver(
     busy: false,
     message: null,
     lastLabel: null,
+    retentionDays: 30 as const,
     ...snapshot,
   };
   return {
@@ -18,6 +19,7 @@ function saver(
     subscribe: () => () => {},
     save: vi.fn(async () => {}),
     retryStorage: vi.fn(async () => {}),
+    setRetentionDays: vi.fn(),
     dispose: vi.fn(),
     ready: Promise.resolve(),
   };
@@ -54,6 +56,23 @@ it('discloses every storage boundary before enabling an explicit save', () => {
   expect(button(markup, 'save-investigation')).not.toContain('disabled');
   expect(markup).toContain('href="moz-extension://addonray/library.html"');
   expect(current.save).not.toHaveBeenCalled();
+});
+
+it('defaults new-archive retention to 30 days and offers only 7, 30 or 90', () => {
+  const markup = renderToStaticMarkup(
+    <SavedInvestigationSection
+      saver={saver()}
+      eligible
+      libraryUrl="/library.html"
+    />,
+  );
+  expect(markup).toContain('Keep this archive for');
+  expect(markup).toContain('value="7"');
+  expect(markup).toContain('value="30" selected');
+  expect(markup).toContain('value="90"');
+  expect(markup).toContain('never kept beyond 90 days');
+  expect(markup).toContain('existing records keep their saved expiry');
+  expect(markup).toContain('no background timer');
 });
 
 it('disables save until the investigation and storage are ready', () => {

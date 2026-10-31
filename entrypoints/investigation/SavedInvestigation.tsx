@@ -1,4 +1,9 @@
 import { useSyncExternalStore } from 'react';
+import {
+  SAVED_DEFAULT_RETENTION_DAYS,
+  SAVED_RETENTION_CHOICES,
+  type SavedRetentionDays,
+} from '../../lib/saved-record';
 import type { SavedSave } from '../../lib/saved-save';
 
 export function SavedInvestigationSection({
@@ -61,6 +66,35 @@ export function SavedInvestigationSection({
         report action in progress, current inventory access and a verified
         normal window. Resetting or removing access invalidates a pending save.
         Storage, quota and size failures keep this live investigation.
+      </p>
+      <p>
+        <label htmlFor="save-retention">
+          Keep this archive for{' '}
+          <select
+            id="save-retention"
+            aria-describedby="save-retention-note"
+            disabled={state.busy}
+            value={state.retentionDays}
+            onChange={(event) =>
+              saver.setRetentionDays(
+                Number(event.target.value) as SavedRetentionDays,
+              )
+            }
+          >
+            {SAVED_RETENTION_CHOICES.map((days) => (
+              <option key={days} value={days}>
+                {days} days
+              </option>
+            ))}
+          </select>
+        </label>
+      </p>
+      <p className="metadata" id="save-retention-note">
+        The default is {SAVED_DEFAULT_RETENTION_DAYS} days from this save. An
+        archive is never kept beyond 90 days from its save time. This choice
+        applies only to the new archive; existing records keep their saved
+        expiry. Expiry is checked when AddonRay next uses saved storage, with no
+        background timer.
       </p>
       <div className="report-actions">
         <button

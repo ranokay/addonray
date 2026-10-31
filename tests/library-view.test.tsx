@@ -81,6 +81,8 @@ function snapshot(
     selected: null,
     selectedKey: null,
     pendingDeleteKey: null,
+    checkedKeys: [],
+    pendingBulk: null,
     busy: false,
     message: null,
     ...overrides,
@@ -96,8 +98,15 @@ function library(state: SavedLibrarySnapshot): SavedLibrary {
     open: vi.fn(async () => {}),
     requestDelete: vi.fn(),
     cancelDelete: vi.fn(),
+    toggleChecked: vi.fn(),
+    clearChecked: vi.fn(),
+    requestBulkDelete: vi.fn(),
+    requestDeleteAll: vi.fn(),
+    cancelBulkDelete: vi.fn(),
     closeDetail: vi.fn(),
     delete: vi.fn(async () => {}),
+    deleteChecked: vi.fn(async () => {}),
+    deleteAll: vi.fn(async () => {}),
     suspend: vi.fn(),
     resume: vi.fn(),
     revalidate: vi.fn(),
@@ -126,6 +135,9 @@ it('lists a saved record and unsupported or unreadable rows for deletion only', 
   expect(markup.match(/>Delete<\/button>/g)?.length).toBe(3);
   expect(markup).toContain('Open');
   expect(markup).toContain('Read-only archives');
+  expect(markup).toContain('Expires');
+  expect(markup).toContain('Delete selected (0)');
+  expect(markup).toContain('Delete all saved records');
   for (const phrase of [
     'browser profile on this device',
     'no sync, cloud, telemetry or companion transfer',
@@ -178,6 +190,39 @@ it('renders an inline delete confirmation without mutating', () => {
   expect(markup).toContain('Delete saved record');
   expect(markup).toContain('Cancel');
   expect(current.delete).not.toHaveBeenCalled();
+});
+
+it('renders a frozen bulk confirmation without mutating', () => {
+  const current = library(
+    snapshot({
+      checkedKeys: [recordId],
+      pendingBulk: { kind: 'selected', keys: [recordId] },
+    }),
+  );
+  const markup = renderToStaticMarkup(<App library={current} />);
+  expect(markup).toContain('Confirm bulk delete');
+  expect(markup).toContain('Delete 1 selected saved record?');
+  expect(markup).toContain('Delete selected records');
+  expect(markup).toContain('Clearing a live investigation does not affect');
+  expect(current.deleteChecked).not.toHaveBeenCalled();
+});
+
+it('requires explicit confirmation before delete-all', () => {
+  const current = library(snapshot({ pendingBulk: { kind: 'all' } }));
+  const markup = renderToStaticMarkup(<App library={current} />);
+  expect(markup).toContain('Confirm delete all');
+  expect(markup).toContain('Delete all saved records?');
+  expect(markup).toContain('including any not shown here');
+  expect(markup).toContain('Clearing a live investigation does not affect');
+  expect(current.deleteAll).not.toHaveBeenCalled();
+});
+
+it('offers delete-all even when the visible list is empty', () => {
+  const current = library(snapshot({ entries: [] }));
+  const markup = renderToStaticMarkup(<App library={current} />);
+  expect(markup).toContain('No saved investigations.');
+  expect(markup).toContain('Delete all saved records');
+  expect(current.deleteAll).not.toHaveBeenCalled();
 });
 
 it('exposes no saved rows when context is denied even if a caller supplies data', () => {

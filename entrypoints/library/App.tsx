@@ -7,6 +7,11 @@ import {
 import { recordLabel } from '../../lib/saved-record';
 import { ArchiveView, unsupportedLabel } from './ArchiveView';
 
+const expiryFormat = new Intl.DateTimeFormat('en', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
 function entryLabel(entry: SavedLibraryEntry) {
   if (entry.status === 'valid') return recordLabel(entry.record);
   return unsupportedLabel(entry) ?? 'Saved record';
@@ -75,10 +80,23 @@ function LibraryEntryRow({
   const pending =
     state.pendingDeleteKey !== null &&
     sameSavedKey(state.pendingDeleteKey, entry.key);
+  const checked = state.checkedKeys.some((checkedKey) =>
+    sameSavedKey(checkedKey, entry.key),
+  );
+  const locked = state.busy || state.pendingBulk !== null;
   return (
     <li className="library-entry" data-testid="library-entry">
       <div className="library-entry-heading">
         <div>
+          <label className="library-select">
+            <input
+              type="checkbox"
+              checked={checked}
+              disabled={locked}
+              onChange={() => library.toggleChecked(entry.key)}
+            />
+            <span>Select {label}</span>
+          </label>
           <strong>{label}</strong>
           {entry.status !== 'valid' && (
             <p className="metadata">
@@ -94,12 +112,17 @@ function LibraryEntryRow({
               {entry.record.report.changes.length === 1 ? 'change' : 'changes'}
             </p>
           )}
+          {entry.status === 'valid' && (
+            <p className="metadata">
+              Expires {expiryFormat.format(new Date(entry.record.expiresAt))}
+            </p>
+          )}
         </div>
         <div className="library-actions">
           {entry.status === 'valid' && (
             <button
               id="open-saved-record"
-              disabled={state.busy}
+              disabled={locked}
               onClick={() => void library.open(entry.key)}
             >
               Open
@@ -110,7 +133,7 @@ function LibraryEntryRow({
             entry={entry}
             label={label}
             pending={pending}
-            busy={state.busy}
+            busy={locked}
           />
         </div>
       </div>
@@ -121,6 +144,118 @@ function LibraryEntryRow({
         </p>
       )}
     </li>
+  );
+}
+
+function BulkActions({
+  library,
+  state,
+}: {
+  library: SavedLibrary;
+  state: ReturnType<SavedLibrary['getSnapshot']>;
+}) {
+  const locked = state.busy || state.pendingBulk !== null;
+  return (
+    <div
+      className="library-bulk-actions"
+      role="group"
+      aria-label="Bulk actions"
+    >
+      <button
+        className="quiet"
+        disabled={locked || state.checkedKeys.length === 0}
+        onClick={library.clearChecked}
+      >
+        Clear selection
+      </button>
+      <button
+        disabled={locked || state.checkedKeys.length === 0}
+        onClick={library.requestBulkDelete}
+      >
+        Delete selected ({state.checkedKeys.length})
+      </button>
+      <button
+        className="danger"
+        disabled={locked}
+        onClick={library.requestDeleteAll}
+      >
+        Delete all saved records
+      </button>
+    </div>
+  );
+}
+
+function BulkDeleteConfirmation({
+  library,
+  state,
+}: {
+  library: SavedLibrary;
+  state: ReturnType<SavedLibrary['getSnapshot']>;
+}) {
+  const pending = state.pendingBulk;
+  if (!pending) return null;
+  if (pending.kind === 'selected') {
+    const count = pending.keys.length;
+    return (
+      <div
+        className="delete-confirm"
+        role="group"
+        aria-label="Confirm bulk delete"
+      >
+        <p>
+          Delete {count} selected saved {count === 1 ? 'record' : 'records'}?
+          This cannot be undone by AddonRay. Browser or OS backups and profile
+          copies may retain bytes. Clearing a live investigation does not affect
+          saved records.
+        </p>
+        <div className="library-actions">
+          <button
+            className="danger"
+            disabled={state.busy}
+            onClick={() => void library.deleteChecked()}
+          >
+            Delete selected records
+          </button>
+          <button
+            className="quiet"
+            disabled={state.busy}
+            onClick={library.cancelBulkDelete}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div
+      className="delete-confirm"
+      role="group"
+      aria-label="Confirm delete all"
+    >
+      <p>
+        Delete all saved records? This removes every record in local storage,
+        including any not shown here, and cannot be undone by AddonRay. Browser
+        or OS backups and profile copies may retain bytes. Clearing a live
+        investigation does not affect saved records.
+      </p>
+      <div className="library-actions">
+        <button
+          className="danger"
+          disabled={state.busy}
+          onClick={() => void library.deleteAll()}
+        >
+          Delete all saved records
+        </button>
+        <button
+          className="quiet"
+          disabled={state.busy}
+          onClick={library.cancelBulkDelete}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -221,9 +356,12 @@ export function App({ library }: { library: SavedLibrary }) {
             <h2 id="library-list-heading">Local saved records</h2>
             <p className="metadata">
               A maximum of 50 records, 5 MiB in total and 1 MiB per complete
-              record applies. Unsupported or unreadable rows are listed only for
-              deletion.
+              record applies. Each record keeps the 7, 30 or 90-day retention
+              chosen when it was saved, never beyond 90 days from its save time.
+              Unsupported or unreadable rows are listed only for deletion.
             </p>
+            <BulkActions library={library} state={state} />
+            <BulkDeleteConfirmation library={library} state={state} />
             {state.entries.length === 0 ? (
               <p role="status">
                 No saved investigations. Save one from a completed investigation
