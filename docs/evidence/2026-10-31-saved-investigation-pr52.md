@@ -3,9 +3,11 @@
 This 2026-10-31 record covers corrections and requalification for private
 [PR #52](https://github.com/ranokay/addonray/pull/52), scoped to #6. The supervisor
 approved `c28c9596499cdb4b27f7609c65c93249580031ba` with F1 through F13 closed.
-That approval is the implementation checkpoint, not approval of later corrections
-or proof of hosted review. The PR conversation records the final head, frozen
-check receipt, hosted checks, independent review and merge disposition.
+That approval is the historical implementation checkpoint, not approval of later
+corrections or proof of hosted review. At the time of this record, final-head
+review and merge disposition remain pending verification. The PR conversation
+is the source for subsequent delivery-head receipts, hosted review and merge
+status.
 
 ## Corrections
 
