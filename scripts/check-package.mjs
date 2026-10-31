@@ -51,6 +51,7 @@ export function compareFiles(actual, expected) {
   }
 }
 
+/** Reject archives that differ from build output, canonical notices or approved rebuild sources. */
 export async function checkPackage(browser = 'firefox') {
   const { extensionArchive, sourceArchive, outputDirectory } =
     packagePaths(browser);
@@ -59,6 +60,16 @@ export async function checkPackage(browser = 'firefox') {
   assert(
     extension.files.has('manifest.json'),
     'Manifest must be at archive root',
+  );
+
+  await Promise.all(
+    ['LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.txt'].map(async (name) => {
+      assert(extension.files.has(name), `Missing license notice: ${name}`);
+      assert.equal(
+        sha256(extension.files.get(name)),
+        sha256(await readFile(name)),
+      );
+    }),
   );
 
   const sources = await archiveFiles(sourceArchive);
@@ -76,6 +87,9 @@ export async function checkPackage(browser = 'firefox') {
     'package.json',
     'bun.lock',
     'SOURCE_CODE_REVIEW.md',
+    'LICENSE',
+    'NOTICE',
+    'THIRD_PARTY_NOTICES.txt',
   ]) {
     expectedSources.set(path, await readFile(path));
   }

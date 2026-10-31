@@ -2,13 +2,32 @@
 
 AddonRay helps Firefox and Chrome users investigate broken or slow pages with an extension inventory, explicit capability limits, and manual troubleshooting guidance.
 
-Product name and private repository identity `ranokay/addonray` were approved on 2026-10-22. This directory retains its original `fext` name. Licensing is undecided. The repository has no license grant.
+AddonRay-owned code and documentation use [Apache-2.0](LICENSE). [NOTICE](NOTICE) reserves project branding, and [third-party notices](THIRD_PARTY_NOTICES.txt) preserve upstream terms. Source publication and extension-store distribution are separate owner actions.
 
 ## Current state
 
-Phase 0 is scaffolded. The approved first Phase 1 slice adds local inventory search, enabled-state filtering, permission explanations, and manual browser-controls guidance in a dark popup. The approved manual comparison adds a fresh investigation tab for one Before/After inventory pair and your assessment of the page. Its results live only while that tab remains loaded. The popup retains explicit consent, a minimal selected-page probe, and capability explanations. [Current status](docs/status.md) tracks implementation and qualification. [Earlier evidence](docs/evidence/2026-10-22-qualification.md) records minimum/release/ESR API and native-popup checks on macOS arm64. This is a private feasibility build; Store distribution remains a separate release gate.
+The development build provides extension inventory search and filtering,
+permission explanations, explicit selected-page timing and page-error checks,
+and one Before/After inventory comparison with your assessment of the page.
+Optional timing and error summaries can be attached to that investigation.
+A previewed Markdown report can be downloaded through an explicit action.
 
-The approved expanded v1 target is recorded in [the v1 contract](docs/v1-contract.md). That target adds saved investigations, report exchange, guided comparisons, bounded mutation and request-failure checks, an optional Rust companion, qualification and release work. The build described here remains the current runtime; the contract's limits and decision gates apply to future work.
+Completed investigations can be saved explicitly to this browser profile,
+listed and reopened read-only in the library, and deleted individually or in
+confirmed batches. Each new save offers 7, 30 or 90-day retention, defaulting to
+30 days. Expiry blocks access and removes records on later storage access; it
+does not promise immediate physical deletion. Live investigations still lose
+unsaved observations when their document reloads or closes. Saved archives do
+not reconnect to the original page. There is no telemetry or cloud sync.
+
+This is development software with remaining qualification gaps, not a completed
+v1 or a store release. [Current status](docs/status.md) distinguishes implemented
+behavior from native consent, private-route, quota, platform and release evidence.
+[Privacy](docs/privacy.md) records the data and permission boundaries.
+
+The [v1 contract](docs/v1-contract.md) includes further report exchange, guided
+comparisons, mutation and request-failure diagnostics, an optional Rust companion,
+and release work. Those targets do not imply that every slice is implemented.
 
 The approved builds are Firefox MV3 and Chrome MV3. Intended desktop targets are macOS arm64, Windows x64 and Linux x64; exact OS versions remain a release-planning gate. Other browsers and MV2 remain deferred. [Chrome compatibility criteria](docs/plans/chrome-mv3.md) distinguish repeatable Chrome for Testing checks from retail installation and native usability. [Packaged-extension qualification](docs/evidence/2026-10-22-packaging.md) tracks unsigned XPI checks and the Linux/Windows API matrix separately from native-popup usability and signing. `mise run package` creates the XPI and source ZIP locally; it publishes nothing.
 
@@ -57,7 +76,7 @@ AddonRay does not offer arbitrary global or per-site switches for other extensio
 
 The page-inspection action also reads three recorded loading milestones: DOM content loaded, load event completed, and first content displayed when reported. It uses the document loaded in the originally selected tab when the check runs. Results stay in popup memory. The check does not reload the page, record later interactions, collect a URL/content, or identify a responsible extension. See the [approved scope](docs/plans/phase2-timing.md) for field definitions, size/runtime budgets, and qualification requirements.
 
-The approved [optional timing comparison](docs/plans/phase2-timing-comparison.md) adds an explicit Attach timing action. Choose an investigation and side to retain that timing in its memory. Attach Before before starting the After inventory, then capture After timing from the same browser tab. The comparison shows measured millisecond differences with uncertainty, while inventory-only comparisons remain available. Attachments work only between verified normal-window views and add no permissions or saved history. Qualification is tracked in [status](docs/status.md).
+The approved [optional timing comparison](docs/plans/phase2-timing-comparison.md) adds an explicit Attach timing action. Choose an investigation and side to retain that timing in its memory. Attach Before before starting the After inventory, then capture After timing from the same browser tab. The comparison shows measured millisecond differences with uncertainty, while inventory-only comparisons remain available. Attachments work only between verified normal-window views and add no permissions. They remain in memory unless you explicitly save a completed investigation. Qualification is tracked in [status](docs/status.md).
 
 ## Page-error checks
 
@@ -84,7 +103,7 @@ Each completed check attaches successfully once. Its summary stays readable.
 The investigation owns a copy after the check resets or closes. All timing and
 error attachments use the same browser tab, without collecting its URL/title or
 proving that it still contains the same page. Start over in the investigation,
-permission revocation, reload, close or unloading discards all its observations.
+permission revocation, reload, close or unloading discards its live observations. Explicitly saved archives have the separate retention and deletion behavior described above.
 Counts, durations and completion reasons appear side by side. Different intervals
 or interactions prevent automatic error-rate or causal comparisons. See the
 [approved scope](docs/plans/phase2-page-error-comparison.md) and

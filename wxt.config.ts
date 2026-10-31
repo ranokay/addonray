@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { defineConfig } from 'wxt';
 
 export default defineConfig({
@@ -19,9 +20,20 @@ export default defineConfig({
       'package.json',
       'bun.lock',
       'SOURCE_CODE_REVIEW.md',
+      'LICENSE',
+      'NOTICE',
+      'THIRD_PARTY_NOTICES.txt',
     ],
   },
   hooks: {
+    'build:publicAssets'(wxt, files) {
+      for (const name of ['LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.txt']) {
+        files.push({
+          absoluteSrc: resolve(wxt.config.root, name),
+          relativeDest: name,
+        });
+      }
+    },
     'config:resolved'(wxt) {
       if (
         !['firefox', 'chrome'].includes(wxt.config.browser) ||

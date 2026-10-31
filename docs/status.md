@@ -1,5 +1,14 @@
 # Checklist and resumption
 
+## Publication preparation (2026-10-31)
+
+The owner approved Apache-2.0 for owned code/docs, preserved third-party terms,
+reserved branding and retained development history. See the [decision](decisions.md#publication-preparation-2026-10-31).
+License and notice files are included in both browser extension packages and
+source archives. Repository visibility remains private pending a separate owner
+action. This preparation does not claim a completed v1 or store qualification.
+The license portion of #4 is decided; its other release responsibilities remain.
+
 ## Expanded v1 target
 
 The user approved the private milestone [`v1.0.0`](https://github.com/ranokay/addonray/milestone/1) as the finite expanded v1 target on 2026-10-29. It contains tickets #2 through #46: saved investigations and report exchange, guided comparisons, mutation and request-failure diagnostics, an optional Rust companion, brand assets, qualification and release work. [The v1 contract](v1-contract.md) records the dated scope snapshot, intended support, existing evidence, supersession map, release acceptance and exclusions.

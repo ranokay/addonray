@@ -1,6 +1,6 @@
 # Rebuilding the extension
 
-This source archive contains the files needed to rebuild the local Firefox and Chrome MV3 packages. It grants no license and has not been submitted to an extension store.
+This source archive contains the files needed to rebuild the local Firefox and Chrome MV3 packages. AddonRay-owned code and documentation use Apache-2.0; LICENSE, NOTICE and THIRD_PARTY_NOTICES.txt travel with both source and extension archives. The name and logo artwork remain reserved as described in NOTICE. These packages have not been submitted to an extension store.
 
 Install mise from its official distribution, then run these commands from the extracted archive:
 
