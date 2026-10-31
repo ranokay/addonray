@@ -586,7 +586,7 @@ try {
       'save-last',
     ),
   );
-  assert.equal(allThenSave.deleteResult, undefined);
+  assert.equal(allThenSave.deleteResult, null);
   assert.equal(allThenSave.saveResult, 'stale');
   assert.equal(allThenSave.list.length, 0);
   assert.equal(allThenSave.state.epoch, 1);
@@ -636,7 +636,7 @@ try {
       'save-last',
     ),
   );
-  assert.equal(manyThenSave.deleteResult, undefined);
+  assert.equal(manyThenSave.deleteResult, null);
   assert.equal(manyThenSave.saveResult, 'stale');
   assert.equal(manyThenSave.list.length, 0);
   assert.equal(manyThenSave.state.epoch, 1);
