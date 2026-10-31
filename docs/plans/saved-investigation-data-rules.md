@@ -56,8 +56,8 @@ context and storage eligibility checks needed for the approved normal-window and
 availability boundary. It does not collect inventory, inspect a page, prompt for
 management or scripting, reattach a source tab, resume a collector or accept new
 observations. The archive view is read-only. #6 implements review and single
-delete; export, print, copy, retention controls and bulk deletion are later
-tickets under this contract.
+delete; #7 adds the per-save retention choice, bulk deletion and delete-all.
+Export, print and copy remain later tickets under this contract.
 
 ### Local record envelope
 

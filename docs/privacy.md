@@ -200,7 +200,7 @@ The 50-record, 5 MiB and 1 MiB limits are product bounds, not IndexedDB quota or
 durability promises. No `storage`, `unlimitedStorage`, sync or backup policy is
 approved.
 
-### Implemented #6 entrypoints
+### Implemented #6 and #7 entrypoints
 
 `lib/saved-record.ts` builds one immutable schema-version-1 record from a
 completed idle investigation. It copies only the approved inventory rows,
