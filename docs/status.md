@@ -8,6 +8,12 @@ The implemented runtime below remains the current product. No full-v1 implementa
 
 ## Saved investigations (#6)
 
+The bounded slice is delivered through private
+[PR #52](https://github.com/ranokay/addonray/pull/52). The
+[2026-10-31 verification record](evidence/2026-10-31-saved-investigation-pr52.md)
+records review corrections, exact local source identities, retained failures
+and report hashes. The PR supplies the live check, review and merge state.
+
 The Stage 1 IndexedDB candidate was accepted for the bounded #6 implementation
 on 2026-10-30 after F1 through F7 closed. Stage 2 now implements explicit Save,
 local list, inline read-only reopen and single-record delete in the investigation
@@ -26,6 +32,10 @@ commit. Save is an exclusive activity lease; reset, assessment change, permissio
 removal or context loss aborts pending work. Ordinary storage, quota or size
 failure preserves the live investigation.
 
+Storage-readiness failures offer an explicit retry without reload or autosave.
+Retry checks normal context and opens the bounded connection; a later Save
+captures its own store barrier. A lost connection exposes the same retry action.
+
 The library uses no collection API, permission prompt, collector or source-tab
 reattachment and stays usable after management or scripting removal. It lists
 unsupported and unreadable rows for explicit deletion and removes valid expired
@@ -34,15 +44,15 @@ BroadcastChannel message is only a refresh hint. The popup launcher requires a
 positive normal active-tab classification. All approved storage/privacy
 disclosures appear before Save, and stored names/versions render as text.
 
-Local behavior evidence is **518 tests / 2,022,344 assertions across 36 files**
+Local behavior evidence is **523 tests / 2,022,369 assertions across 36 files**
 and native type checking of 83 files. Exact browser runs from clean local
-`05ac5ef950f0372bcbf8e710f1bb7dda50aafd88` pass **88 checks on each of Firefox
-140.0, 153.5.1esr and 158.0.1** and **82 checks on Chrome for Testing
+`89248bb296fd4b45916a74f02686315943d6becf` pass **89 checks on each of Firefox
+140.0, 153.5.1esr and 158.0.1** and **83 checks on Chrome for Testing
 156.0.8078.47**. They cover save/list/open/delete, reload,
 stale-view deletion, the normal popup launcher, a seeded archive after Firefox
 management removal, a Firefox authentic private window, a Chrome authentic
 incognito popup, and a simulated Chrome `QuotaExceededError`. A separate
-five-check product restart probe passes on all four pins: explicit Save, full
+five-check product restart probe at clean `dd995c9` passes on all four pins: explicit Save, full
 browser process restart with retained profile/origin, read-only list/reopen,
 live-state loss, no permission prompt, and deletion persistence across another
 restart. A four-pin production-adapter probe passes nine storage-ordering,
@@ -57,9 +67,10 @@ unchanged production assets. See
 Still open for #6 release qualification: natural eviction, an actual Chrome
 engine quota error, an exercised Chrome private main-frame library guard (the
 route is currently policy-blocked), unmodified Chrome optional-permission
-consent, the exact-OS/hosted matrix, independent review and release approval. The local
-frozen gate passed at the delivery head. #7 through #11 remain unimplemented. No
-push, PR, permission, publication or durability claim is included.
+consent, the native OS/architecture matrix, retail installation and release
+approval. The PR records the hosted matrix, independent review coverage and
+final frozen gate separately. #7 through #11 remain unimplemented. No
+permission, publication or durability claim is included.
 
 ## Brand asset kit
 
