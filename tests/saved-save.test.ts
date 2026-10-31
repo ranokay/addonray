@@ -74,6 +74,14 @@ class MemoryStore implements SavedStore {
     this.records.delete(key);
     this.state = { ...this.state, epoch: this.state.epoch + 1 };
   }
+  async deleteMany(keys: readonly IDBValidKey[]) {
+    for (const key of keys) this.records.delete(key);
+    this.state = { ...this.state, epoch: this.state.epoch + 1 };
+  }
+  async deleteAll() {
+    this.records.clear();
+    this.state = { ...this.state, epoch: this.state.epoch + 1 };
+  }
   close() {}
 }
 
@@ -160,6 +168,25 @@ it('saves a completed investigation and keeps the live pair', async () => {
   expect(currentApi.permissions.contains).toHaveBeenLastCalledWith({
     permissions: ['management', 'scripting'],
   });
+});
+
+it('applies the chosen retention to a new archive without changing defaults', async () => {
+  const { store, saver } = await fixture();
+  expect(saver.getSnapshot().retentionDays).toBe(30);
+  saver.setRetentionDays(7);
+  expect(saver.getSnapshot().retentionDays).toBe(7);
+  await saver.save();
+  const record = [...store.records.values()][0]!;
+  expect(record.expiresAt - record.savedAt).toBe(7 * 24 * 60 * 60 * 1000);
+});
+
+it('keeps the default 30-day retention and ignores an unapproved choice', async () => {
+  const { store, saver } = await fixture();
+  saver.setRetentionDays(14 as 30);
+  expect(saver.getSnapshot().retentionDays).toBe(30);
+  await saver.save();
+  const record = [...store.records.values()][0]!;
+  expect(record.expiresAt - record.savedAt).toBe(30 * 24 * 60 * 60 * 1000);
 });
 
 it('retries a failed initial storage check once without autosaving or losing the live pair', async () => {

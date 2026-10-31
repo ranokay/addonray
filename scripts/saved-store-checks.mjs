@@ -245,6 +245,115 @@ async function notReady() {
   return { readStateError, saveBefore, state, saveAfter };
 }
 
+function openRawDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName, 1);
+    request.onupgradeneeded = () => {};
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// A held cursor keeps one readwrite transaction open while product save and
+// deletion calls queue behind it. Releasing the cursor proves the actual
+// ordering on either side of commit, not a model-only approximation.
+async function holdRecordsTransaction() {
+  const database = await openRawDatabase();
+  const transaction = database.transaction('records', 'readwrite');
+  const request = transaction.objectStore('records').openCursor();
+  await new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+  const cursor = request.result;
+  if (!cursor) throw new Error('held cursor was not created');
+  let released = false;
+  return {
+    database,
+    release() {
+      if (released) return;
+      released = true;
+      cursor.continue();
+    },
+  };
+}
+
+async function saveThenDeleteAll(name, record) {
+  const store = stores.get(name);
+  const expected = await store.readState();
+  const hold = await holdRecordsTransaction();
+  const saving = store.save(record, expected);
+  const deleting = store.deleteAll();
+  hold.release();
+  const [saveResult, deleteResult] = await Promise.all([saving, deleting]);
+  await hold.database.close();
+  return {
+    saveResult,
+    deleteResult,
+    state: await store.readState(),
+    list: await store.list(),
+  };
+}
+
+async function deleteAllThenSave(name, record) {
+  const store = stores.get(name);
+  const expected = await store.readState();
+  const hold = await holdRecordsTransaction();
+  const deleting = store.deleteAll();
+  const saving = store.save(record, expected);
+  hold.release();
+  const [deleteResult, saveResult] = await Promise.all([deleting, saving]);
+  await hold.database.close();
+  return {
+    deleteResult,
+    saveResult,
+    state: await store.readState(),
+    list: await store.list(),
+  };
+}
+
+async function saveThenDeleteMany(name, key, record) {
+  const store = stores.get(name);
+  const expected = await store.readState();
+  const hold = await holdRecordsTransaction();
+  const saving = store.save(record, expected);
+  const deleting = store.deleteMany([key]);
+  hold.release();
+  const [saveResult, deleteResult] = await Promise.all([saving, deleting]);
+  await hold.database.close();
+  return {
+    saveResult,
+    deleteResult,
+    state: await store.readState(),
+    list: await store.list(),
+  };
+}
+
+async function deleteManyThenSave(name, key, record) {
+  const store = stores.get(name);
+  const expected = await store.readState();
+  const hold = await holdRecordsTransaction();
+  const deleting = store.deleteMany([key]);
+  const saving = store.save(record, expected);
+  hold.release();
+  const [deleteResult, saveResult] = await Promise.all([deleting, saving]);
+  await hold.database.close();
+  return {
+    deleteResult,
+    saveResult,
+    state: await store.readState(),
+    list: await store.list(),
+  };
+}
+
+async function deleteAllTwice(name) {
+  const store = stores.get(name);
+  const before = await store.readState();
+  await store.deleteAll();
+  await store.deleteAll();
+  return { before, after: await store.readState(), list: await store.list() };
+}
+
 globalThis.savedStoreProbe = {
   reset,
   open,
@@ -258,6 +367,11 @@ globalThis.savedStoreProbe = {
   invalidRecord,
   notReady,
   barrierTimeout,
+  saveThenDeleteAll,
+  deleteAllThenSave,
+  saveThenDeleteMany,
+  deleteManyThenSave,
+  deleteAllTwice,
   makeRecord,
 };
 `,
@@ -429,6 +543,122 @@ try {
   assert.equal(idempotent.list.length, 0);
   assert.equal(idempotent.after.epoch, idempotent.before.epoch + 2);
   passed('single delete is idempotent and increments the epoch', idempotent);
+
+  await call(driver, 'reset');
+  await call(driver, 'open', 'ordering');
+  const orderingSeed = await call(
+    driver,
+    'makeRecord',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    'seed',
+  );
+  await call(driver, 'seed', 'ordering', orderingSeed);
+  const saveThenAll = await call(
+    driver,
+    'saveThenDeleteAll',
+    'ordering',
+    await call(
+      driver,
+      'makeRecord',
+      'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee',
+      'save-first',
+    ),
+  );
+  assert.equal(saveThenAll.saveResult, 'saved');
+  assert.equal(saveThenAll.list.length, 0);
+  assert.equal(saveThenAll.state.epoch, 1);
+  passed(
+    'delete-all commits after a queued save and clears its committed record',
+    saveThenAll,
+  );
+
+  await call(driver, 'reset');
+  await call(driver, 'open', 'ordering');
+  await call(driver, 'seed', 'ordering', orderingSeed);
+  const allThenSave = await call(
+    driver,
+    'deleteAllThenSave',
+    'ordering',
+    await call(
+      driver,
+      'makeRecord',
+      'ffffffff-ffff-ffff-ffff-ffffffffffff',
+      'save-last',
+    ),
+  );
+  assert.equal(allThenSave.deleteResult, undefined);
+  assert.equal(allThenSave.saveResult, 'stale');
+  assert.equal(allThenSave.list.length, 0);
+  assert.equal(allThenSave.state.epoch, 1);
+  passed(
+    'delete-all before a queued save rejects the stale save with no resurrection',
+    allThenSave,
+  );
+
+  await call(driver, 'reset');
+  await call(driver, 'open', 'ordering');
+  await call(driver, 'seed', 'ordering', orderingSeed);
+  const saveThenMany = await call(
+    driver,
+    'saveThenDeleteMany',
+    'ordering',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    await call(
+      driver,
+      'makeRecord',
+      '99999999-9999-9999-9999-999999999999',
+      'save-first',
+    ),
+  );
+  assert.equal(saveThenMany.saveResult, 'saved');
+  assert.deepEqual(
+    saveThenMany.list.map((entry) => entry.value.recordId),
+    ['99999999-9999-9999-9999-999999999999'],
+  );
+  assert.equal(saveThenMany.state.epoch, 1);
+  passed(
+    'selected deletion commits after a queued save and removes only its target',
+    saveThenMany,
+  );
+
+  await call(driver, 'reset');
+  await call(driver, 'open', 'ordering');
+  await call(driver, 'seed', 'ordering', orderingSeed);
+  const manyThenSave = await call(
+    driver,
+    'deleteManyThenSave',
+    'ordering',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    await call(
+      driver,
+      'makeRecord',
+      '88888888-8888-8888-8888-888888888888',
+      'save-last',
+    ),
+  );
+  assert.equal(manyThenSave.deleteResult, undefined);
+  assert.equal(manyThenSave.saveResult, 'stale');
+  assert.equal(manyThenSave.list.length, 0);
+  assert.equal(manyThenSave.state.epoch, 1);
+  passed(
+    'selected deletion before a queued save rejects the stale save with no resurrection',
+    manyThenSave,
+  );
+
+  await call(driver, 'reset');
+  await call(driver, 'open', 'empty-delete-all');
+  await call(driver, 'seed', 'empty-delete-all', orderingSeed);
+  const emptyDeleteAll = await call(
+    driver,
+    'deleteAllTwice',
+    'empty-delete-all',
+  );
+  assert.equal(emptyDeleteAll.list.length, 0);
+  assert.equal(emptyDeleteAll.after.epoch, emptyDeleteAll.before.epoch + 2);
+  passed(
+    'delete-all advances the epoch even when no records remain',
+    emptyDeleteAll,
+  );
 
   await call(driver, 'reset');
   const oldState = await call(driver, 'open', 'old');

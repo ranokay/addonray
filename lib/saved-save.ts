@@ -5,10 +5,13 @@ import {
   createSavedRecord,
   exchangeBytes,
   inspectStoredRecord,
+  isRetentionDays,
   recordLabel,
+  SAVED_DEFAULT_RETENTION_DAYS,
   SAVED_LIMITS,
   storedRecordBytes,
   type SavedRecord,
+  type SavedRetentionDays,
 } from './saved-record';
 import {
   SavedStoreError,
@@ -35,6 +38,7 @@ interface SaveSnapshot {
   busy: boolean;
   message: string | null;
   lastLabel: string | null;
+  retentionDays: SavedRetentionDays;
 }
 
 type InvestigationState = ReturnType<Investigation['getSnapshot']>;
@@ -60,6 +64,7 @@ export function createSavedSave(
     busy: false,
     message: null,
     lastLabel: null,
+    retentionDays: SAVED_DEFAULT_RETENTION_DAYS,
   };
   let live = true;
   let operation = 0;
@@ -119,6 +124,10 @@ export function createSavedSave(
     retryStorage() {
       if (state.ready) return Promise.resolve();
       return checkReady();
+    },
+    setRetentionDays(days: SavedRetentionDays) {
+      if (!live || state.busy || !isRetentionDays(days)) return;
+      publish({ ...state, retentionDays: days });
     },
     async save() {
       if (!live || state.busy) return;
@@ -201,6 +210,7 @@ export function createSavedSave(
         const recordResult = createSavedRecord(snapshot, {
           now: Date.now(),
           recordId: crypto.randomUUID(),
+          retentionDays: state.retentionDays,
         });
         if (recordResult.status !== 'success') {
           message(recordResult.reason);

@@ -13,8 +13,20 @@ import {
 } from './page-error-check';
 
 export const SAVED_SCHEMA_VERSION = 1;
-export const SAVED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
-export const SAVED_MAX_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+export const SAVED_RETENTION_CHOICES = [7, 30, 90] as const;
+export type SavedRetentionDays = (typeof SAVED_RETENTION_CHOICES)[number];
+export const SAVED_DEFAULT_RETENTION_DAYS: SavedRetentionDays = 30;
+export const SAVED_RETENTION_MS = SAVED_DEFAULT_RETENTION_DAYS * DAY_MS;
+export const SAVED_MAX_RETENTION_MS = 90 * DAY_MS;
+
+export function isRetentionDays(value: unknown): value is SavedRetentionDays {
+  return SAVED_RETENTION_CHOICES.includes(value as SavedRetentionDays);
+}
+
+export function retentionMilliseconds(days: SavedRetentionDays) {
+  return days * DAY_MS;
+}
 export const SAVED_LIMITS = {
   records: 50,
   totalBytes: 5 * 1024 * 1024,
@@ -144,8 +156,18 @@ function entry(value: InventorySnapshot[number]): SavedInventoryEntry {
 
 export function createSavedRecord(
   state: InvestigationState,
-  options: { now: number; recordId: string },
+  options: {
+    now: number;
+    recordId: string;
+    retentionDays?: SavedRetentionDays;
+  },
 ): Result<SavedRecord> {
+  const retentionDays = options.retentionDays ?? SAVED_DEFAULT_RETENTION_DAYS;
+  if (!isRetentionDays(retentionDays))
+    return {
+      status: 'error',
+      reason: 'The selected retention is not an approved 7, 30 or 90 days.',
+    };
   if (
     state.busy !== null ||
     state.before?.status !== 'success' ||
@@ -202,7 +224,7 @@ export function createSavedRecord(
       recordId: options.recordId,
       origin: 'captured',
       savedAt: options.now,
-      expiresAt: options.now + SAVED_RETENTION_MS,
+      expiresAt: options.now + retentionMilliseconds(retentionDays),
       report,
     },
   };

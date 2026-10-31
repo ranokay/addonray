@@ -17,12 +17,17 @@ export interface SavedLibraryHint {
   notifyRemote?(): void;
 }
 
+export type SavedBulkDeletion =
+  { kind: 'selected'; keys: readonly IDBValidKey[] } | { kind: 'all' };
+
 export interface SavedLibrarySnapshot {
   phase: 'checking' | 'ready' | 'denied' | 'unavailable';
   entries: readonly SavedLibraryEntry[];
   selected: SavedRecord | null;
   selectedKey: IDBValidKey | null;
   pendingDeleteKey: IDBValidKey | null;
+  checkedKeys: readonly IDBValidKey[];
+  pendingBulk: SavedBulkDeletion | null;
   busy: boolean;
   message: string | null;
 }
@@ -63,6 +68,8 @@ export function createSavedLibrary(
     selected: null,
     selectedKey: null,
     pendingDeleteKey: null,
+    checkedKeys: [],
+    pendingBulk: null,
     busy: false,
     message: null,
   };
@@ -86,6 +93,8 @@ export function createSavedLibrary(
       selected: null,
       selectedKey: null,
       pendingDeleteKey: null,
+      checkedKeys: [],
+      pendingBulk: null,
       busy: false,
       message,
     });
@@ -148,12 +157,14 @@ export function createSavedLibrary(
       entries.sort((left, right) => labelOrder(right) - labelOrder(left));
       if (expired.length > 0) {
         if (!(await guard(ticket))) return;
-        // Expiry is a product-level refusal plus lazy cleanup. The deletion
-        // transaction completes before the row leaves the list.
-        for (const key of expired) await store.delete(key);
+        // Expiry is a product-level refusal plus lazy cleanup. One bulk
+        // transaction removes every expired row and advances the epoch once.
+        await store.deleteMany(expired);
         if (ticket !== operation) return;
         if (!(await guard(ticket))) return;
       }
+      const present = (key: IDBValidKey) =>
+        entries.some((entry) => sameSavedKey(entry.key, key));
       const selected = state.selectedKey
         ? entries.some(
             (entry) =>
@@ -165,18 +176,26 @@ export function createSavedLibrary(
         : null;
       const selectedKey = selected ? state.selectedKey : null;
       const pendingDeleteKey =
-        state.pendingDeleteKey &&
-        entries.some((entry) =>
-          sameSavedKey(entry.key, state.pendingDeleteKey!),
-        )
+        state.pendingDeleteKey && present(state.pendingDeleteKey)
           ? state.pendingDeleteKey
           : null;
+      const checkedKeys = state.checkedKeys.filter(present);
+      // A confirmed selected set is frozen. If any member disappeared after
+      // confirmation, cancel it instead of silently deleting a different set.
+      const pendingBulk =
+        state.pendingBulk?.kind === 'selected'
+          ? state.pendingBulk.keys.every(present)
+            ? state.pendingBulk
+            : null
+          : state.pendingBulk;
       publish({
         phase: 'ready',
         entries,
         selected,
         selectedKey,
         pendingDeleteKey,
+        checkedKeys,
+        pendingBulk,
         busy: false,
         message: null,
       });
@@ -277,7 +296,7 @@ export function createSavedLibrary(
     refresh,
     open,
     requestDelete(key: IDBValidKey) {
-      if (!live || suspended || state.busy) return;
+      if (!live || suspended || state.busy || state.pendingBulk) return;
       const present = state.entries.some((entry) =>
         sameSavedKey(entry.key, key),
       );
@@ -288,6 +307,69 @@ export function createSavedLibrary(
       if (!live || suspended || state.busy || state.pendingDeleteKey === null)
         return;
       publish({ ...state, pendingDeleteKey: null });
+    },
+    toggleChecked(key: IDBValidKey) {
+      if (!live || suspended || state.busy || state.pendingBulk) return;
+      if (!state.entries.some((entry) => sameSavedKey(entry.key, key))) return;
+      const checked = state.checkedKeys.some((checkedKey) =>
+        sameSavedKey(checkedKey, key),
+      )
+        ? state.checkedKeys.filter(
+            (checkedKey) => !sameSavedKey(checkedKey, key),
+          )
+        : [...state.checkedKeys, key];
+      publish({
+        ...state,
+        checkedKeys: checked,
+        pendingDeleteKey: null,
+        message: null,
+      });
+    },
+    clearChecked() {
+      if (
+        !live ||
+        suspended ||
+        state.busy ||
+        state.pendingBulk ||
+        state.checkedKeys.length === 0
+      )
+        return;
+      publish({ ...state, checkedKeys: [] });
+    },
+    requestBulkDelete() {
+      if (
+        !live ||
+        suspended ||
+        state.busy ||
+        state.pendingBulk ||
+        state.checkedKeys.length === 0
+      )
+        return;
+      const keys = state.checkedKeys.filter((key) =>
+        state.entries.some((entry) => sameSavedKey(entry.key, key)),
+      );
+      if (keys.length === 0) return;
+      publish({
+        ...state,
+        pendingDeleteKey: null,
+        pendingBulk: { kind: 'selected', keys },
+        message: null,
+      });
+    },
+    requestDeleteAll() {
+      if (!live || suspended || state.busy || state.pendingBulk) return;
+      if (state.phase !== 'ready') return;
+      publish({
+        ...state,
+        pendingDeleteKey: null,
+        pendingBulk: { kind: 'all' },
+        message: null,
+      });
+    },
+    cancelBulkDelete() {
+      if (!live || suspended || state.busy || state.pendingBulk === null)
+        return;
+      publish({ ...state, pendingBulk: null });
     },
     closeDetail() {
       if (!live || suspended || state.busy || state.selectedKey === null)
@@ -324,6 +406,10 @@ export function createSavedLibrary(
           selected,
           selectedKey,
           pendingDeleteKey: null,
+          checkedKeys: state.checkedKeys.filter(
+            (checkedKey) => !sameSavedKey(checkedKey, key),
+          ),
+          pendingBulk: null,
           busy: false,
           message: 'Saved record deleted.',
         });
@@ -343,6 +429,99 @@ export function createSavedLibrary(
         afterAction(ticket);
       }
     },
+    async deleteChecked() {
+      const pending = state.pendingBulk;
+      if (
+        !live ||
+        suspended ||
+        state.busy ||
+        pending?.kind !== 'selected' ||
+        pending.keys.length === 0
+      )
+        return;
+      const keys = pending.keys;
+      const ticket = ++operation;
+      owner = ticket;
+      publish({ ...state, busy: true, message: null });
+      try {
+        if (!(await guard(ticket))) return;
+        await store.deleteMany(keys);
+        if (!live || ticket !== operation) return;
+        const selected =
+          state.selectedKey &&
+          keys.some((key) => sameSavedKey(key, state.selectedKey!))
+            ? null
+            : state.selected;
+        const selectedKey = selected ? state.selectedKey : null;
+        if (!(await guard(ticket))) return;
+        publish({
+          phase: 'ready',
+          entries: state.entries.filter(
+            (entry) => !keys.some((key) => sameSavedKey(key, entry.key)),
+          ),
+          selected,
+          selectedKey,
+          pendingDeleteKey: null,
+          checkedKeys: [],
+          pendingBulk: null,
+          busy: false,
+          message:
+            keys.length === 1
+              ? 'Saved record deleted.'
+              : `${keys.length} saved records deleted.`,
+        });
+        hint?.notifyRemote?.();
+      } catch (error) {
+        if (!live || suspended || ticket !== operation) return;
+        const normal = await normalContext(api);
+        if (!live || suspended || ticket !== operation) return;
+        if (!normal) return deny();
+        publish({
+          ...state,
+          busy: false,
+          message: `${preserveError(error)} The saved records may still exist. Refresh before trying again.`,
+        });
+      } finally {
+        afterAction(ticket);
+      }
+    },
+    async deleteAll() {
+      if (!live || suspended || state.busy || state.pendingBulk?.kind !== 'all')
+        return;
+      const ticket = ++operation;
+      owner = ticket;
+      publish({ ...state, busy: true, message: null });
+      try {
+        if (!(await guard(ticket))) return;
+        await store.deleteAll();
+        if (!live || ticket !== operation) return;
+        if (!(await guard(ticket))) return;
+        publish({
+          phase: 'ready',
+          entries: [],
+          selected: null,
+          selectedKey: null,
+          pendingDeleteKey: null,
+          checkedKeys: [],
+          pendingBulk: null,
+          busy: false,
+          message: 'All saved records deleted.',
+        });
+        hint?.notifyRemote?.();
+      } catch (error) {
+        if (!live || suspended || ticket !== operation) return;
+        const normal = await normalContext(api);
+        if (!live || suspended || ticket !== operation) return;
+        if (!normal) return deny();
+        publish({
+          ...state,
+          busy: false,
+          message: `${preserveError(error)} The saved records may still exist. Refresh before trying again.`,
+        });
+      } finally {
+        afterAction(ticket);
+      }
+    },
     suspend() {
       if (!live || suspended) return;
       suspended = true;
@@ -355,6 +534,8 @@ export function createSavedLibrary(
         selected: null,
         selectedKey: null,
         pendingDeleteKey: null,
+        checkedKeys: [],
+        pendingBulk: null,
         busy: false,
         message: 'Saved investigations are revalidated when this page resumes.',
       });
@@ -381,6 +562,8 @@ export function createSavedLibrary(
         selected: null,
         selectedKey: null,
         pendingDeleteKey: null,
+        checkedKeys: [],
+        pendingBulk: null,
         busy: false,
         message: null,
       });

@@ -59,6 +59,8 @@ export interface SavedStore {
     signal?: AbortSignal,
   ): Promise<SavedStoreSaveResult>;
   delete(key: IDBValidKey): Promise<void>;
+  deleteMany(keys: readonly IDBValidKey[]): Promise<void>;
+  deleteAll(): Promise<void>;
   close(): void;
 }
 
@@ -351,6 +353,27 @@ export function createIndexedDbSavedStore(
     );
   }
 
+  // Every deletion form reads and updates the same metadata row inside one
+  // readwrite transaction. A pending save bound to the previous epoch therefore
+  // cannot commit after any delete, including a delete-all with no visible rows.
+  async function deleteRecords(work: (records: IDBObjectStore) => void) {
+    await withConnection((db) =>
+      transaction(db, 'readwrite', [RECORDS, META], async (tx) => {
+        const state = await readStateInTransaction(tx);
+        if (state.epoch >= Number.MAX_SAFE_INTEGER)
+          throw new SavedStoreError(
+            'invalid-metadata',
+            'The saved-record deletion counter is exhausted.',
+          );
+        work(tx.objectStore(RECORDS));
+        tx.objectStore(META).put({
+          key: STATE_KEY,
+          value: { storeId: state.storeId, epoch: state.epoch + 1 },
+        });
+      }),
+    );
+  }
+
   return {
     ready() {
       return withConnection(readStateOf);
@@ -470,22 +493,16 @@ export function createIndexedDbSavedStore(
       );
     },
     async delete(key) {
-      await this.ready();
-      await withConnection((db) =>
-        transaction(db, 'readwrite', [RECORDS, META], async (tx) => {
-          const state = await readStateInTransaction(tx);
-          if (state.epoch >= Number.MAX_SAFE_INTEGER)
-            throw new SavedStoreError(
-              'invalid-metadata',
-              'The saved-record deletion counter is exhausted.',
-            );
-          tx.objectStore(RECORDS).delete(key);
-          tx.objectStore(META).put({
-            key: STATE_KEY,
-            value: { storeId: state.storeId, epoch: state.epoch + 1 },
-          });
-        }),
-      );
+      await deleteRecords((records) => records.delete(key));
+    },
+    async deleteMany(keys) {
+      if (keys.length === 0) return;
+      await deleteRecords((records) => {
+        for (const key of keys) records.delete(key);
+      });
+    },
+    async deleteAll() {
+      await deleteRecords((records) => records.clear());
     },
     close() {
       live = false;

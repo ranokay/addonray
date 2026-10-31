@@ -7,6 +7,8 @@ const afterSelector = '[data-testid="after-snapshot"]';
 const assessmentSelector = 'input[name="page-assessment"]:checked';
 const saveSection = 'section[aria-labelledby="save-heading"]';
 const libraryReady = '#library-list-heading';
+const databaseName = 'addonray-saved-investigations';
+const dayMs = 24 * 60 * 60 * 1000;
 
 const disclosures = [
   'persist on this device and browser profile',
@@ -66,15 +68,87 @@ async function assertPair(driver) {
   );
 }
 
-async function saveOnce(driver) {
+async function selectRetention(driver, days) {
+  await driver.executeScript((value) => {
+    const select = document.getElementById('save-retention');
+    if (!select) throw new Error('Missing retention select');
+    select.value = String(value);
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  }, days);
+  await driver.wait(
+    async () =>
+      (await driver.executeScript(
+        () => document.getElementById('save-retention')?.value,
+      )) === String(days),
+    10000,
+  );
+}
+
+async function storedRecords(driver) {
+  return driver.executeAsyncScript((name, done) => {
+    const request = indexedDB.open(name, 1);
+    request.onerror = () => done({ error: String(request.error) });
+    request.onsuccess = () => {
+      const database = request.result;
+      const transaction = database.transaction('records', 'readonly');
+      const all = transaction.objectStore('records').getAll();
+      all.onerror = () => done({ error: String(all.error) });
+      all.onsuccess = () => {
+        database.close();
+        done({
+          records: all.result.map((record) => ({
+            recordId: record.recordId,
+            schemaVersion: record.schemaVersion,
+            savedAt: record.savedAt,
+            expiresAt: record.expiresAt,
+          })),
+        });
+      };
+    };
+  }, databaseName);
+}
+
+async function seedUnsupportedRecord(driver, recordId) {
+  await driver.executeAsyncScript(
+    (name, id, done) => {
+      const request = indexedDB.open(name, 1);
+      request.onerror = () => done({ error: String(request.error) });
+      request.onsuccess = () => {
+        const database = request.result;
+        const transaction = database.transaction('records', 'readwrite');
+        transaction.objectStore('records').put({
+          schemaVersion: 2,
+          recordId: id,
+        });
+        transaction.oncomplete = () => {
+          database.close();
+          done({ ok: true });
+        };
+        transaction.onerror = () => done({ error: String(transaction.error) });
+      };
+    },
+    databaseName,
+    recordId,
+  );
+}
+
+async function saveOnce(driver, retentionDays) {
   const section = await driver.findElement(By.css(saveSection));
   await driver.wait(async () => {
     const button = await section.findElement(By.id('save-investigation'));
     return button.isEnabled();
   }, 10000);
+  if (retentionDays !== undefined) await selectRetention(driver, retentionDays);
   const text = await section.getText();
   for (const phrase of disclosures)
     assert(text.includes(phrase), `Save section must disclose: ${phrase}`);
+  for (const phrase of [
+    'Keep this archive for',
+    'never kept beyond 90 days',
+    'existing records keep their saved expiry',
+    'no background timer',
+  ])
+    assert(text.includes(phrase), `Save section must explain: ${phrase}`);
   assert(
     text.includes('Each explicit Save creates a separate archive'),
     'Repeated saves must be disclosed as separate archives',
@@ -235,7 +309,7 @@ export async function checkSavedInvestigations({
   simulateQuota,
 }) {
   const investigationWindow = await driver.getWindowHandle();
-  await saveOnce(driver);
+  await saveOnce(driver, 7);
   passed(
     `${authority}: explicit save writes one archive and preserves the live comparison`,
     {
@@ -258,6 +332,23 @@ export async function checkSavedInvestigations({
     investigationLabel,
     changeKind,
   });
+  const retained = await storedRecords(driver);
+  assert.equal(retained.records.length, 1, JSON.stringify(retained));
+  assert.equal(
+    retained.records[0].expiresAt - retained.records[0].savedAt,
+    7 * dayMs,
+    JSON.stringify(retained),
+  );
+  passed(
+    `${authority}: the chosen 7-day retention is stored from savedAt and shown as expiry`,
+    {
+      savedInvestigations: {
+        retentionDays: 7,
+        storedDeltaMs:
+          retained.records[0].expiresAt - retained.records[0].savedAt,
+      },
+    },
+  );
   passed(
     `${authority}: the popup launcher opens the local library and the archive reopens read-only without extension IDs`,
     {
@@ -488,7 +579,7 @@ export async function checkSavedInvestigations({
   await driver.switchTo().window(investigationWindow);
   console.log('Saved lifecycle: final save');
   await saveOnce(driver);
-  await openDirectLibrary(driver, libraryUrl);
+  const finalLibrary = await openDirectLibrary(driver, libraryUrl);
   await assertLibraryRecord({
     driver,
     fixtureId,
@@ -496,6 +587,112 @@ export async function checkSavedInvestigations({
     investigationLabel,
     changeKind,
   });
+
+  await driver.switchTo().window(investigationWindow);
+  await saveOnce(driver);
+  await saveOnce(driver);
+  await driver.switchTo().window(finalLibrary);
+  await driver
+    .findElement(By.xpath('//button[normalize-space(.)="Refresh"]'))
+    .click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.css('.library-entry'))).length === 3,
+    10000,
+  );
+  const checkboxes = await driver.findElements(
+    By.css('.library-entry input[type="checkbox"]'),
+  );
+  assert.equal(checkboxes.length, 3, 'Every row must expose a selection box');
+  await checkboxes[0].click();
+  await checkboxes[1].click();
+  await driver
+    .findElement(
+      By.xpath('//button[contains(normalize-space(.), "Delete selected (2)")]'),
+    )
+    .click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.css('[aria-label="Confirm bulk delete"]')))
+        .length === 1,
+    10000,
+  );
+  await driver
+    .findElement(
+      By.xpath(
+        '//div[@aria-label="Confirm bulk delete"]//button[normalize-space(.)="Delete selected records"]',
+      ),
+    )
+    .click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.css('.library-entry'))).length === 1,
+    10000,
+  );
+  passed(
+    `${authority}: a frozen two-record selection deletes in bulk and leaves the unselected archive`,
+    {
+      savedInvestigations: {
+        bulkDelete: 'two selected records',
+        remaining: 1,
+      },
+    },
+  );
+
+  await seedUnsupportedRecord(driver, '77777777-7777-7777-7777-777777777777');
+  await driver
+    .findElement(By.xpath('//button[normalize-space(.)="Refresh"]'))
+    .click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.css('.library-entry'))).length === 2 &&
+      (await driver.findElement(By.css('body')).getText()).includes(
+        'Unsupported saved record',
+      ),
+    10000,
+  );
+  await driver
+    .findElement(
+      By.xpath('//button[normalize-space(.)="Delete all saved records"]'),
+    )
+    .click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.css('[aria-label="Confirm delete all"]')))
+        .length === 1,
+    10000,
+  );
+  await driver
+    .findElement(
+      By.xpath(
+        '//div[@aria-label="Confirm delete all"]//button[normalize-space(.)="Delete all saved records"]',
+      ),
+    )
+    .click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.css('.library-entry'))).length === 0 &&
+      (await driver.findElement(By.css('body')).getText()).includes(
+        'No saved investigations.',
+      ),
+    10000,
+  );
+  const afterDeleteAll = await storedRecords(driver);
+  assert.equal(
+    afterDeleteAll.records.length,
+    0,
+    JSON.stringify(afterDeleteAll),
+  );
+  passed(
+    `${authority}: confirmed delete-all clears the actual store including an unsupported row`,
+    {
+      savedInvestigations: {
+        deleteAll: 'explicit confirmation',
+        unsupportedRowRemoved: true,
+        storedRecordsAfter: afterDeleteAll.records.length,
+      },
+    },
+  );
   await driver.close();
   await driver.switchTo().window(investigationWindow);
   passed(
