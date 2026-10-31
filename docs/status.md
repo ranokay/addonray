@@ -4,7 +4,73 @@
 
 The user approved the private milestone [`v1.0.0`](https://github.com/ranokay/addonray/milestone/1) as the finite expanded v1 target on 2026-10-29. It contains tickets #2 through #46: saved investigations and report exchange, guided comparisons, mutation and request-failure diagnostics, an optional Rust companion, brand assets, qualification and release work. [The v1 contract](v1-contract.md) records the dated scope snapshot, intended support, existing evidence, supersession map, release acceptance and exclusions.
 
-The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4, #13 and #20 are open decision gates. #5 is approved and recorded as a prospective contract. Backlog approval does not authorize signing, publication, licensing or visibility changes.
+The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4, #13 and #20 are open decision gates. #5 is approved and recorded; its bounded #6 save/list/reopen/delete slice is implemented and locally qualified with explicit release gaps. Backlog approval does not authorize signing, publication, licensing or visibility changes.
+
+## Saved investigations (#6)
+
+The bounded slice is delivered through private
+[PR #52](https://github.com/ranokay/addonray/pull/52). The
+[2026-10-31 verification record](evidence/2026-10-31-saved-investigation-pr52.md)
+records review corrections, exact local source identities, retained failures
+and report hashes. The PR supplies the live check, review and merge state.
+
+The Stage 1 IndexedDB candidate was accepted for the bounded #6 implementation
+on 2026-10-30 after F1 through F7 closed. Stage 2 now implements explicit Save,
+local list, inline read-only reopen and single-record delete in the investigation
+and library entrypoints. It adds no permission, dependency, sync path, background
+owner or collector. The live investigation and existing Markdown download keep
+their current behavior.
+
+The record schema checks exact payload states, duplicate names, precomputed
+ID-based changes, 30-day default retention, 50 records, 5 MiB aggregate, 1 MiB
+complete stored record including the local envelope, exact would-be JSON bytes,
+1,000 inventory rows per side, 2,000 changes, 4,096 code points per string and
+depth 8. The IndexedDB adapter uses a private store-instance ID and deletion
+epoch inside one readwrite transaction, fails closed on missing/corrupt/exhausted
+metadata, bounds open/blocked/transaction waits and reports success only after
+commit. Save is an exclusive activity lease; reset, assessment change, permission
+removal or context loss aborts pending work. Ordinary storage, quota or size
+failure preserves the live investigation.
+
+Storage-readiness failures offer an explicit retry without reload or autosave.
+Retry checks normal context and opens the bounded connection; a later Save
+captures its own store barrier. A lost connection exposes the same retry action.
+
+The library uses no collection API, permission prompt, collector or source-tab
+reattachment and stays usable after management or scripting removal. It lists
+unsupported and unreadable rows for explicit deletion and removes valid expired
+rows lazily. Every action rechecks normal context and re-reads storage; a
+BroadcastChannel message is only a refresh hint. The popup launcher requires a
+positive normal active-tab classification. All approved storage/privacy
+disclosures appear before Save, and stored names/versions render as text.
+
+Local behavior evidence is **523 tests / 2,022,369 assertions across 36 files**
+and native type checking of 83 files. Exact browser runs from clean local
+`89248bb296fd4b45916a74f02686315943d6becf` pass **89 checks on each of Firefox
+140.0, 153.5.1esr and 158.0.1** and **83 checks on Chrome for Testing
+156.0.8078.47**. They cover save/list/open/delete, reload,
+stale-view deletion, the normal popup launcher, a seeded archive after Firefox
+management removal, a Firefox authentic private window, a Chrome authentic
+incognito popup, and a simulated Chrome `QuotaExceededError`. A separate
+five-check product restart probe at clean `dd995c9` passes on all four pins: explicit Save, full
+browser process restart with retained profile/origin, read-only list/reopen,
+live-state loss, no permission prompt, and deletion persistence across another
+restart. A four-pin production-adapter probe passes nine storage-ordering,
+bounded-barrier, add-only, bounds and abort checks each. Chrome private
+main-frame library navigation is an observed `ERR_BLOCKED_BY_CLIENT` policy
+block; the launcher refusal is a separate observed guard and the library's own
+private guard remains unexercised in Chrome. Chrome product checks use the named pre-granted UI fixture with
+unchanged production assets. See
+[product evidence](evidence/2026-10-30-saved-investigations.md) and the preserved
+[Stage 1 feasibility record](evidence/2026-10-30-saved-storage-feasibility.md).
+
+Still open for #6 release qualification: natural eviction, an actual Chrome
+engine quota error, an exercised Chrome private main-frame library guard (the
+route is currently policy-blocked), unmodified Chrome optional-permission
+consent, the native OS/architecture matrix, retail installation and release
+approval. The PR records the hosted matrix, independent review coverage and
+final frozen gate separately. #7 through #11 remain unimplemented. No
+permission, publication or durability claim is included.
 
 ## Brand asset kit
 
@@ -342,8 +408,9 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Record the approved archive, retention, bounds, deletion, permission, context and exchange contract in [the data contract](plans/saved-investigation-data-rules.md).
 - [x] Record the interview, privacy lifecycle, requirements summary, prospective ownership, documented API limits, future test seams, glossary terms and [ADR 0005](adr/0005-immutable-saved-investigations.md).
 - [x] Preserve the current session-only runtime and existing Markdown report; add no data persistence, permission, dependency, support or evidence claim.
-- [ ] Run the #6 IndexedDB feasibility gate on the pinned Firefox and Chrome targets before relying on local storage.
-- [ ] Implement and qualify #6 save, list, read-only reopen and delete.
+- [x] Run the #6 IndexedDB feasibility gate on the pinned Firefox and Chrome targets. The Stage 1 candidate was accepted for the bounded implementation on 2026-10-30 with explicit gaps; see [feasibility evidence](evidence/2026-10-30-saved-storage-feasibility.md).
+- [x] Implement #6 explicit save, list, read-only reopen and single-record delete with local behavior and browser evidence; see [product evidence](evidence/2026-10-30-saved-investigations.md).
+- [ ] Complete release qualification for #6: natural eviction, an actual Chrome engine quota error, an exercised Chrome private main-frame library guard, and the exact-OS/hosted matrix. Product restart and production-adapter regressions pass.
 - [ ] Implement and qualify #7 retention choices, bulk deletion and delete-all.
 - [ ] Implement and qualify #8 JSON export, #9 untrusted import, #10 printable HTML/PDF and #11 clipboard.
 - [ ] Qualify private and unknown contexts, multi-view deletion, expiry, storage failure and the exact browser and OS matrix.
@@ -354,9 +421,12 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
 is the current scope and support record. #5's
 [saved-investigation and report-exchange contract](plans/saved-investigation-data-rules.md)
-was approved and recorded on 2026-10-30. The next v1 decisions are #4, #13 and
-#20. #6 through #11 may start only under the approved #5 contract and their own
-feasibility gates; this documentation task authorizes no implementation. #32 is
+was approved and recorded on 2026-10-30. The bounded #6 slice is implemented and
+locally qualified with explicit gaps; product restart, production-adapter
+regressions and the simulated lifecycle path pass, and the local frozen gate
+passed, while the final release matrix and independent review remain. The next v1 decisions are #4, #13 and #20. #7 through #11 may start
+only under the approved #5 contract and their own gates. This implementation task
+authorizes no push or PR. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
 current main includes the change at `a708fb5`. #33's bounded collector-budget
 investigation is in PR #50. Study evidence is at `031ebff`; test-only

@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "AddonRay content-boundary fixture",
+  "version": "1.0",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "saved-content-fixture@addonray.test"
+    }
+  },
+  "host_permissions": ["http://127.0.0.1/*"],
+  "content_scripts": [
+    {
+      "matches": ["http://127.0.0.1/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

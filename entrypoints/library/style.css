@@ -1,0 +1,147 @@
+.library-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.6fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.library-list-section,
+.library-detail-section {
+  min-width: 0;
+}
+
+.library-list {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 0;
+}
+
+.library-entry {
+  border-top: 1px solid #303030;
+  padding: 16px 0;
+}
+
+.library-entry:first-child {
+  border-top: 0;
+}
+
+.library-entry-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.library-entry-heading > div:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.library-entry .metadata {
+  margin: 4px 0 0;
+}
+
+.library-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.library-actions button {
+  padding: 7px 11px;
+}
+
+.danger {
+  color: #2a0d0d;
+  background: #f0b4b4;
+  border-color: #f0b4b4;
+}
+
+.danger:hover {
+  background: #f7c9c9;
+}
+
+.delete-confirm {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid #7a4646;
+  border-radius: 8px;
+  background: #1c1212;
+}
+
+.delete-confirm p {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #e5c1c1;
+}
+
+.library-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.archive {
+  min-width: 0;
+}
+
+.archive h2 {
+  margin: 0;
+}
+
+.archive h3 {
+  margin: 0 0 12px;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.archive-note {
+  margin: 18px 0;
+  padding: 12px 16px;
+  border-left: 3px solid #a5d9bf;
+  background: #121a16;
+  color: #c7e4d4;
+  font-size: 14px;
+}
+
+.archive-inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 20px;
+}
+
+.archive-inventory {
+  background: #0d0d0d;
+  border: 1px solid #303030;
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.archive-changes {
+  margin-top: 20px;
+}
+
+.archive-changes .changes-list li {
+  grid-template-columns: 90px minmax(0, 1fr);
+}
+
+.archive header {
+  display: block;
+}
+
+@media (max-width: 980px) {
+  .library-grid,
+  .archive-inventory-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .library-entry-heading,
+  .library-detail-heading {
+    flex-wrap: wrap;
+  }
+}

@@ -16,35 +16,48 @@ export function App({
   onNewInvestigation,
   handoff,
   onNewPageErrorCheck,
+  onOpenSavedLibrary,
 }: {
   session: InspectorSession;
   onNewInvestigation: () => Promise<void>;
   handoff?: PopupTimingHandoff;
   onNewPageErrorCheck?: () => Promise<Result<null>>;
+  onOpenSavedLibrary?: () => Promise<Result<null>>;
 }) {
   const state = useSyncExternalStore(session.subscribe, session.getSnapshot);
   const capture = session.getTimingCapture();
   const { context } = session;
   const [launching, setLaunching] = useState(false);
   const launchBusy = useRef(false);
-  const [launchError, setLaunchError] = useState<string | null>(null);
+  const [launchError, setLaunchError] = useState<{
+    kind: 'investigation' | 'page-error' | 'library';
+    message: string;
+  } | null>(null);
 
-  async function launch(kind: 'investigation' | 'page-error') {
+  async function launch(kind: 'investigation' | 'page-error' | 'library') {
     if (launchBusy.current) return;
     launchBusy.current = true;
     setLaunching(true);
     setLaunchError(null);
     try {
       if (kind === 'investigation') await onNewInvestigation();
-      else {
+      else if (kind === 'library') {
+        const result = await onOpenSavedLibrary?.();
+        if (result && result.status !== 'success')
+          setLaunchError({ kind, message: result.reason });
+      } else {
         const result = await onNewPageErrorCheck?.();
         if (result && result.status !== 'success')
-          setLaunchError(result.reason);
+          setLaunchError({ kind, message: result.reason });
       }
     } catch {
-      setLaunchError(
-        'The new tab could not open. Try opening a fresh check or investigation.',
-      );
+      setLaunchError({
+        kind,
+        message:
+          kind === 'library'
+            ? 'The saved-investigation library could not open. Try again from a normal window.'
+            : 'The new tab could not open. Try opening a fresh check or investigation.',
+      });
     } finally {
       setLaunching(false);
       launchBusy.current = false;
@@ -80,13 +93,41 @@ export function App({
         >
           {launching ? 'Opening investigation…' : 'New investigation'}
         </button>
-        {launchError && <p role="status">{launchError}</p>}
+        {launchError?.kind === 'investigation' && (
+          <p role="status">{launchError.message}</p>
+        )}
         <p className="metadata">
           Each investigation starts empty. Timings transfer only when you
           explicitly attach them. Clear popup results does not clear
           investigation tabs.
         </p>
       </section>
+
+      {onOpenSavedLibrary && (
+        <section aria-labelledby="saved-library-heading">
+          <h2 id="saved-library-heading">Saved investigations</h2>
+          <p>
+            Review read-only archives saved explicitly from completed
+            investigations. The library performs no collection and requests no
+            permission.
+          </p>
+          <button
+            id="open-saved-investigations"
+            disabled={launching}
+            onClick={() => void launch('library')}
+          >
+            {launching ? 'Opening…' : 'Open saved investigations'}
+          </button>
+          <p className="metadata">
+            Normal windows only. Private, incognito and unknown contexts expose
+            no saved data. Each archive is stored locally in this browser
+            profile.
+          </p>
+          {launchError?.kind === 'library' && (
+            <p role="status">{launchError.message}</p>
+          )}
+        </section>
+      )}
 
       {onNewPageErrorCheck && (
         <section aria-labelledby="page-errors-heading">
@@ -107,6 +148,9 @@ export function App({
             Normal windows only. One attempt lasts up to 30 seconds or 200
             events. No raw error details, URLs or titles are collected.
           </p>
+          {launchError?.kind === 'page-error' && (
+            <p role="status">{launchError.message}</p>
+          )}
         </section>
       )}
 

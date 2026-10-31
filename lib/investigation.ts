@@ -6,6 +6,7 @@ import {
   type TimingSnapshot,
 } from './inspector';
 import type { BrowserContext } from './browser-target';
+import { createLiveActivity } from './live-activity';
 import {
   copyPageErrorSummary,
   type PageErrorSummary,
@@ -51,8 +52,13 @@ export function createInvestigation(
   let sourceTabId: number | null = null;
   const identity = crypto.randomUUID();
   let controller = new AbortController();
+  const activity = createLiveActivity();
   const subscribers = new Set<() => void>();
-  const notify = () => subscribers.forEach((subscriber) => subscriber());
+  const watchers = new Set<() => void>();
+  const notify = () => {
+    subscribers.forEach((subscriber) => subscriber());
+    watchers.forEach((watcher) => watcher());
+  };
   const matchesSource = (tabId: number) =>
     Number.isSafeInteger(tabId) &&
     tabId >= 0 &&
@@ -90,35 +96,42 @@ export function createInvestigation(
   async function capture(slot: 'before' | 'after') {
     if (snapshot.busy || snapshot[slot]?.status === 'success') return;
     if (slot === 'after' && snapshot.before?.status !== 'success') return;
-    const started = generation;
-    snapshot = {
-      ...snapshot,
-      [slot]: null,
-      busy: slot,
-      afterStarted: snapshot.afterStarted || slot === 'after',
-    };
-    notify();
-    const result = await loadInventory(api, controller.signal, context);
-    if (started !== generation) return;
-    // Retain only the fields displayed by this comparison, never permission/host metadata.
-    const retained: Result<InventorySnapshot> =
-      result.status === 'success'
-        ? {
-            status: 'success',
-            value: result.value.map(({ id, name, version, enabled }) => ({
-              id,
-              name,
-              version,
-              enabled,
-            })),
-          }
-        : result;
-    snapshot = { ...snapshot, [slot]: retained, busy: null };
-    notify();
+    const lease = activity.tryBegin('capture');
+    if (!lease) return;
+    try {
+      const started = generation;
+      snapshot = {
+        ...snapshot,
+        [slot]: null,
+        busy: slot,
+        afterStarted: snapshot.afterStarted || slot === 'after',
+      };
+      notify();
+      const result = await loadInventory(api, controller.signal, context);
+      if (started !== generation) return;
+      // Retain only the fields displayed by this comparison, never permission/host metadata.
+      const retained: Result<InventorySnapshot> =
+        result.status === 'success'
+          ? {
+              status: 'success',
+              value: result.value.map(({ id, name, version, enabled }) => ({
+                id,
+                name,
+                version,
+                enabled,
+              })),
+            }
+          : result;
+      snapshot = { ...snapshot, [slot]: retained, busy: null };
+      notify();
+    } finally {
+      lease.release();
+    }
   }
 
   return {
     context,
+    activity,
     identity,
     label: `Investigation ${identity.slice(0, 8)}`,
     getGeneration: () => generation,
@@ -247,6 +260,14 @@ export function createInvestigation(
     },
     getSnapshot: () => snapshot,
     startOver,
+    // A watcher observes changes without owning the view lifetime. Unlike
+    // subscribe(), removing the last watcher never clears the investigation.
+    watch(watcher: () => void) {
+      watchers.add(watcher);
+      return () => {
+        watchers.delete(watcher);
+      };
+    },
     subscribe(subscriber: () => void) {
       if (subscribers.size === 0)
         api.permissions.onRemoved.addListener(onRemoved);

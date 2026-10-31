@@ -1,19 +1,23 @@
 # Saved-investigation and report-exchange data contract
 
-Status: approved by the user on 2026-10-30 after Q1 through Q16. This is a
-documentation-only contract. No saved-data runtime, storage permission, JSON
-exchange, import, printable HTML, clipboard action or browser qualification
-exists. The current runtime remains session-only for investigations and offers
-only the existing Markdown report download. See [the interview
-record](../decisions.md#saved-investigation-and-report-exchange-interview).
+Status: approved by the user on 2026-10-30 after Q1 through Q16. The bounded
+#6 slice now implements explicit save, local list, read-only reopen and
+single-record delete in extension-origin IndexedDB without a new permission.
+Import, JSON exchange, printable HTML, clipboard, retention controls and bulk
+deletion remain future #7 through #11 work. See the
+[Stage 1 feasibility record](../evidence/2026-10-30-saved-storage-feasibility.md)
+and [Stage 2 product evidence](../evidence/2026-10-30-saved-investigations.md).
+The existing live Markdown report remains the only report output. See
+[the interview record](../decisions.md#saved-investigation-and-report-exchange-interview).
 
 Issue [#5](https://github.com/ranokay/addonray/issues/5) settles the product and
 data rules for [#6](https://github.com/ranokay/addonray/issues/6) through
-[#11](https://github.com/ranokay/addonray/issues/11). It authorizes no runtime,
-manifest, permission, dependency, support, publication or licensing change.
-The [v1 contract](../v1-contract.md) records the supersession rules. A future
-implementation becomes effective only after its applicable feasibility gate
-passes and its behavior is qualified.
+[#11](https://github.com/ranokay/addonray/issues/11). Issue #5 itself authorized
+no runtime, manifest, permission, dependency, support, publication or licensing
+change. The [v1 contract](../v1-contract.md) records the supersession rules. The
+bounded #6 slice is implemented and locally qualified under this contract; the
+remaining tickets still need their applicable feasibility gates and behavior
+qualification before they become effective.
 
 ## Problem and result
 
@@ -50,8 +54,9 @@ Reopening reads the stored record and performs only the narrow current-view
 context and storage eligibility checks needed for the approved normal-window and
 availability boundary. It does not collect inventory, inspect a page, prompt for
 management or scripting, reattach a source tab, resume a collector or accept new
-observations. The archive view is read-only. The user can review it, export it
-in an approved format, print it, copy its reviewed text or delete it.
+observations. The archive view is read-only. #6 implements review and single
+delete; export, print, copy, retention controls and bulk deletion are later
+tickets under this contract.
 
 ### Local record envelope
 
@@ -121,14 +126,16 @@ Before the first save, the UI and privacy documentation disclose that:
 - uninstall clearing is browser-controlled and can have documented exceptions;
 - exported files, prints and clipboard content leave AddonRay's control.
 
-The #6 implementation candidate is extension-origin IndexedDB without a new
-manifest permission. It is not an approved architecture requirement until the
-#6 feasibility gate covers quota, persistence across restart, eviction and
-clearing, multi-view change notification and the approved bounds on the pinned
-Firefox and Chrome targets. If IndexedDB cannot meet this contract, #6 stops and
-returns with evidence before proposing the `storage` or `unlimitedStorage`
-permission. No storage permission is approved here. The 50-record, 5 MiB and
-1 MiB limits are product bounds, not IndexedDB or browser quota promises.
+The #6 implementation uses extension-origin IndexedDB without a new manifest
+permission. The Stage 1 candidate gate observed quota behavior, persistence
+across restart, controlled store loss, multi-view deletion barriers and the
+approved bounds on the pinned Firefox and Chrome targets. The supervisor
+accepted the mechanism for the bounded #6 slice on 2026-10-30. Natural eviction,
+an actual Chrome quota error, verified Firefox post-clear emptiness and an
+exercised Chrome private main-frame library guard remain explicit gaps; the
+current Chrome main-frame route is policy-blocked. The
+50-record, 5 MiB and 1 MiB limits are product bounds, not IndexedDB or browser
+quota promises, and no persistence grant is claimed.
 
 ### Save eligibility and failure
 
@@ -453,14 +460,15 @@ fit their own bounds. This is a presentation limit, not a data-loss path.
 
 ## Feasibility and qualification
 
-No browser storage, import, export, print or clipboard feasibility has been run
-for this contract. The following gates are future implementation work, not
-current evidence:
+The #6 IndexedDB feasibility gate has run and its mechanism is accepted for the
+bounded implementation. The remaining gates below are future work, not current
+evidence:
 
-- #6: IndexedDB availability on the pinned Firefox and Chrome targets, quota,
-  persistence across restart, eviction and clearing, multi-view notification,
-  50-record, 5 MiB and 1 MiB enforcement, private and unknown guards, deletion and
-  expiry, pending-save races and unsupported-record listing.
+- #6: natural eviction, an actual Chrome engine quota error, an exercised Chrome
+  private main-frame library guard (the current route is policy-blocked), the
+  exact-OS/hosted matrix and release review. Page reload, full browser process restart with retained profile/origin,
+  deletion persistence, controlled store loss, expiry, stale-view failure,
+  permission removal and reachable private popup guards are observed.
 - #7: 7/30/90-day retention, 90-day maximum, lazy cleanup, delete-all, stale-view
   invalidation and no resurrection.
 - #8: exact JSON serialization, preview, stale-action guards, 1 MiB accounting and
@@ -482,12 +490,22 @@ contract alone.
 
 ## Current runtime
 
-The current runtime remains unchanged. Investigations and their observations
-stay in the owning view's memory. Closing, reloading, unloading or teardown
-discards them. Optional-permission revocation still clears affected live data.
-The existing Markdown report export remains the only report download. There is
-no local saved archive, no storage permission, no JSON exchange, no import, no
-printable HTML, no clipboard action and no multi-view archive library.
+The bounded #6 slice is implemented. An explicit Save on a completed, idle,
+normal-window investigation creates one immutable local record. A separate
+library page lists records and reopens one read-only inline archive; single-record
+delete is confirmed and applies across views. Records use extension-origin
+IndexedDB without a new permission, the 30-day default, 50-record/5 MiB/1 MiB
+bounds, a private store-instance identity and deletion epoch. Private, incognito
+and unknown contexts expose no saved data. The library uses no collection
+permission and remains usable after management or scripting removal. The normal
+popup launcher requires a positive normal active-tab classification.
+
+The existing investigation and Markdown download remain in the owning view's
+memory. There is no JSON exchange, import, printable HTML, clipboard action,
+retention control, bulk delete or delete-all. Natural eviction,
+an actual Chrome engine quota error and a reachable Chrome private
+main-frame library route remain unqualified; see
+[product evidence](../evidence/2026-10-30-saved-investigations.md).
 
 The [v1 supersession map](../v1-contract.md#supersession-map) still requires the
 #6 storage, quota, race and private-context gates, followed by implementation and

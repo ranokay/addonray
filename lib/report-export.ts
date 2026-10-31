@@ -108,72 +108,98 @@ export function createReportExport(
     },
     async prepare() {
       if (!live || state.busy || subscribers.size === 0) return;
-      discard();
-      const permit: ReportPermit = {
-        snapshot: investigation.getSnapshot(),
-        generation: investigation.getGeneration(),
-        text: null,
-      };
-      if (
-        permit.snapshot?.busy ||
-        permit.snapshot?.before?.status !== 'success' ||
-        permit.snapshot?.after?.status !== 'success'
-      ) {
+      const lease = investigation.activity.tryBegin('report');
+      if (!lease) {
         publish({
           preview: null,
           busy: false,
-          message: 'Capture both inventories before previewing a report.',
+          message: 'Another action is in progress. Try again.',
         });
         return;
       }
-      source = permit;
-      const ticket = operation;
-      publish({ preview: null, busy: true, message: null });
       try {
-        if (!(await verify(ticket, permit)) || !permit.snapshot) return;
-        const result = createInvestigationReport(permit.snapshot);
-        if (!current(ticket, permit)) return;
-        if (result.status !== 'success') {
-          discard(result.reason);
+        discard();
+        const permit: ReportPermit = {
+          snapshot: investigation.getSnapshot(),
+          generation: investigation.getGeneration(),
+          text: null,
+        };
+        if (
+          permit.snapshot?.busy ||
+          permit.snapshot?.before?.status !== 'success' ||
+          permit.snapshot?.after?.status !== 'success'
+        ) {
+          publish({
+            preview: null,
+            busy: false,
+            message: 'Capture both inventories before previewing a report.',
+          });
           return;
         }
-        permit.text = result.value;
-        publish({ preview: permit.text, busy: false, message: null });
-      } catch {
-        if (current(ticket, permit)) {
-          discard(
-            'The report could not be prepared. Preview it again to retry.',
-          );
+        source = permit;
+        const ticket = operation;
+        publish({ preview: null, busy: true, message: null });
+        try {
+          if (!(await verify(ticket, permit)) || !permit.snapshot) return;
+          const result = createInvestigationReport(permit.snapshot);
+          if (!current(ticket, permit)) return;
+          if (result.status !== 'success') {
+            discard(result.reason);
+            return;
+          }
+          permit.text = result.value;
+          publish({ preview: permit.text, busy: false, message: null });
+        } catch {
+          if (current(ticket, permit)) {
+            discard(
+              'The report could not be prepared. Preview it again to retry.',
+            );
+          }
         }
+      } finally {
+        lease.release();
       }
     },
     async download() {
       const permit = source;
       if (!live || state.busy || subscribers.size === 0 || permit?.text == null)
         return;
-      const ticket = ++operation;
-      publish({ preview: permit.text, busy: true, message: null });
-      try {
-        if (!(await verify(ticket, permit))) return;
-        if (!current(ticket, permit) || permit.text === null) return;
-        // No await separates the final validity check from browser handoff.
-        handoff(permit.text);
-        if (!current(ticket, permit)) return;
+      const lease = investigation.activity.tryBegin('report');
+      if (!lease) {
         publish({
           preview: permit.text,
           busy: false,
-          message:
-            'Download requested. Check your browser downloads for its outcome.',
+          message: 'Another action is in progress. Try again.',
         });
-      } catch {
-        if (current(ticket, permit)) {
+        return;
+      }
+      try {
+        const ticket = ++operation;
+        publish({ preview: permit.text, busy: true, message: null });
+        try {
+          if (!(await verify(ticket, permit))) return;
+          if (!current(ticket, permit) || permit.text === null) return;
+          // No await separates the final validity check from browser handoff.
+          handoff(permit.text);
+          if (!current(ticket, permit)) return;
           publish({
             preview: permit.text,
             busy: false,
             message:
-              'The download could not be requested. Try again from this preview.',
+              'Download requested. Check your browser downloads for its outcome.',
           });
+        } catch {
+          if (current(ticket, permit)) {
+            publish({
+              preview: permit.text,
+              busy: false,
+              message:
+                'The download could not be requested. Try again from this preview.',
+            });
+          }
         }
+      } finally {
+        lease.release();
       }
     },
     cancel: () => discard(),

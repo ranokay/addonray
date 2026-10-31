@@ -393,10 +393,12 @@ until explicitly observed.
 
 ## Saved-investigation and exchange checks
 
-The [saved-data contract](plans/saved-investigation-data-rules.md) is
-documentation-only. No saved-data, import, printable HTML or clipboard test or
-browser evidence exists. Future implementation must keep model tests, storage
-adapter tests, UI tests, browser evidence and native observations separate.
+The [saved-data contract](plans/saved-investigation-data-rules.md) governs the
+bounded #6 slice and the future exchange work. #6 save/list/read-only reopen and
+single-record delete are implemented with model, storage, UI and product browser
+checks. Import, printable HTML, clipboard, retention choices and bulk deletion
+remain future tests. Keep model tests, storage adapter tests, UI tests, browser
+evidence and native observations separate.
 
 Model and schema checks:
 
@@ -426,30 +428,31 @@ Model and schema checks:
 
 Storage adapter checks:
 
-- IndexedDB availability, quota, persistence across restart, eviction and
-  clearing, and multi-view change notification;
-- 50 records, 5 MiB total and 1 MiB per record, refusal when full, no automatic
-  eviction of unexpired records;
-- 30-day default and 7/30/90-day choices with a 90-day maximum, expiry refusal,
-  lazy cleanup and no hard physical deletion claim;
-- single delete, confirmed delete-all, pending-action invalidation, no
-  resurrection and suspended-view behavior;
+- IndexedDB availability, controlled store loss, fail-closed metadata, deletion
+  epochs, bounded waits and multi-view hint behavior;
+- 50 records, 5 MiB total and 1 MiB per complete record, refusal when full, no
+  automatic eviction of unexpired records;
+- 30-day default retention, expiry refusal and lazy cleanup; #7 owns 7/90-day
+  choices and bulk deletion;
+- single-record delete, pending-action invalidation, no resurrection and
+  suspended-view next-action failure;
 - ordinary storage, quota, size or output save failure preserves the current
   valid live state, while reset, permission removal, source change or context
   loss invalidates the save and cannot restore discarded data or resurrect a
   deleted record;
-- unsupported record listing and explicit delete.
+- unsupported and unreadable record listing and explicit delete.
 
 UI checks:
 
 - disclosure before the first save, generated labels and read-only archive
   views;
-- normal, private and unknown context guards for every saved-data and exchange
-  action;
+- normal, private and unknown context guards for every saved-data action;
 - imported label, untrusted rendering, separate Save imported report and no
-  automatic persistence;
-- exact Markdown, JSON and printable HTML previews, and exact clipboard text;
-- truthful clipboard success after a write and bounded denial or failure;
+  automatic persistence (future #9);
+- exact Markdown, JSON and printable HTML previews, and exact clipboard text
+  (future #8 through #11);
+- truthful clipboard success after a write and bounded denial or failure
+  (future #11);
 - download and print reported as requests, not completion.
 
 Browser and native evidence:
@@ -460,6 +463,51 @@ Browser and native evidence:
 - authentic private-context evidence kept separate from simulated unknown cases;
 - native UI observations kept separate from fixtures and model tests.
 
+#6 execution:
+
+- `tests/saved-record.test.ts` covers exact payload/model validation, state
+  preservation, duplicate names, ID-based changes, limits, expiry accounting and
+  unsupported/invalid inspection.
+- `tests/saved-save.test.ts`, `tests/saved-library.test.ts`,
+  `tests/live-activity.test.ts`, `tests/saved-launch.test.ts` and the two view
+  suites cover the exclusive save lease, snapshot/reset cancellation, private
+  and unknown refusal before storage access, exact transaction results,
+  expired/unsupported rows, stale opens, single delete, disclosures, text
+  escaping and no collection on render.
+- The clean local `05ac5ef` browser tasks pass 88 checks on Firefox 140.0,
+  153.5.1esr and 158.0.1 and 82 checks on Chrome for Testing 156.0.8078.47. They
+  exercise the packaged save/list/open/delete flow, reload, multi-view deletion,
+  the normal popup launcher, Firefox management removal, a Firefox authentic
+  private window with a seeded archive, a Chrome authentic incognito popup with
+  a seeded incognito partition, a simulated Chrome `QuotaExceededError`, and a
+  simulated persisted `pageshow` that revalidates after another view deletes the
+  archive. No actual Chrome BFCache restoration is claimed.
+- The Chrome private main-frame library navigation is an observed
+  `ERR_BLOCKED_BY_CLIENT` policy block. The authentic incognito popup refusal is
+  separate evidence; the library's own private guard remains unexercised in
+  Chrome. Chrome product checks use the named pre-granted UI fixture with
+  unchanged production assets.
+- `scripts/saved-store-checks.mjs` compiles the production storage adapter and
+  runs nine checks on all four pins: a bounded barrier timeout followed by a
+  later save, synchronous barrier capture, deletion after the barrier,
+  not-ready/recreated connections, idempotent delete, add-only duplicate refusal,
+  abort cancellation and oversized-row rejection. Run it with
+  `FIREFOX_VERSION=<pin> bun run test:saved-store:firefox` or
+  `bun run test:saved-store:chrome`.
+- The separate `scripts/saved-restart-checks.mjs` probe passes five checks on
+  each of Firefox 140.0, 153.5.1esr, 158.0.1 and Chrome 156.0.8078.47. Run it
+  with `FIREFOX_VERSION=<pin> bun run test:saved-restart:firefox` or
+  `bun run test:saved-restart:chrome`. It performs explicit product Save, a full
+  browser restart with the retained profile/origin, read-only list/reopen,
+  live-state loss, no permission prompt and deletion persistence across another
+  restart. Firefox uses a retained temporary-install profile with a fixed test
+  UUID mapping; Chrome uses the named pre-granted UI fixture with unchanged
+  production assets. Neither is a native-consent or retail-install claim.
+- Natural eviction, an actual Chrome engine quota error and the hosted exact-OS
+  matrix remain unqualified. See
+  [product evidence](evidence/2026-10-30-saved-investigations.md) and the
+  [Stage 1 feasibility record](evidence/2026-10-30-saved-storage-feasibility.md).
+
 A passing model or fixture check does not qualify storage, output, native
-usability or support. Run these checks only when the corresponding implementation
-and qualification tickets are authorized.
+usability or support. Run future exchange checks only when the corresponding
+implementation and qualification tickets are authorized.

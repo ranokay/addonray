@@ -199,6 +199,8 @@ export function installInvestigationErrorHandoff(
       }
     },
     async receive(input, sender) {
+      const lease = investigation.activity.tryBegin('attachment');
+      if (!lease) return failure();
       try {
         const selected = copySelection(input);
         if (
@@ -236,6 +238,8 @@ export function installInvestigationErrorHandoff(
         );
       } catch {
         return failure();
+      } finally {
+        lease.release();
       }
     },
   };

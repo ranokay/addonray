@@ -5,6 +5,9 @@ import { getBrowserContext } from '../../lib/browser-target';
 import { createInvestigation } from '../../lib/investigation';
 import { createReportExport } from '../../lib/report-export';
 import { requestReportDownload } from '../../lib/report-download';
+import { createSavedSave } from '../../lib/saved-save';
+import { createSavedChangeHint } from '../../lib/saved-notifier';
+import { createIndexedDbSavedStore } from '../../lib/saved-store';
 import { installInvestigationTimingHandoff } from '../../lib/timing-handoff';
 import { installInvestigationErrorHandoff } from '../../lib/page-error-handoff';
 import { App } from './App';
@@ -19,6 +22,14 @@ const exporter = createReportExport(
   investigation,
   requestReportDownload,
 );
+const savedHint = createSavedChangeHint();
+const savedSaver = createSavedSave(
+  browser,
+  investigation,
+  createIndexedDbSavedStore(),
+  savedHint,
+  context,
+);
 const removeTimingHandoff = installInvestigationTimingHandoff(
   browser,
   investigation,
@@ -32,6 +43,8 @@ const removeErrorHandoff = installInvestigationErrorHandoff(
 window.addEventListener(
   'pagehide',
   () => {
+    savedSaver.dispose();
+    savedHint.dispose();
     exporter.dispose();
     removeTimingHandoff();
     removeErrorHandoff();
@@ -42,6 +55,11 @@ window.addEventListener(
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
-    <App investigation={investigation} exporter={exporter} />
+    <App
+      investigation={investigation}
+      exporter={exporter}
+      saver={savedSaver}
+      libraryUrl={browser.runtime.getURL('/library.html')}
+    />
   </React.StrictMode>,
 );

@@ -5,6 +5,7 @@ import { getBrowserContext } from '../../lib/browser-target';
 import { createSession } from '../../lib/session';
 import { createPopupTimingHandoff } from '../../lib/timing-handoff';
 import { createPageErrorLauncher } from '../../lib/page-error-launch';
+import { openSavedLibrary } from '../../lib/saved-launch';
 import { App } from './App';
 import './style.css';
 
@@ -36,6 +37,7 @@ ReactDOM.createRoot(root).render(
       onNewInvestigation={newInvestigation}
       handoff={handoff}
       onNewPageErrorCheck={errorLauncher.open}
+      onOpenSavedLibrary={() => openSavedLibrary(browser)}
     />
   </React.StrictMode>,
 );

@@ -20,5 +20,6 @@ Consequences: each save creates a new record, and later observations need a new
 live investigation. Saved records survive management and scripting revocation.
 Deletion and expiry make records unavailable to AddonRay, while browser backups,
 profile copies and already handed-off files, prints or clipboard content remain
-outside recall. Storage and output mechanisms still need separate feasibility and
+outside recall. The bounded #6 IndexedDB mechanism was accepted on 2026-10-30;
+remaining storage/output mechanisms still need separate feasibility and
 qualification. See the [data contract](../plans/saved-investigation-data-rules.md).

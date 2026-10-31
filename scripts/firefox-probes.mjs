@@ -551,6 +551,7 @@ try {
       ),
     authority: 'Unmodified Firefox product with approved optional management',
     passed,
+    privateSavedId: productId,
   });
   await driver.get(harnessUrl);
 

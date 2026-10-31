@@ -8,7 +8,7 @@ import { checkPackage } from './check-package.mjs';
 export const chromeVersion = '156.0.8078.47';
 
 // Browser-root commands must omit sessionId; Selenium's convenience CDP connection attaches a page.
-async function browserProtocol(debuggerAddress) {
+export async function browserProtocol(debuggerAddress) {
   assert.match(debuggerAddress, /^(?:localhost|127\.0\.0\.1):\d+$/);
   const response = await fetch(`http://${debuggerAddress}/json/version`);
   assert(response.ok, 'Chrome browser debugger metadata unavailable');
@@ -69,7 +69,12 @@ async function browserProtocol(debuggerAddress) {
   };
 }
 
-export async function launchChrome({ headless = true } = {}) {
+export async function launchChrome({
+  headless = true,
+  userDataDir = null,
+  loadExtensions = [],
+  incognito = false,
+} = {}) {
   const version = process.env.CHROME_VERSION ?? chromeVersion;
   assert.equal(
     version,
@@ -79,6 +84,8 @@ export async function launchChrome({ headless = true } = {}) {
   process.env.SE_AVOID_STATS = 'true';
   process.env.SE_SKIP_DRIVER_IN_PATH = 'true';
   process.env.SE_SKIP_BROWSER_IN_PATH = 'true';
+  // A matching retail installation still ignores development-loading flags.
+  process.env.SE_FORCE_BROWSER_DOWNLOAD = 'true';
   process.env.SE_DRIVER_VERSION = version;
   // ChromeDriver otherwise hides extension-created tabs from its window handles.
   const options = new chrome.Options({
@@ -87,6 +94,17 @@ export async function launchChrome({ headless = true } = {}) {
     .setBrowserVersion(version)
     .addArguments('--no-first-run', '--no-default-browser-check');
   if (headless) options.addArguments('--headless=new');
+  if (incognito) options.addArguments('--incognito');
+  if (userDataDir)
+    options.addArguments(`--user-data-dir=${resolve(userDataDir)}`);
+  for (const extension of loadExtensions)
+    options.addArguments(`--load-extension=${resolve(extension)}`);
+  if (loadExtensions.length)
+    options.addArguments(
+      `--disable-extensions-except=${loadExtensions
+        .map((extension) => resolve(extension))
+        .join(',')}`,
+    );
   await mkdir('.scratch', { recursive: true });
   const service = new chrome.ServiceBuilder()
     .loggingTo(resolve('.scratch/chromedriver.log'))
@@ -106,7 +124,13 @@ export async function launchChrome({ headless = true } = {}) {
     const cdp = await browserProtocol(
       capabilities.get('goog:chromeOptions').debuggerAddress,
     );
-    return { driver, cdp, version, driverVersion };
+    const commandLine = await cdp.send('Browser.getBrowserCommandLine');
+    const browserBinary = commandLine.arguments[0];
+    assert(
+      browserBinary?.includes(version),
+      'Chrome qualification requires the managed, version-pinned testing binary.',
+    );
+    return { driver, cdp, version, driverVersion, browserBinary };
   } catch (error) {
     await driver.quit();
     throw error;
