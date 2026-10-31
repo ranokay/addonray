@@ -494,12 +494,12 @@ Browser and native evidence:
   Chrome. Chrome product checks use the named pre-granted UI fixture with
   unchanged production assets.
 - `scripts/saved-store-checks.mjs` compiles the production storage adapter and
-  runs fourteen checks on all four pins: a bounded barrier timeout followed by a
+  runs fifteen checks on all four pins: a bounded barrier timeout followed by a
   later save, synchronous barrier capture, deletion after the barrier, queued
   save-versus-selected-delete and save-versus-delete-all ordering on either side
-  of commit, empty-list delete-all epoch advancement, not-ready/recreated
-  connections, idempotent delete, add-only duplicate refusal, abort cancellation
-  and oversized-row rejection. Run it with
+  of commit, empty-list delete-all epoch advancement, corrupt/exhausted metadata
+  failing closed, not-ready/recreated connections, idempotent delete, add-only
+  duplicate refusal, abort cancellation and oversized-row rejection. Run it with
   `FIREFOX_VERSION=<pin> bun run test:saved-store:firefox` or
   `bun run test:saved-store:chrome`.
 - The #7 product checks extend the packaged save flow with the stored 7-day

@@ -50,20 +50,21 @@ UI SSR tests are not native interaction evidence.
 
 `scripts/saved-store-checks.mjs` compiles the production `lib/saved-store.ts` and
 `saved-record.ts` into a test-only extension and exercises the actual IndexedDB
-adapter. Each target passes fourteen checks, including the four new queued
+adapter. Each target passes fifteen checks, including the four new queued
 save-versus-selected-delete and save-versus-delete-all cases on both sides of
-commit, and delete-all advancing the epoch with no remaining records.
+commit, delete-all advancing the epoch with no remaining records, and corrupt or
+exhausted deletion metadata failing closed without removing records.
 
-All four reports record clean `bdae3cd3502feced42d80b94bbc3ddd9ba208cb9`,
+All four reports record clean `14d33d794a683f9d149e7ce3b10fb35c0697a8dc`,
 `source.dirty: false`, macOS 27.2 (build 26B5091g) arm64, geckodriver 0.37.1 for
 Firefox and ChromeDriver 156.0.8078.47 for Chrome.
 
 | Target                           | Outcome | Checks | Report                                                | SHA-256                                                            |
 | -------------------------------- | ------- | ------ | ----------------------------------------------------- | ------------------------------------------------------------------ |
-| Firefox 140.0                    | passed  | 14     | `.scratch/saved-store-checks-firefox-140.0.json`      | `db2db66a721c7131acbb72feb9c46f4b5046ed87bb02fb9db47dc63bbfe1bef7` |
-| Firefox 153.5.1esr               | passed  | 14     | `.scratch/saved-store-checks-firefox-153.5.1esr.json` | `c85e814adaa1b8a19b1793a6cca7d130e57c1d0e8d8ef42929d9eede0b253e79` |
-| Firefox 158.0.1                  | passed  | 14     | `.scratch/saved-store-checks-firefox-158.0.1.json`    | `c1b0c6adb79502a48867a10bf6d5cb446302115e557f2ffebcf25b9e9ff923b2` |
-| Chrome for Testing 156.0.8078.47 | passed  | 14     | `.scratch/saved-store-checks-chrome.json`             | `a0b9f86437088abf73f72d91d226b5c380f22a6e6fc54c1806ca703f9c03aaa3` |
+| Firefox 140.0                    | passed  | 15     | `.scratch/saved-store-checks-firefox-140.0.json`      | `a3acb107000c2d89d875916f7f24c27e75cf7374332e5b399b23038ebbba9129` |
+| Firefox 153.5.1esr               | passed  | 15     | `.scratch/saved-store-checks-firefox-153.5.1esr.json` | `65af79535244afc4a679be239bc14b06c29db777aff9a76b8c81f826eb8cdaa2` |
+| Firefox 158.0.1                  | passed  | 15     | `.scratch/saved-store-checks-firefox-158.0.1.json`    | `094f567a437f291aa6ea5bda36281b287ee16d0f21a89b005c7100f4ecdff18d` |
+| Chrome for Testing 156.0.8078.47 | passed  | 15     | `.scratch/saved-store-checks-chrome.json`             | `5719b2990c38e2423556318e01f178635a797f9cbb9aa9925bb674548c5b9cbb` |
 
 The probe is test-only; it is not a product package or native-UI observation.
 
