@@ -695,11 +695,22 @@ export async function checkSavedInvestigations({
   );
   await driver.close();
   await driver.switchTo().window(investigationWindow);
+  await saveOnce(driver);
+  const retainedLibrary = await openDirectLibrary(driver, libraryUrl);
+  await assertLibraryRecord({
+    driver,
+    fixtureId,
+    fixtureName,
+    investigationLabel,
+    changeKind,
+  });
+  await driver.close();
+  await driver.switchTo().window(investigationWindow);
   passed(
     `${authority}: a reloaded library lists and reopens the saved archive`,
     { savedInvestigations: { reload: 'fresh document read' } },
   );
-  return { libraryUrl };
+  return { libraryUrl, retainedLibrary };
 }
 
 export async function finishSavedInvestigations({
