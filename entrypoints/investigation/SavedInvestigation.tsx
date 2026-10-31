@@ -77,6 +77,15 @@ export function SavedInvestigationSection({
                 ? 'Save unavailable'
                 : 'Checking saved storage…'}
         </button>
+        {!state.ready && state.message && (
+          <button
+            id="retry-saved-storage"
+            disabled={state.busy}
+            onClick={() => void saver.retryStorage()}
+          >
+            Retry saved storage
+          </button>
+        )}
         <a id="open-library" href={libraryUrl} target="_blank" rel="noreferrer">
           Open saved investigations
         </a>

@@ -141,6 +141,7 @@ try {
   });
   report.browserVersion = session.version;
   report.driverVersion = session.driverVersion;
+  report.browserBinary = session.browserBinary;
   const productId = await installChromeExtension(cdp, productDirectory);
   const fixtureId = await installChromeExtension(cdp, ordinary);
   const controllerId = await installChromeExtension(cdp, controller);

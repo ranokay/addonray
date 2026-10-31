@@ -17,6 +17,7 @@ function saver(
     getSnapshot: () => state,
     subscribe: () => () => {},
     save: vi.fn(async () => {}),
+    retryStorage: vi.fn(async () => {}),
     dispose: vi.fn(),
     ready: Promise.resolve(),
   };
@@ -65,6 +66,21 @@ it('disables save until the investigation and storage are ready', () => {
   );
   expect(button(markup, 'save-investigation')).toContain('disabled');
   expect(markup).toContain('Saved storage is not ready');
+});
+
+it('offers an explicit storage retry after readiness fails while keeping Save disabled', () => {
+  const current = saver({ ready: false, message: 'Saved storage timed out.' });
+  const markup = renderToStaticMarkup(
+    <SavedInvestigationSection
+      saver={current}
+      eligible
+      libraryUrl="/library.html"
+    />,
+  );
+  expect(button(markup, 'save-investigation')).toContain('disabled');
+  expect(button(markup, 'retry-saved-storage')).not.toContain('disabled');
+  expect(current.retryStorage).not.toHaveBeenCalled();
+  expect(current.save).not.toHaveBeenCalled();
 });
 
 it('disables save without a completed idle pair and shows the bounded result', () => {

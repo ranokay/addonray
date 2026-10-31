@@ -502,8 +502,8 @@ popup launcher requires a positive normal active-tab classification.
 
 The existing investigation and Markdown download remain in the owning view's
 memory. There is no JSON exchange, import, printable HTML, clipboard action,
-retention control, bulk delete or delete-all. Natural eviction, product browser
-restart, an actual Chrome engine quota error and a reachable Chrome private
+retention control, bulk delete or delete-all. Natural eviction,
+an actual Chrome engine quota error and a reachable Chrome private
 main-frame library route remain unqualified; see
 [product evidence](../evidence/2026-10-30-saved-investigations.md).
 

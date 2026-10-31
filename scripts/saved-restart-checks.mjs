@@ -9,7 +9,7 @@ import firefox from 'selenium-webdriver/firefox.js';
 import { installTemporaryExtension } from './firefox-install.mjs';
 import { sha256 } from './check-package.mjs';
 import {
-  chromeExtensionId,
+  installChromeExtension,
   extractChromePackage,
   launchChrome,
 } from './chrome-session.mjs';
@@ -541,11 +541,8 @@ async function chromeMain() {
     ),
     fixture: await hashDirectory(extensionDirectory),
   };
-  const id = chromeExtensionId(extensionDirectory);
-  const urls = {
-    investigation: `chrome-extension://${id}/investigation.html`,
-    library: `chrome-extension://${id}/library.html`,
-  };
+  let id = null;
+  const urls = { investigation: '', library: '' };
   let session;
 
   async function launch() {
@@ -553,8 +550,22 @@ async function chromeMain() {
       userDataDir: profileDirectory,
       loadExtensions: [extensionDirectory, chromeFixture],
     });
+    const loadedId = await installChromeExtension(
+      session.cdp,
+      extensionDirectory,
+    );
+    if (id !== null)
+      assert.equal(
+        loadedId,
+        id,
+        'The saved archive origin changed across restart.',
+      );
+    id = loadedId;
+    urls.investigation = `chrome-extension://${id}/investigation.html`;
+    urls.library = `chrome-extension://${id}/library.html`;
     report.browserVersion = session.version;
     report.driverVersion = session.driverVersion;
+    report.browserBinary = session.browserBinary;
     return session.driver;
   }
   async function quit() {

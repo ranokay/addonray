@@ -359,6 +359,65 @@ export async function checkSavedInvestigations({
     );
   }
 
+  await driver.executeScript(() => {
+    const probe = {
+      original: IDBDatabase.prototype.transaction,
+      failNext: true,
+      writes: 0,
+    };
+    globalThis.__addonrayReadinessProbe = probe;
+    IDBDatabase.prototype.transaction = function (...args) {
+      if (probe.failNext) {
+        probe.failNext = false;
+        throw new DOMException(
+          'simulated connection loss',
+          'InvalidStateError',
+        );
+      }
+      if (args[1] === 'readwrite') probe.writes += 1;
+      return Reflect.apply(probe.original, this, args);
+    };
+  });
+  try {
+    await driver.findElement(By.id('save-investigation')).click();
+    await driver.wait(
+      until.elementLocated(By.id('retry-saved-storage')),
+      10000,
+    );
+    assert.equal(
+      await driver.findElement(By.id('save-investigation')).isEnabled(),
+      false,
+    );
+    await assertPair(driver);
+    await driver.findElement(By.id('retry-saved-storage')).click();
+    await driver.wait(
+      async () => driver.findElement(By.id('save-investigation')).isEnabled(),
+      10000,
+    );
+    await assertPair(driver);
+    const retry = await driver.executeScript(() => ({
+      failedBarrier: globalThis.__addonrayReadinessProbe.failNext === false,
+      writes: globalThis.__addonrayReadinessProbe.writes,
+    }));
+    assert.equal(retry.failedBarrier, true);
+    assert.equal(retry.writes, 0, 'Readiness retry must not autosave');
+    passed(
+      `${authority}: explicit storage retry recovers a simulated lost connection without reload, autosave or live-pair loss`,
+      {
+        savedInvestigations: {
+          readinessRetry: 'simulated connection loss',
+          ...retry,
+        },
+      },
+    );
+  } finally {
+    await driver.executeScript(() => {
+      IDBDatabase.prototype.transaction =
+        globalThis.__addonrayReadinessProbe.original;
+      delete globalThis.__addonrayReadinessProbe;
+    });
+  }
+
   await saveOnce(driver);
   const lifecycleLibrary = await openDirectLibrary(driver, libraryUrl);
   await assertLibraryRecord({

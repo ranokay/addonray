@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { cp, mkdir, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { By, until } from 'selenium-webdriver';
-import { chromeExtensionId, launchChrome } from './chrome-session.mjs';
+import { installChromeExtension, launchChrome } from './chrome-session.mjs';
 import { classifyPrivateMainFrame } from './chrome-private-main-frame.ts';
 
 function sleep(milliseconds) {
@@ -69,9 +69,6 @@ export async function checkChromeSavedPrivate({
   const extensionDirectory = resolve('.scratch/chrome-saved-private-fixture');
   await rm(extensionDirectory, { recursive: true, force: true });
   await cp(uiDirectory, extensionDirectory, { recursive: true });
-  const id = chromeExtensionId(extensionDirectory);
-  const libraryUrl = `chrome-extension://${id}/library.html`;
-  const popupUrl = `chrome-extension://${id}/popup.html`;
   const sentinelId = 'abababab-abab-abab-abab-abababababab';
   const sentinelName = 'INCOGNITO-SENTINEL';
   let normal;
@@ -82,6 +79,9 @@ export async function checkChromeSavedPrivate({
       userDataDir: profileDirectory,
       loadExtensions: [extensionDirectory],
     });
+    const id = await installChromeExtension(normal.cdp, extensionDirectory);
+    const libraryUrl = `chrome-extension://${id}/library.html`;
+    const popupUrl = `chrome-extension://${id}/popup.html`;
     await normal.driver.get(libraryUrl);
     try {
       await waitForLibrary(normal.driver);
@@ -176,6 +176,11 @@ export async function checkChromeSavedPrivate({
     });
     privateSession = incognito;
     const { driver, cdp } = incognito;
+    assert.equal(
+      await installChromeExtension(cdp, extensionDirectory),
+      id,
+      'The saved-private fixture origin changed across restart.',
+    );
     const contexts = await cdp.send('Target.getBrowserContexts');
     const tabTargets = await cdp.send('Target.getTargets', {
       filter: [{ type: 'tab' }],

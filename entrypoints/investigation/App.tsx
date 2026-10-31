@@ -303,8 +303,8 @@ export function InvestigationView({
             </p>
           </fieldset>
           <p className="metadata">
-            This pair stays fixed until you choose Start over. No history is
-            saved.
+            This pair stays fixed until you choose Start over. Nothing is saved
+            unless you choose Save investigation.
           </p>
         </section>
       )}

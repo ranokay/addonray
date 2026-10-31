@@ -72,31 +72,42 @@ export function createSavedSave(
   const message = (text: string | null, lastLabel = state.lastLabel) =>
     publish({ ...state, busy: false, message: text, lastLabel });
 
-  const ready = (async () => {
-    // Check the owning context before opening extension storage. A private
-    // investigation page must not create or read saved storage merely by
-    // rendering its save section.
-    if (!(await normalContext(api))) {
-      if (live)
+  let checking: Promise<void> | null = null;
+  function checkReady(): Promise<void> {
+    if (!live || state.busy) return Promise.resolve();
+    if (checking) return checking;
+    checking = (async () => {
+      // Check the owning context before opening extension storage. A private
+      // investigation page must not create or read saved storage merely by
+      // rendering its save section.
+      const normal = await normalContext(api);
+      if (!live) return;
+      if (!normal) {
         publish({
           ...state,
           ready: false,
           message: 'Save is available only in verified normal windows.',
         });
-      return;
-    }
-    try {
-      await store.ready();
-      if (live) publish({ ...state, ready: true, message: null });
-    } catch (error) {
-      if (!live) return;
-      const text =
-        error instanceof SavedStoreError
-          ? error.message
-          : `${context?.name ?? 'Browser'} saved storage is unavailable.`;
-      publish({ ...state, ready: false, message: text });
-    }
-  })();
+        return;
+      }
+      publish({ ...state, ready: false, message: null });
+      try {
+        await store.ready();
+        if (live) publish({ ...state, ready: true, message: null });
+      } catch (error) {
+        if (!live) return;
+        const text =
+          error instanceof SavedStoreError
+            ? error.message
+            : `${context?.name ?? 'Browser'} saved storage is unavailable.`;
+        publish({ ...state, ready: false, message: text });
+      }
+    })().finally(() => {
+      checking = null;
+    });
+    return checking;
+  }
+  const ready = checkReady();
 
   return {
     getSnapshot: () => state,
@@ -104,6 +115,10 @@ export function createSavedSave(
       if (!live) return () => {};
       subscribers.add(subscriber);
       return () => subscribers.delete(subscriber);
+    },
+    retryStorage() {
+      if (state.ready) return Promise.resolve();
+      return checkReady();
     },
     async save() {
       if (!live || state.busy) return;
@@ -116,10 +131,7 @@ export function createSavedSave(
       }
       if (!state.ready) {
         lease.release();
-        message(
-          state.message ??
-            'Saved storage is not ready yet. Try again in a moment.',
-        );
+        await checkReady();
         return;
       }
       const snapshot = investigation.getSnapshot();
@@ -321,9 +333,14 @@ export function createSavedSave(
               'The investigation changed before the save completed. The live investigation was kept.',
             );
           else if (error instanceof SavedStoreError) {
-            message(`${error.message} The live investigation was kept.`);
             if (error.code === 'unavailable')
-              void store.ready().catch(() => {});
+              publish({
+                ...state,
+                ready: false,
+                busy: false,
+                message: `${error.message} The live investigation was kept. Retry saved storage before saving again.`,
+              });
+            else message(`${error.message} The live investigation was kept.`);
           } else
             message(
               'The save could not be completed. The live investigation was kept.',

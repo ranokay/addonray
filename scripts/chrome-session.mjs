@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { Builder } from 'selenium-webdriver';
@@ -7,14 +6,6 @@ import chrome from 'selenium-webdriver/chrome.js';
 import { checkPackage } from './check-package.mjs';
 
 export const chromeVersion = '156.0.8078.47';
-
-export function chromeExtensionId(path) {
-  const digest = createHash('sha256').update(resolve(path)).digest();
-  return [...digest.subarray(0, 16)]
-    .flatMap((byte) => [byte >> 4, byte & 0x0f])
-    .map((nibble) => String.fromCharCode(97 + nibble))
-    .join('');
-}
 
 // Browser-root commands must omit sessionId; Selenium's convenience CDP connection attaches a page.
 export async function browserProtocol(debuggerAddress) {
@@ -93,6 +84,8 @@ export async function launchChrome({
   process.env.SE_AVOID_STATS = 'true';
   process.env.SE_SKIP_DRIVER_IN_PATH = 'true';
   process.env.SE_SKIP_BROWSER_IN_PATH = 'true';
+  // A matching retail installation still ignores development-loading flags.
+  process.env.SE_FORCE_BROWSER_DOWNLOAD = 'true';
   process.env.SE_DRIVER_VERSION = version;
   // ChromeDriver otherwise hides extension-created tabs from its window handles.
   const options = new chrome.Options({
@@ -131,7 +124,13 @@ export async function launchChrome({
     const cdp = await browserProtocol(
       capabilities.get('goog:chromeOptions').debuggerAddress,
     );
-    return { driver, cdp, version, driverVersion };
+    const commandLine = await cdp.send('Browser.getBrowserCommandLine');
+    const browserBinary = commandLine.arguments[0];
+    assert(
+      browserBinary?.includes(version),
+      'Chrome qualification requires the managed, version-pinned testing binary.',
+    );
+    return { driver, cdp, version, driverVersion, browserBinary };
   } catch (error) {
     await driver.quit();
     throw error;

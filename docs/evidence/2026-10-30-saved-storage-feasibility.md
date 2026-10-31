@@ -235,8 +235,8 @@ boundary is `a5d2b8accc7fa2e0fc6ac551ed7d172868976c64`.
 The ordinary IndexedDB mechanism, exact bounds, atomic refusal, content-script
 isolation, restart sentinel, fail-closed epoch, controlled store-loss handling
 and reachable popup private guard passed where observable. Stage 2 product
-implementation is recorded separately; natural eviction, Chrome engine quota,
-product browser restart and a reachable Chrome private main-frame library route
+implementation is recorded separately; natural eviction, Chrome engine quota
+and a reachable Chrome private main-frame library route
 remain unqualified. Product wiring for the bounded #6 scope no longer waits on
 the accepted mechanism, but release qualification still does.
 

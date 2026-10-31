@@ -28,12 +28,14 @@ class MemoryStore implements SavedStore {
   records = new Map<IDBValidKey, SavedRecord>();
   saveCalls = 0;
   readyCalls = 0;
+  readyError: Error | null = null;
   result: SavedStoreSaveResult | null = null;
   pending: Promise<SavedStoreSaveResult> | null = null;
   started = Promise.withResolvers<void>();
 
   async ready() {
     this.readyCalls += 1;
+    if (this.readyError) throw this.readyError;
     return this.state;
   }
   async readState() {
@@ -102,15 +104,16 @@ async function fixture({
   complete = true,
   timing = false,
   currentApi = api(),
+  store = new MemoryStore(),
 }: {
   complete?: boolean;
   timing?: boolean;
   currentApi?: SavedSaveBrowser;
+  store?: MemoryStore;
 } = {}) {
   vi.spyOn(browser.permissions, 'request').mockResolvedValue(true);
   vi.spyOn(browser.management, 'getAll').mockResolvedValue([]);
   const model = createInvestigation(browser, firefoxContext);
-  const store = new MemoryStore();
   const notifier = { notify: vi.fn() };
   const saver = createSavedSave(
     currentApi,
@@ -157,6 +160,93 @@ it('saves a completed investigation and keeps the live pair', async () => {
   expect(currentApi.permissions.contains).toHaveBeenLastCalledWith({
     permissions: ['management', 'scripting'],
   });
+});
+
+it('retries a failed initial storage check once without autosaving or losing the live pair', async () => {
+  const store = new MemoryStore();
+  store.readyError = new SavedStoreError(
+    'blocked',
+    'Saved storage is blocked.',
+  );
+  const { saver, model } = await fixture({ store });
+  const before = model.getSnapshot();
+  expect(saver.getSnapshot().ready).toBe(false);
+  expect(saver.getSnapshot().message).toContain('blocked');
+  const pending = Promise.withResolvers<void>();
+  const started = Promise.withResolvers<void>();
+  store.readyError = null;
+  const readiness = vi
+    .spyOn(store, 'ready')
+    .mockImplementationOnce(async () => {
+      started.resolve();
+      await pending.promise;
+      return store.state;
+    });
+  const first = saver.retryStorage();
+  const second = saver.retryStorage();
+  await started.promise;
+  expect(readiness).toHaveBeenCalledTimes(1);
+  expect(saver.getSnapshot().ready).toBe(false);
+  pending.resolve();
+  await Promise.all([first, second]);
+  expect(saver.getSnapshot().ready).toBe(true);
+  expect(store.saveCalls).toBe(0);
+  expect(model.getSnapshot()).toBe(before);
+  await saver.save();
+  expect(store.records.size).toBe(1);
+});
+
+it('keeps a failed readiness retry bounded and preserves the live investigation', async () => {
+  const store = new MemoryStore();
+  store.readyError = new SavedStoreError('timeout', 'Saved storage timed out.');
+  const { saver, model } = await fixture({ store });
+  const before = model.getSnapshot();
+  await saver.retryStorage();
+  expect(store.readyCalls).toBe(2);
+  expect(saver.getSnapshot()).toMatchObject({
+    ready: false,
+    busy: false,
+    message: 'Saved storage timed out.',
+  });
+  expect(store.saveCalls).toBe(0);
+  expect(model.getSnapshot()).toBe(before);
+});
+
+it('does not open storage after disposal during a retry context check', async () => {
+  const store = new MemoryStore();
+  store.readyError = new SavedStoreError('timeout', 'Saved storage timed out.');
+  const { saver, currentApi } = await fixture({ store });
+  const context = Promise.withResolvers<{ incognito: boolean }>();
+  const started = Promise.withResolvers<void>();
+  currentApi.tabs.getCurrent = vi.fn(() => {
+    started.resolve();
+    return context.promise;
+  });
+  const retrying = saver.retryStorage();
+  await started.promise;
+  saver.dispose();
+  context.resolve({ incognito: false });
+  await retrying;
+  expect(store.readyCalls).toBe(1);
+  expect(store.saveCalls).toBe(0);
+  expect(saver.getSnapshot().ready).toBe(false);
+});
+
+it('offers storage retry after a lost connection without retrying the failed save', async () => {
+  const { saver, model, store } = await fixture();
+  const before = model.getSnapshot();
+  vi.spyOn(store, 'readState').mockRejectedValueOnce(
+    new SavedStoreError('unavailable', 'Saved storage is unavailable.'),
+  );
+  await saver.save();
+  expect(saver.getSnapshot().ready).toBe(false);
+  expect(saver.getSnapshot().message).toContain('Retry saved storage');
+  await saver.retryStorage();
+  expect(saver.getSnapshot().ready).toBe(true);
+  expect(store.saveCalls).toBe(0);
+  expect(model.getSnapshot()).toBe(before);
+  await saver.save();
+  expect(store.records.size).toBe(1);
 });
 
 it('reports a committed save even when the optional hint throws', async () => {
