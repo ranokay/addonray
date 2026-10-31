@@ -365,7 +365,7 @@ export async function checkSavedInvestigations({
       failNext: true,
       writes: 0,
     };
-    globalThis.__addonrayReadinessProbe = probe;
+    window.__addonrayReadinessProbe = probe;
     IDBDatabase.prototype.transaction = function (...args) {
       if (probe.failNext) {
         probe.failNext = false;
@@ -396,8 +396,8 @@ export async function checkSavedInvestigations({
     );
     await assertPair(driver);
     const retry = await driver.executeScript(() => ({
-      failedBarrier: globalThis.__addonrayReadinessProbe.failNext === false,
-      writes: globalThis.__addonrayReadinessProbe.writes,
+      failedBarrier: window.__addonrayReadinessProbe.failNext === false,
+      writes: window.__addonrayReadinessProbe.writes,
     }));
     assert.equal(retry.failedBarrier, true);
     assert.equal(retry.writes, 0, 'Readiness retry must not autosave');
@@ -412,9 +412,11 @@ export async function checkSavedInvestigations({
     );
   } finally {
     await driver.executeScript(() => {
-      IDBDatabase.prototype.transaction =
-        globalThis.__addonrayReadinessProbe.original;
-      delete globalThis.__addonrayReadinessProbe;
+      const probe = window.__addonrayReadinessProbe;
+      if (probe) {
+        IDBDatabase.prototype.transaction = probe.original;
+        delete window.__addonrayReadinessProbe;
+      }
     });
   }
 
