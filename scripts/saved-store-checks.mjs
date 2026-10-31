@@ -354,6 +354,51 @@ async function deleteAllTwice(name) {
   return { before, after: await store.readState(), list: await store.list() };
 }
 
+async function setMeta(value) {
+  const database = await openRawDatabase();
+  const transaction = database.transaction('meta', 'readwrite');
+  transaction.objectStore('meta').put({ key: 'state', value });
+  await new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+  });
+  database.close();
+}
+
+async function failClosedDeletion(name) {
+  const store = stores.get(name);
+  await setMeta({ storeId: 'short', epoch: 0 });
+  let corruptError = null;
+  try {
+    await store.deleteAll();
+  } catch (error) {
+    corruptError = String(error);
+  }
+  await setMeta({
+    storeId: 'store-identity-0123456789',
+    epoch: Number.MAX_SAFE_INTEGER,
+  });
+  let exhaustedAllError = null;
+  let exhaustedManyError = null;
+  try {
+    await store.deleteAll();
+  } catch (error) {
+    exhaustedAllError = String(error);
+  }
+  try {
+    await store.deleteMany(['aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa']);
+  } catch (error) {
+    exhaustedManyError = String(error);
+  }
+  return {
+    corruptError,
+    exhaustedAllError,
+    exhaustedManyError,
+    list: await store.list(),
+    state: await store.readState(),
+  };
+}
+
 globalThis.savedStoreProbe = {
   reset,
   open,
@@ -372,6 +417,7 @@ globalThis.savedStoreProbe = {
   saveThenDeleteMany,
   deleteManyThenSave,
   deleteAllTwice,
+  failClosedDeletion,
   makeRecord,
 };
 `,
@@ -658,6 +704,20 @@ try {
   passed(
     'delete-all advances the epoch even when no records remain',
     emptyDeleteAll,
+  );
+
+  await call(driver, 'reset');
+  await call(driver, 'open', 'fail-closed');
+  await call(driver, 'seed', 'fail-closed', orderingSeed);
+  const failClosed = await call(driver, 'failClosedDeletion', 'fail-closed');
+  assert.match(failClosed.corruptError, /corrupt|missing/i);
+  assert.match(failClosed.exhaustedAllError, /exhausted/i);
+  assert.match(failClosed.exhaustedManyError, /exhausted/i);
+  assert.equal(failClosed.list.length, 1);
+  assert.equal(failClosed.state.epoch, Number.MAX_SAFE_INTEGER);
+  passed(
+    'corrupt and exhausted deletion metadata fail closed without removing records',
+    failClosed,
   );
 
   await call(driver, 'reset');
