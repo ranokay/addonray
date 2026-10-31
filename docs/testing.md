@@ -507,15 +507,16 @@ Browser and native evidence:
   removes an unsupported row from the actual IndexedDB store. They are part of
   the shared `mise run test-firefox` and `mise run test-chrome` probes, not
   separate native evidence.
-- The separate `scripts/saved-restart-checks.mjs` probe passes five checks on
-  each of Firefox 140.0, 153.5.1esr, 158.0.1 and Chrome 156.0.8078.47. Run it
-  with `FIREFOX_VERSION=<pin> bun run test:saved-restart:firefox` or
+- The separate `scripts/saved-restart-checks.mjs` probe passes six checks on
+  Firefox 158.0.1 and Chrome 156.0.8078.47 after #7. Run it with
+  `FIREFOX_VERSION=<pin> bun run test:saved-restart:firefox` or
   `bun run test:saved-restart:chrome`. It performs explicit product Save, a full
   browser restart with the retained profile/origin, read-only list/reopen,
-  live-state loss, no permission prompt and deletion persistence across another
-  restart. Firefox uses a retained temporary-install profile with a fixed test
-  UUID mapping; Chrome uses the named pre-granted UI fixture with unchanged
-  production assets. Neither is a native-consent or retail-install claim.
+  live-state loss, single-delete persistence and a confirmed delete-all of a
+  seeded unsupported record before another restart. Firefox uses a retained
+  temporary-install profile with a fixed test UUID mapping; Chrome uses the named
+  pre-granted UI fixture with unchanged production assets. Neither is a
+  native-consent or retail-install claim.
 - Natural eviction, an actual Chrome engine quota error and the hosted exact-OS
   matrix remain unqualified. See
   [product evidence](evidence/2026-10-30-saved-investigations.md) and the

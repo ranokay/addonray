@@ -87,10 +87,18 @@ unexpired record. No permission, dependency, background timer or output format
 was added.
 
 Implementation and qualification evidence is recorded separately in
-[the #7 evidence](evidence/2026-10-31-history-retention-bulk-deletion.md). Its
-release gaps remain: natural eviction, an actual Chrome engine quota error, an
-exercised Chrome private main-frame library guard, unmodified Chrome optional
-consent, the native OS/architecture matrix and retail installation.
+[the #7 evidence](evidence/2026-10-31-history-retention-bulk-deletion.md). At
+clean `bdae3cd3502feced42d80b94bbc3ddd9ba208cb9`, 539 behavior tests with
+2,022,433 assertions and native type checking of 83 files pass. The shared product
+probes pass 92 checks on Firefox 140.0, 153.5.1esr and 158.0.1 and 86 on Chrome
+for Testing 156.0.8078.47. The production adapter passes 14 checks on each of the
+four pins, including queued save-versus-delete ordering on both sides of commit.
+The existing restart probe passes six checks on Firefox 158.0.1 and Chrome
+156.0.8078.47, including single-delete and delete-all persistence across another
+process restart. Its release gaps remain: natural eviction, an actual Chrome
+engine quota error, an exercised Chrome private main-frame library guard,
+unmodified Chrome optional consent, the native OS/architecture matrix and retail
+installation.
 
 ## Brand asset kit
 
