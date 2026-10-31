@@ -151,9 +151,9 @@ delivery remain pending.
 The [saved-data contract](plans/saved-investigation-data-rules.md) adds a
 saved-archive owner separate from the live investigation. The Stage 1
 IndexedDB candidate was accepted for the bounded #6 slice on 2026-10-30; save,
-list, read-only reopen and single-record delete are implemented. Import, JSON
-exchange, printable HTML, clipboard, retention choices and bulk deletion remain
-future work.
+list, read-only reopen and single-record delete are implemented. #7 adds a
+per-save retention choice, frozen bulk selection and confirmed delete-all.
+Import, JSON exchange, printable HTML and clipboard remain future work.
 
 `lib/saved-record.ts` is the pure schema/model boundary. It accepts one
 completed, idle live snapshot, requires both successful inventories, strips
@@ -162,7 +162,9 @@ inventory rows, precomputed ID-based changes, assessment, optional timing and
 page-error summaries, fixed observation limits, a random local record ID and
 local times. It checks string code points, nesting, inventory/change counts,
 complete stored bytes including the local envelope, exact would-be exported
-JSON bytes and the 30-day/90-day bounds without truncation.
+JSON bytes and the approved 7/30/90-day choices within the 90-day bound without
+truncation. The choice applies when a record is created; existing records keep
+their stored `expiresAt`.
 
 `lib/saved-store.ts` owns extension-origin IndexedDB. One private meta record
 holds a random store-instance ID and a deletion epoch. A save on a ready connection synchronously enqueues its readonly metadata
@@ -172,12 +174,15 @@ transaction before adding the record. `add` refuses an existing record ID, so a
 save cannot overwrite an archive. The same bounded transaction lifecycle attaches to the synchronously created
 barrier. A missing or invalidated connection refuses that action rather than
 opening a new permit after the barrier. Success resolves
-only after the transaction completes. Deletes remove
-one record and increment the epoch in the same transaction. Missing, corrupt or
-exhausted metadata and recreated connections fail closed. Open, blocked and
-transaction waits are bounded; pending writes abort on investigation reset. No
-new permission is used, and no durability or background-cleanup guarantee is
-added.
+only after the transaction completes. Single delete, selected bulk delete and
+delete-all read and update the metadata row in one transaction. Bulk delete
+removes the frozen selected keys; delete-all clears the actual records store,
+including unsupported or not-currently-listed rows. All three advance the epoch
+exactly once, even when the visible list is empty, so a save bound to the old
+epoch cannot commit after them. Missing, corrupt or exhausted metadata and
+recreated connections fail closed. Open, blocked and transaction waits are
+bounded; pending writes abort on investigation reset. No new permission is used,
+and no durability or background-cleanup guarantee is added.
 
 `lib/live-activity.ts` is the investigation's public action boundary. Capture,
 attachment and report actions may overlap unless a save is pending. Save is an
@@ -195,9 +200,12 @@ opens one inline read-only archive; it imports no inventory, session, collector
 or source-tab code and requests no permission. Every read/action rechecks the
 owning normal context and re-reads storage. Expired valid rows are removed
 lazily; unsupported or unreadable rows stay visible for explicit deletion.
-Deleting one record clears an open copy of that record. A cross-view
-`BroadcastChannel` message is a hint: a busy read is invalidated and a refresh is
-queued, and the next action re-reads storage even if no hint arrives. Refresh,
+Deleting one record, a frozen selected set or every record clears affected open
+copies. Selection and confirmation clear on denied, unavailable and suspended
+transitions; a resumed or refreshed view revalidates before any archive is
+actionable. A cross-view `BroadcastChannel` message is a hint: a busy read is
+invalidated and a refresh is queued, and the next action re-reads storage even if
+no hint arrives. Refresh,
 open and delete catch paths recheck lifecycle/operation after every context await;
 a superseded action cannot publish or clear a newer action's busy state. `pagehide`
 clears displayed archive data; a persisted `pageshow` revalidates before the view

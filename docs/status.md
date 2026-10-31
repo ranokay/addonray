@@ -4,7 +4,7 @@
 
 The user approved the private milestone [`v1.0.0`](https://github.com/ranokay/addonray/milestone/1) as the finite expanded v1 target on 2026-10-29. It contains tickets #2 through #46: saved investigations and report exchange, guided comparisons, mutation and request-failure diagnostics, an optional Rust companion, brand assets, qualification and release work. [The v1 contract](v1-contract.md) records the dated scope snapshot, intended support, existing evidence, supersession map, release acceptance and exclusions.
 
-The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4, #13 and #20 are open decision gates. #5 is approved and recorded; its bounded #6 save/list/reopen/delete slice is implemented and locally qualified with explicit release gaps. Backlog approval does not authorize signing, publication, licensing or visibility changes.
+The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4, #13 and #20 are open decision gates. #5 is approved and recorded; its bounded #6 save/list/reopen/delete and #7 retention/bulk-delete slices are implemented and locally qualified with explicit release gaps. Backlog approval does not authorize signing, publication, licensing or visibility changes.
 
 ## Saved investigations (#6)
 
@@ -69,8 +69,28 @@ engine quota error, an exercised Chrome private main-frame library guard (the
 route is currently policy-blocked), unmodified Chrome optional-permission
 consent, the native OS/architecture matrix, retail installation and release
 approval. The PR records the hosted matrix, independent review coverage and
-final frozen gate separately. #7 through #11 remain unimplemented. No
+final frozen gate separately. #8 through #11 remain unimplemented. No
 permission, publication or durability claim is included.
+
+## History retention and bulk deletion (#7)
+
+The bounded #7 slice adds a 7/30/90-day retention choice for each new archive,
+defaulting to 30 days and capped at 90 days from `savedAt`. Existing records keep
+their stored expiry; there is no global retention setting or record rewrite. The
+library shows each record's expiry and supports a frozen multi-record selection
+with explicit confirmation plus explicitly confirmed delete-all. Delete-all
+clears the actual IndexedDB records store, including unsupported and
+not-currently-listed rows, and advances the deletion epoch even when the visible
+list is empty. Selection and confirmation clear on denied, unavailable and
+suspended transitions. Lazy expiry uses one bulk transaction and never evicts an
+unexpired record. No permission, dependency, background timer or output format
+was added.
+
+Implementation and qualification evidence is recorded separately in
+[the #7 evidence](evidence/2026-10-31-history-retention-bulk-deletion.md). Its
+release gaps remain: natural eviction, an actual Chrome engine quota error, an
+exercised Chrome private main-frame library guard, unmodified Chrome optional
+consent, the native OS/architecture matrix and retail installation.
 
 ## Brand asset kit
 
@@ -411,7 +431,7 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Run the #6 IndexedDB feasibility gate on the pinned Firefox and Chrome targets. The Stage 1 candidate was accepted for the bounded implementation on 2026-10-30 with explicit gaps; see [feasibility evidence](evidence/2026-10-30-saved-storage-feasibility.md).
 - [x] Implement #6 explicit save, list, read-only reopen and single-record delete with local behavior and browser evidence; see [product evidence](evidence/2026-10-30-saved-investigations.md).
 - [ ] Complete release qualification for #6: natural eviction, an actual Chrome engine quota error, an exercised Chrome private main-frame library guard, and the exact-OS/hosted matrix. Product restart and production-adapter regressions pass.
-- [ ] Implement and qualify #7 retention choices, bulk deletion and delete-all.
+- [x] Implement and qualify #7 per-save 7/30/90-day retention, bulk deletion and delete-all. See [the #7 evidence](evidence/2026-10-31-history-retention-bulk-deletion.md).
 - [ ] Implement and qualify #8 JSON export, #9 untrusted import, #10 printable HTML/PDF and #11 clipboard.
 - [ ] Qualify private and unknown contexts, multi-view deletion, expiry, storage failure and the exact browser and OS matrix.
 - [ ] Reassess the Firefox declaration and Chrome Web Store privacy disclosure before publication.
@@ -421,12 +441,13 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
 is the current scope and support record. #5's
 [saved-investigation and report-exchange contract](plans/saved-investigation-data-rules.md)
-was approved and recorded on 2026-10-30. The bounded #6 slice is implemented and
-locally qualified with explicit gaps; product restart, production-adapter
-regressions and the simulated lifecycle path pass, and the local frozen gate
-passed, while the final release matrix and independent review remain. The next v1 decisions are #4, #13 and #20. #7 through #11 may start
-only under the approved #5 contract and their own gates. This implementation task
-authorizes no push or PR. #32 is
+was approved and recorded on 2026-10-30. The bounded #6 slice and the #7
+retention/bulk-delete slice are implemented and locally qualified with explicit
+gaps; product restart, production-adapter regressions and the simulated
+lifecycle path pass, and the local frozen gate passed, while the final release
+matrix and independent review remain. The next v1 decisions are #4, #13 and #20.
+#8 through #11 may start only under the approved #5 contract and their own gates.
+This implementation task authorizes no push or PR. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
 current main includes the change at `a708fb5`. #33's bounded collector-budget
 investigation is in PR #50. Study evidence is at `031ebff`; test-only

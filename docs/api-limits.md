@@ -154,7 +154,7 @@ Reviewed on 2026-10-30 for the approved [saved-data contract](plans/saved-invest
 
 The 5 MiB library bound is a product bound. It does not derive headroom from `storage.local`'s unrelated Chrome quota and does not promise IndexedDB headroom. The Stage 1 candidate measured the chosen mechanism on Firefox 140.0, 153.5.1esr, 158.0.1 and Chrome for Testing 156.0.8078.47, including exact capacity/refusal, controlled store loss, restart persistence, cross-view deletion and the reachable private popup guard. Natural eviction, the Chrome engine quota error, verified Firefox post-clear emptiness and a reachable Chrome private main-frame library route remain unqualified. The 50-record, 5 MiB and 1 MiB limits stay product bounds; no `storage` or `unlimitedStorage` permission is proposed.
 
-The approved normal-window guard uses the existing current-tab classification and adds no permission. Private and unknown contexts fail closed for saved-data actions. The #6 runtime has a local storage owner and read-only library, but no import path, printable HTML, clipboard action, bulk deletion or retention control. No new permission, dependency or native messaging is approved.
+The approved normal-window guard uses the existing current-tab classification and adds no permission. Private and unknown contexts fail closed for saved-data actions. The #6/#7 runtime has a local storage owner and read-only library with per-save 7/30/90-day retention, bulk deletion and confirmed delete-all, but no import path, printable HTML, clipboard action or collection permission. Delete-all clears the actual IndexedDB records store; it adds no browser API, permission or background task. No new permission, dependency or native messaging is approved.
 
 ## Primary Firefox references
 

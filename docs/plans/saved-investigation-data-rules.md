@@ -1,10 +1,11 @@
 # Saved-investigation and report-exchange data contract
 
 Status: approved by the user on 2026-10-30 after Q1 through Q16. The bounded
-#6 slice now implements explicit save, local list, read-only reopen and
+#6 slice implements explicit save, local list, read-only reopen and
 single-record delete in extension-origin IndexedDB without a new permission.
-Import, JSON exchange, printable HTML, clipboard, retention controls and bulk
-deletion remain future #7 through #11 work. See the
+The #7 slice adds a per-save 7/30/90-day retention choice, bulk deletion and
+confirmed delete-all. Import, JSON exchange, printable HTML and clipboard remain
+future #8 through #11 work. See the
 [Stage 1 feasibility record](../evidence/2026-10-30-saved-storage-feasibility.md)
 and [Stage 2 product evidence](../evidence/2026-10-30-saved-investigations.md).
 The existing live Markdown report remains the only report output. See
@@ -159,9 +160,11 @@ record and never restores discarded data. No save prompts for a new permission.
 
 ### Retention and expiry
 
-The default retention is 30 days from `savedAt`. #7 may offer 7, 30 or 90 days.
-No record may be kept beyond 90 days from its original `savedAt`, and a retention
-change cannot extend a record past that 90-day maximum.
+The default retention is 30 days from `savedAt`. #7 offers 7, 30 or 90 days when
+a new archive is saved. No record may be kept beyond 90 days from its original
+`savedAt`, and the choice cannot extend a record past that 90-day maximum.
+Existing records keep their stored `expiresAt`; retention is not a global
+setting and does not rewrite an archive.
 
 An expired record becomes unavailable to product use. It is not listed as an
 available archive and cannot be opened, exported, printed, copied or re-saved.
@@ -217,7 +220,9 @@ deleted record is idempotent.
 
 Delete-all requires explicit confirmation and removes every saved record with
 the same global invalidation. #6 implements single-record delete. #7 implements
-bulk deletion and delete-all under this contract.
+selection-based bulk deletion and delete-all under this contract. Both delete
+forms read and update the store metadata in one transaction, so an empty visible
+list still advances the deletion epoch.
 
 Multiple views may list and open the same archive read-only. Save is add-only and
 deletion is the only mutation. A view that is suspended may not run code
@@ -469,8 +474,9 @@ evidence:
   exact-OS/hosted matrix and release review. Page reload, full browser process restart with retained profile/origin,
   deletion persistence, controlled store loss, expiry, stale-view failure,
   permission removal and reachable private popup guards are observed.
-- #7: 7/30/90-day retention, 90-day maximum, lazy cleanup, delete-all, stale-view
-  invalidation and no resurrection.
+- #7: 7/30/90-day retention, 90-day maximum, lazy cleanup, bulk deletion,
+  delete-all, stale-view invalidation, pending-save ordering and no resurrection.
+  Implemented and locally qualified in [the #7 evidence](../evidence/2026-10-31-history-retention-bulk-deletion.md).
 - #8: exact JSON serialization, preview, stale-action guards, 1 MiB accounting and
   round-trip re-import.
 - #9: explicit file selection, hostile-file rejection, duplicate-key and
@@ -500,12 +506,22 @@ and unknown contexts expose no saved data. The library uses no collection
 permission and remains usable after management or scripting removal. The normal
 popup launcher requires a positive normal active-tab classification.
 
+#7 adds a 7/30/90-day choice for each new archive, still defaulting to 30 days and
+never exceeding 90 days from `savedAt`. Existing records keep their stored
+expiry. The library shows each record's expiry, supports a frozen multi-record
+selection with explicit confirmation, and offers explicitly confirmed
+delete-all. Delete-all clears the actual records store, including unsupported
+and not-currently-listed rows, and advances the deletion epoch even when the
+visible list is empty. Selection and confirmation are cleared on denied,
+unavailable and suspended transitions. There is no background timer and no
+automatic eviction of unexpired records.
+
 The existing investigation and Markdown download remain in the owning view's
-memory. There is no JSON exchange, import, printable HTML, clipboard action,
-retention control, bulk delete or delete-all. Natural eviction,
-an actual Chrome engine quota error and a reachable Chrome private
-main-frame library route remain unqualified; see
-[product evidence](../evidence/2026-10-30-saved-investigations.md).
+memory. There is no JSON exchange, import, printable HTML or clipboard action.
+Natural eviction, an actual Chrome engine quota error and a reachable Chrome
+private main-frame library route remain unqualified; see
+[product evidence](../evidence/2026-10-30-saved-investigations.md) and
+[#7 evidence](../evidence/2026-10-31-history-retention-bulk-deletion.md).
 
 The [v1 supersession map](../v1-contract.md#supersession-map) still requires the
 #6 storage, quota, race and private-context gates, followed by implementation and

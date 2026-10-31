@@ -143,21 +143,21 @@ qualification remains pending, and any future transmission needs reassessment.
 ## Saved-investigation and report-exchange boundaries
 
 The user approved [the saved-data contract](plans/saved-investigation-data-rules.md)
-and Q1 through Q16 on 2026-10-30. The bounded #6 slice now implements explicit
-Save, local list, read-only reopen and single-record delete. Import, JSON
-exchange, printable HTML, clipboard, retention choices, bulk deletion and
-delete-all remain future #7 through #11 work. The current investigation stays in
-the owning view's memory, and the Markdown download remains the only report
-output.
+and Q1 through Q16 on 2026-10-30. The bounded #6 slice implements explicit
+Save, local list, read-only reopen and single-record delete. #7 adds a per-save
+7/30/90-day retention choice, bulk deletion and confirmed delete-all. Import,
+JSON exchange, printable HTML and clipboard remain future #8 through #11 work. The
+current investigation stays in the owning view's memory, and the Markdown
+download remains the only report output.
 
-| Data                                                                                                         | Trigger                                          | Retention                                                                                                    | Destination                                               |
-| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
-| Immutable archive: inventories, precomputed changes, assessment, optional timing and error summaries, limits | Explicit Save of a completed, idle investigation | 30-day default and explicit delete in #6. #7 may offer 7, 30 or 90 days, never beyond 90 days from `savedAt` | Extension-origin IndexedDB in the current browser profile |
-| Local record envelope: record ID, schema version, origin, `savedAt`, `expiresAt`                             | Save                                             | With the record                                                                                              | Extension-origin IndexedDB in the current browser profile |
-| Validated imported report                                                                                    | Future #9 explicit file selection, then save     | Future contract                                                                                              | Not implemented                                           |
-| Report preview                                                                                               | Explicit prepare action                          | Owning view memory                                                                                           | View memory                                               |
-| Markdown download                                                                                            | Explicit download after preview                  | Browser or filesystem controls                                                                               | User-chosen local destination                             |
-| Printable HTML, print output, clipboard text and JSON                                                        | Future #8 through #11                            | Future contract                                                                                              | Not implemented                                           |
+| Data                                                                                                         | Trigger                                          | Retention                                                                                                                                                   | Destination                                               |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Immutable archive: inventories, precomputed changes, assessment, optional timing and error summaries, limits | Explicit Save of a completed, idle investigation | Default 30 days; the user may choose 7, 30 or 90 days for each new archive, never beyond 90 days from `savedAt`. Existing records keep their stored expiry. | Extension-origin IndexedDB in the current browser profile |
+| Local record envelope: record ID, schema version, origin, `savedAt`, `expiresAt`                             | Save                                             | With the record                                                                                                                                             | Extension-origin IndexedDB in the current browser profile |
+| Validated imported report                                                                                    | Future #9 explicit file selection, then save     | Future contract                                                                                                                                             | Not implemented                                           |
+| Report preview                                                                                               | Explicit prepare action                          | Owning view memory                                                                                                                                          | View memory                                               |
+| Markdown download                                                                                            | Explicit download after preview                  | Browser or filesystem controls                                                                                                                              | User-chosen local destination                             |
+| Printable HTML, print output, clipboard text and JSON                                                        | Future #8 through #11                            | Future contract                                                                                                                                             | Not implemented                                           |
 
 The archive is immutable and read-only. Reopening collects no inventory or page
 data, prompts for no management or scripting permission, reattaches no source tab
@@ -244,24 +244,33 @@ The save section shows all approved storage/privacy disclosures before the
 explicit Save action. The library and archive render stored names and versions as
 text with no HTML injection. The existing live Markdown report remains unchanged.
 
+#7 adds the per-save retention selector and library bulk actions. Selection is
+frozen at confirmation, delete-all clears the records store in one transaction,
+and both deletion forms advance the epoch. Selection and confirmation are
+cleared on denied, unavailable and suspended transitions; no retained archive
+remains actionable after a refresh or resume.
+
 ### Retention, deletion and physical limits
 
-The default retention is 30 days from `savedAt`. #6 implements that fixed
-default; #7 may offer 7, 30 or 90 days, with a 90-day maximum from the original
-save time. An expired record is not listed as available and cannot be opened,
-exported, printed, copied or re-saved. AddonRay removes it when it next accesses
-storage. There is no background timer in v1. Expiry is product-level refusal
-plus lazy cleanup, not a hard physical on-disk deletion deadline. Browser and OS
-backups, profile copies and lower layers may retain bytes. The contract does not
-claim that every retained byte disappears at 90 days.
+The default retention is 30 days from `savedAt`. Each new archive offers a 7, 30
+or 90-day choice, with a 90-day maximum from the original save time. Existing
+records keep their stored expiry; this is not a global retention setting. An
+expired record is not listed as available and cannot be opened, exported,
+printed, copied or re-saved. AddonRay removes it when it next accesses storage.
+There is no background timer in v1. Expiry is product-level refusal plus lazy
+cleanup, not a hard physical on-disk deletion deadline. Browser and OS backups,
+profile copies and lower layers may retain bytes. The contract does not claim
+that every retained byte disappears at 90 days.
 
 Deleting one record removes it across AddonRay views and invalidates pending
-actions. #6 implements single-record delete only; #7 adds bulk deletion and
-delete-all. A deleted or expired record cannot be reopened, exported, printed,
-copied or resurrected by a pending write. A view that is suspended may not run
-code instantly; its next read or action fails. Deletion removes the product's
-record, but it cannot erase browser or OS backups or recall a file, print or
-clipboard content already handed off.
+actions. #6 implements single-record delete; #7 adds a frozen multi-record
+selection and explicitly confirmed delete-all. Delete-all clears the actual
+records store, including unsupported and not-currently-listed rows, and advances
+the same deletion epoch even when the visible list is empty. A deleted or expired
+record cannot be reopened, exported, printed, copied or resurrected by a pending
+write. A view that is suspended may not run code instantly; its next read or
+action fails. Deletion removes the product's record, but it cannot erase browser
+or OS backups or recall a file, print or clipboard content already handed off.
 
 Unsupported saved records remain listed for explicit deletion. AddonRay does not
 auto-migrate, rewrite or silently delete them. A future migration needs its own
