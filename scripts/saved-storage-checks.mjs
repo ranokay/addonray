@@ -712,6 +712,78 @@ async function runBoundRefusal(baseUrl, observations) {
   return observations;
 }
 
+async function runEpochRaces(url, observations) {
+  await driver.get(url);
+  await waitReady();
+  const tabA = await driver.getWindowHandle();
+  await call('clearRecords');
+  await call('saveNow', 'record-a');
+  const tabB = await openTab(url);
+  await waitReady();
+  await driver.switchTo().window(tabA);
+  const pending = await call('beginPendingSave', 'record-b');
+  observations.pending = pending;
+  assert.equal(pending.status, 'pending');
+  await driver.switchTo().window(tabB);
+  const deleted = await callRaw('deleteRecord', 'record-a');
+  observations.deleted = deleted;
+  assert.equal(deleted.status, 'ok');
+  await driver.switchTo().window(tabA);
+  const stale = await callRaw('releasePending');
+  observations.stale = stale;
+  assert.equal(stale.status, 'ok');
+  assert.equal(stale.value.status, 'stale');
+  const afterStale = await pages();
+  observations.afterStale = afterStale;
+  assert.equal(afterStale.length, 0);
+  const idempotent = await callRaw('beginPendingSave', 'record-c');
+  observations.idempotent = idempotent;
+  assert.equal(idempotent.status, 'ok');
+  assert.equal(idempotent.value.status, 'pending');
+  await driver.switchTo().window(tabB);
+  const missingDelete = await callRaw('deleteRecord', 'already-missing');
+  observations.missingDelete = missingDelete;
+  assert.equal(missingDelete.status, 'ok');
+  await driver.switchTo().window(tabA);
+  const staleIdempotent = await callRaw('releasePending');
+  observations.staleIdempotent = staleIdempotent;
+  assert.equal(staleIdempotent.value.status, 'stale');
+  const afterIdempotent = await pages();
+  observations.afterIdempotent = afterIdempotent;
+  assert.equal(afterIdempotent.length, 0);
+  const commitFirst = await callRaw('beginPendingSave', 'record-d');
+  observations.commitFirst = commitFirst;
+  assert.equal(commitFirst.value.status, 'pending');
+  const savedFirst = await callRaw('releasePending');
+  observations.savedFirst = savedFirst;
+  assert.equal(savedFirst.value.status, 'saved');
+  await driver.switchTo().window(tabB);
+  const deleteAfter = await callRaw('deleteRecord', 'record-a');
+  observations.deleteAfter = deleteAfter;
+  assert.equal(deleteAfter.status, 'ok');
+  await driver.switchTo().window(tabA);
+  const afterCommit = await pages();
+  observations.afterCommit = afterCommit;
+  assert.equal(
+    afterCommit.some((entry) => entry.recordId === 'record-d'),
+    true,
+  );
+  const aborted = await callRaw('saveNow', 'record-e', {
+    abortSynchronously: true,
+  });
+  observations.aborted = aborted;
+  assert.equal(aborted.value.status, 'aborted');
+  const afterAbort = await pages();
+  observations.afterAbort = afterAbort;
+  assert.equal(
+    afterAbort.some((entry) => entry.recordId === 'record-e'),
+    false,
+  );
+  await closeTab(tabB, tabA);
+  await driver.switchTo().window(tabA);
+  return observations;
+}
+
 async function runEpochFailClosed(baseUrl, observations) {
   await openFreshProbe(
     baseUrl,
@@ -1532,7 +1604,7 @@ async function enableFirefoxPrivate() {
   await driver.setContext('chrome');
   try {
     return await driver.executeAsyncScript((id, done) => {
-      (async () => {
+      void (async () => {
         try {
           const { ExtensionPermissions } = ChromeUtils.importESModule(
             'resource://gre/modules/ExtensionPermissions.sys.mjs',
@@ -2037,77 +2109,9 @@ async function firefoxMain() {
     'Pending saves cannot commit after a cross-view delete, including distinct record IDs and withheld notification',
     'Observed in the candidate with two tabs and no BroadcastChannel.',
   );
-  await run(epochEntry, 'epoch-races', async (observations) => {
-    const url = session.candidate.url;
-    await driver.get(url);
-    await waitReady();
-    const tabA = await driver.getWindowHandle();
-    await call('clearRecords');
-    await call('saveNow', 'record-a');
-    const tabB = await openTab(url);
-    await waitReady();
-    await driver.switchTo().window(tabA);
-    const pending = await call('beginPendingSave', 'record-b');
-    observations.pending = pending;
-    assert.equal(pending.status, 'pending');
-    await driver.switchTo().window(tabB);
-    const deleted = await callRaw('deleteRecord', 'record-a');
-    observations.deleted = deleted;
-    assert.equal(deleted.status, 'ok');
-    await driver.switchTo().window(tabA);
-    const stale = await callRaw('releasePending');
-    observations.stale = stale;
-    assert.equal(stale.status, 'ok');
-    assert.equal(stale.value.status, 'stale');
-    const afterStale = await pages();
-    observations.afterStale = afterStale;
-    assert.equal(afterStale.length, 0);
-    const idempotent = await callRaw('beginPendingSave', 'record-c');
-    observations.idempotent = idempotent;
-    assert.equal(idempotent.status, 'ok');
-    await driver.switchTo().window(tabB);
-    const missingDelete = await callRaw('deleteRecord', 'already-missing');
-    observations.missingDelete = missingDelete;
-    assert.equal(missingDelete.status, 'ok');
-    await driver.switchTo().window(tabA);
-    const staleIdempotent = await callRaw('releasePending');
-    observations.staleIdempotent = staleIdempotent;
-    assert.equal(staleIdempotent.value.status, 'stale');
-    const afterIdempotent = await pages();
-    observations.afterIdempotent = afterIdempotent;
-    assert.equal(afterIdempotent.length, 0);
-    const commitFirst = await callRaw('beginPendingSave', 'record-d');
-    observations.commitFirst = commitFirst;
-    assert.equal(commitFirst.value.status, 'pending');
-    const savedFirst = await callRaw('releasePending');
-    observations.savedFirst = savedFirst;
-    assert.equal(savedFirst.value.status, 'saved');
-    await driver.switchTo().window(tabB);
-    const deleteAfter = await callRaw('deleteRecord', 'record-a');
-    observations.deleteAfter = deleteAfter;
-    assert.equal(deleteAfter.status, 'ok');
-    await driver.switchTo().window(tabA);
-    const afterCommit = await pages();
-    observations.afterCommit = afterCommit;
-    assert.equal(
-      afterCommit.some((entry) => entry.recordId === 'record-d'),
-      true,
-    );
-    const aborted = await callRaw('saveNow', 'record-e', {
-      abortSynchronously: true,
-    });
-    observations.aborted = aborted;
-    assert.equal(aborted.value.status, 'aborted');
-    const afterAbort = await pages();
-    observations.afterAbort = afterAbort;
-    assert.equal(
-      afterAbort.some((entry) => entry.recordId === 'record-e'),
-      false,
-    );
-    await closeTab(tabB);
-    await driver.switchTo().window(tabA);
-    return observations;
-  });
+  await run(epochEntry, 'epoch-races', (observations) =>
+    runEpochRaces(session.candidate.url, observations),
+  );
 
   const readinessEntry = record(
     'readiness-gate',
@@ -2303,7 +2307,7 @@ async function firefoxMain() {
       observations.before = await pages();
       await driver.setContext('chrome');
       observations.removed = await driver.executeAsyncScript((id, done) => {
-        (async () => {
+        void (async () => {
           try {
             const { AddonManager } = ChromeUtils.importESModule(
               'resource://gre/modules/AddonManager.sys.mjs',
@@ -3066,75 +3070,9 @@ async function chromeMain() {
     'Pending saves cannot commit after a cross-view delete, including distinct record IDs and withheld notification',
     'Observed in the candidate with two tabs and no BroadcastChannel.',
   );
-  await run(epochEntry, 'epoch-races', async (observations) => {
-    await driver.get(candidateUrl);
-    await waitReady();
-    const tabA = await driver.getWindowHandle();
-    await call('clearRecords');
-    await call('saveNow', 'record-a');
-    const tabB = await openTab(candidateUrl);
-    await waitReady();
-    await driver.switchTo().window(tabA);
-    const pending = await call('beginPendingSave', 'record-b');
-    observations.pending = pending;
-    assert.equal(pending.status, 'pending');
-    await driver.switchTo().window(tabB);
-    const deleted = await callRaw('deleteRecord', 'record-a');
-    observations.deleted = deleted;
-    assert.equal(deleted.status, 'ok');
-    await driver.switchTo().window(tabA);
-    const stale = await callRaw('releasePending');
-    observations.stale = stale;
-    const afterStale = await pages();
-    observations.afterStale = afterStale;
-    assert.equal(stale.value.status, 'stale');
-    assert.equal(afterStale.length, 0);
-    const idempotent = await callRaw('beginPendingSave', 'record-c');
-    observations.idempotent = idempotent;
-    assert.equal(idempotent.value.status, 'pending');
-    await driver.switchTo().window(tabB);
-    const missingDelete = await callRaw('deleteRecord', 'already-missing');
-    observations.missingDelete = missingDelete;
-    assert.equal(missingDelete.status, 'ok');
-    await driver.switchTo().window(tabA);
-    const staleIdempotent = await callRaw('releasePending');
-    observations.staleIdempotent = staleIdempotent;
-    assert.equal(staleIdempotent.value.status, 'stale');
-    const afterIdempotent = await pages();
-    observations.afterIdempotent = afterIdempotent;
-    assert.equal(afterIdempotent.length, 0);
-    const commitFirst = await callRaw('beginPendingSave', 'record-d');
-    observations.commitFirst = commitFirst;
-    assert.equal(commitFirst.value.status, 'pending');
-    const savedFirst = await callRaw('releasePending');
-    observations.savedFirst = savedFirst;
-    assert.equal(savedFirst.value.status, 'saved');
-    await driver.switchTo().window(tabB);
-    const deleteAfter = await callRaw('deleteRecord', 'record-a');
-    observations.deleteAfter = deleteAfter;
-    assert.equal(deleteAfter.status, 'ok');
-    await driver.switchTo().window(tabA);
-    const afterCommit = await pages();
-    observations.afterCommit = afterCommit;
-    assert.equal(
-      afterCommit.some((entry) => entry.recordId === 'record-d'),
-      true,
-    );
-    const aborted = await callRaw('saveNow', 'record-e', {
-      abortSynchronously: true,
-    });
-    observations.aborted = aborted;
-    assert.equal(aborted.value.status, 'aborted');
-    const afterAbort = await pages();
-    observations.afterAbort = afterAbort;
-    assert.equal(
-      afterAbort.some((entry) => entry.recordId === 'record-e'),
-      false,
-    );
-    await closeTab(tabB, tabA);
-    await driver.switchTo().window(tabA);
-    return observations;
-  });
+  await run(epochEntry, 'epoch-races', (observations) =>
+    runEpochRaces(candidateUrl, observations),
+  );
 
   const readinessEntry = record(
     'readiness-gate',

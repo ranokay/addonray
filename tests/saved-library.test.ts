@@ -123,6 +123,37 @@ function fixture(normal = true) {
   return { store, api, context, hint, library };
 }
 
+async function finalContextFixture() {
+  const store = new MemoryStore();
+  const hint = hintFixture();
+  const finalGuard = Promise.withResolvers<{ incognito: boolean }>();
+  const finalGuardStarted = Promise.withResolvers<void>();
+  let calls = 0;
+  const api: SavedBrowser = {
+    tabs: {
+      getCurrent: vi.fn(async () => {
+        calls += 1;
+        if (calls === 4) {
+          finalGuardStarted.resolve();
+          return finalGuard.promise;
+        }
+        return { incognito: false };
+      }),
+    },
+  };
+  const library = createSavedLibrary(api, store, hint.hint);
+  store.entries.set(validId, record(validId));
+  await library.refresh();
+  return {
+    store,
+    hint,
+    library,
+    finalGuard,
+    finalGuardStarted,
+    contextCalls: () => calls,
+  };
+}
+
 function seed(store: MemoryStore) {
   store.entries.set(validId, record(validId));
   store.entries.set('future-row', { schemaVersion: 2, recordId: 'future-row' });
@@ -416,29 +447,11 @@ it('lists an inconsistent page-error summary as unreadable', async () => {
 });
 
 it('does not publish a delayed open after a hint during the final context check', async () => {
-  const store = new MemoryStore();
-  const hint = hintFixture();
-  const finalGuard = Promise.withResolvers<{ incognito: boolean }>();
-  const finalGuardStarted = Promise.withResolvers<void>();
-  let calls = 0;
-  const api: SavedBrowser = {
-    tabs: {
-      getCurrent: vi.fn(async () => {
-        calls += 1;
-        if (calls === 4) {
-          finalGuardStarted.resolve();
-          return finalGuard.promise;
-        }
-        return { incognito: false };
-      }),
-    },
-  };
-  const library = createSavedLibrary(api, store, hint.hint);
-  store.entries.set(validId, record(validId));
-  await library.refresh();
+  const { hint, library, finalGuard, finalGuardStarted, contextCalls } =
+    await finalContextFixture();
   const opening = library.open(validId);
   await finalGuardStarted.promise;
-  expect(calls).toBe(4);
+  expect(contextCalls()).toBe(4);
   hint.fire();
   finalGuard.resolve({ incognito: false });
   await opening;
@@ -447,29 +460,11 @@ it('does not publish a delayed open after a hint during the final context check'
 });
 
 it('clears a delayed open when the view is suspended during the final context check', async () => {
-  const store = new MemoryStore();
-  const hint = hintFixture();
-  const finalGuard = Promise.withResolvers<{ incognito: boolean }>();
-  const finalGuardStarted = Promise.withResolvers<void>();
-  let calls = 0;
-  const api: SavedBrowser = {
-    tabs: {
-      getCurrent: vi.fn(async () => {
-        calls += 1;
-        if (calls === 4) {
-          finalGuardStarted.resolve();
-          return finalGuard.promise;
-        }
-        return { incognito: false };
-      }),
-    },
-  };
-  const library = createSavedLibrary(api, store, hint.hint);
-  store.entries.set(validId, record(validId));
-  await library.refresh();
+  const { library, finalGuard, finalGuardStarted, contextCalls } =
+    await finalContextFixture();
   const opening = library.open(validId);
   await finalGuardStarted.promise;
-  expect(calls).toBe(4);
+  expect(contextCalls()).toBe(4);
   library.suspend();
   finalGuard.resolve({ incognito: false });
   await opening;
@@ -482,29 +477,11 @@ it('clears a delayed open when the view is suspended during the final context ch
 });
 
 it('does not let an old action clear a newer resumed action busy state', async () => {
-  const store = new MemoryStore();
-  const hint = hintFixture();
-  const finalGuard = Promise.withResolvers<{ incognito: boolean }>();
-  const finalGuardStarted = Promise.withResolvers<void>();
-  let calls = 0;
-  const api: SavedBrowser = {
-    tabs: {
-      getCurrent: vi.fn(async () => {
-        calls += 1;
-        if (calls === 4) {
-          finalGuardStarted.resolve();
-          return finalGuard.promise;
-        }
-        return { incognito: false };
-      }),
-    },
-  };
-  const library = createSavedLibrary(api, store, hint.hint);
-  store.entries.set(validId, record(validId));
-  await library.refresh();
+  const { store, library, finalGuard, finalGuardStarted, contextCalls } =
+    await finalContextFixture();
   const opening = library.open(validId);
   await finalGuardStarted.promise;
-  expect(calls).toBe(4);
+  expect(contextCalls()).toBe(4);
   library.suspend();
   const newerList = Promise.withResolvers<void>();
   store.listWait = newerList.promise;
@@ -522,31 +499,13 @@ it('does not let an old action clear a newer resumed action busy state', async (
 });
 
 it('does not let an obsolete delete failure publish or clear a newer resumed action', async () => {
-  const store = new MemoryStore();
-  const hint = hintFixture();
-  const finalGuard = Promise.withResolvers<{ incognito: boolean }>();
-  const finalGuardStarted = Promise.withResolvers<void>();
-  let calls = 0;
-  const api: SavedBrowser = {
-    tabs: {
-      getCurrent: vi.fn(async () => {
-        calls += 1;
-        if (calls === 4) {
-          finalGuardStarted.resolve();
-          return finalGuard.promise;
-        }
-        return { incognito: false };
-      }),
-    },
-  };
-  const library = createSavedLibrary(api, store, hint.hint);
-  store.entries.set(validId, record(validId));
-  await library.refresh();
+  const { store, library, finalGuard, finalGuardStarted, contextCalls } =
+    await finalContextFixture();
   store.failDelete = new Error('delete failed');
   library.requestDelete(validId);
   const deleting = library.delete();
   await finalGuardStarted.promise;
-  expect(calls).toBe(4);
+  expect(contextCalls()).toBe(4);
   library.suspend();
   const newerList = Promise.withResolvers<void>();
   store.listWait = newerList.promise;
@@ -567,29 +526,11 @@ it('does not let an obsolete delete failure publish or clear a newer resumed act
 });
 
 it('does not publish a delayed open after close during the final context check', async () => {
-  const store = new MemoryStore();
-  const hint = hintFixture();
-  const finalGuard = Promise.withResolvers<{ incognito: boolean }>();
-  const finalGuardStarted = Promise.withResolvers<void>();
-  let calls = 0;
-  const api: SavedBrowser = {
-    tabs: {
-      getCurrent: vi.fn(async () => {
-        calls += 1;
-        if (calls === 4) {
-          finalGuardStarted.resolve();
-          return finalGuard.promise;
-        }
-        return { incognito: false };
-      }),
-    },
-  };
-  const library = createSavedLibrary(api, store, hint.hint);
-  store.entries.set(validId, record(validId));
-  await library.refresh();
+  const { library, finalGuard, finalGuardStarted, contextCalls } =
+    await finalContextFixture();
   const opening = library.open(validId);
   await finalGuardStarted.promise;
-  expect(calls).toBe(4);
+  expect(contextCalls()).toBe(4);
   library.close();
   finalGuard.resolve({ incognito: false });
   await opening;
