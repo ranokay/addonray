@@ -75,7 +75,7 @@ export function createSavedSave(
   let checking: Promise<void> | null = null;
   function checkReady(): Promise<void> {
     if (!live || state.busy) return Promise.resolve();
-    if (checking) return checking;
+    if (checking !== null) return checking;
     checking = (async () => {
       // Check the owning context before opening extension storage. A private
       // investigation page must not create or read saved storage merely by
