@@ -19,7 +19,8 @@ const exporter = createSavedExport(browser, store, library, (json) =>
   requestReportDownload(json, 'json'),
 );
 window.addEventListener('pagehide', (event) => {
-  exporter.dispose();
+  if (event.persisted) exporter.cancel();
+  else exporter.dispose();
   library.suspend();
   if (!event.persisted) {
     library.close();

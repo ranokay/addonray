@@ -326,6 +326,18 @@ it('discards a preview when the selected archive changes or disappears', async (
   expect(exporter.getSnapshot().preview).toBeNull();
 });
 
+it('can prepare again after cancellation without losing the live controller', async () => {
+  const { exporter, handoff } = fixture();
+  await exporter.prepare();
+  const reviewed = exporter.getSnapshot().preview;
+  exporter.cancel();
+  expect(exporter.getSnapshot().preview).toBeNull();
+  await exporter.prepare();
+  expect(exporter.getSnapshot().preview).toBe(reviewed);
+  await exporter.download();
+  expect(handoff).toHaveBeenCalledTimes(1);
+});
+
 it('returns bounded storage and handoff failures without claiming success', async () => {
   const { store, exporter, handoff } = fixture();
   store.failGet = new Error('SECRET_STORAGE');
