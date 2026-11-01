@@ -50,8 +50,8 @@ await writeFile(
     optional_permissions: [],
   }),
 );
-async function fixture(name, manifest) {
-  const directory = join(work, name);
+async function fixture(directoryName, name, manifest) {
+  const directory = join(work, directoryName);
   await mkdir(directory);
   await writeFile(
     join(directory, 'manifest.json'),
@@ -63,14 +63,23 @@ async function fixture(name, manifest) {
   );
   return directory;
 }
-const ordinary = await fixture('Controlled ordinary fixture', {
+const fixtureName = 'Controlled "quote" \\backslash 🧪 <b>fixture</b>';
+// Markdown code spans escape quotes and backslashes. This expected value is
+// independent of the production serializer.
+const markdownFixtureName =
+  'Controlled \\u0022quote\\u0022 \\u005Cbackslash 🧪 <b>fixture</b>';
+const ordinary = await fixture('controlled-ordinary', fixtureName, {
   permissions: ['storage'],
   host_permissions: ['https://example.invalid/*'],
 });
-const controller = await fixture('Controlled API fixture', {
-  permissions: ['management', 'scripting', 'tabs'],
-  host_permissions: ['<all_urls>'],
-});
+const controller = await fixture(
+  'controlled-api-fixture',
+  'Controlled API fixture',
+  {
+    permissions: ['management', 'scripting', 'tabs'],
+    host_permissions: ['<all_urls>'],
+  },
+);
 await prepareTimingModule(controller);
 const pageErrorDirectory = join(work, 'page-error-source-fixture');
 const pageErrorFixture = await preparePageErrorFixture(
@@ -321,7 +330,8 @@ try {
     localUrl,
     settingsUrl: 'chrome://extensions/',
     fixtureId,
-    fixtureName: 'Controlled ordinary fixture',
+    fixtureName,
+    markdownFixtureName,
     fixtureInitiallyEnabled: false,
     setFixtureEnabled: async (enabled) => {
       const investigationWindow = await driver.getWindowHandle();

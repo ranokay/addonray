@@ -394,12 +394,13 @@ until explicitly observed.
 ## Saved-investigation and exchange checks
 
 The [saved-data contract](plans/saved-investigation-data-rules.md) governs the
-bounded #6/#7 slices and the future exchange work. #6 save/list/read-only reopen
-and single-record delete are implemented with model, storage, UI and product
-browser checks. #7 adds per-save 7/30/90-day retention, bulk deletion and
-confirmed delete-all. Import, printable HTML and clipboard remain future tests.
-Keep model tests, storage adapter tests, UI tests, browser evidence and native
-observations separate.
+bounded #6/#7/#8 slices and the future exchange work. #6 save/list/read-only
+reopen and single-record delete are implemented with model, storage, UI and
+product browser checks. #7 adds per-save 7/30/90-day retention, bulk deletion and
+confirmed delete-all. #8 adds exact schema version 1 JSON preview and download
+for the live investigation and saved archives. Import, printable HTML and
+clipboard remain future tests. Keep model tests, storage adapter tests, UI tests,
+browser evidence and native observations separate.
 
 Model and schema checks:
 
@@ -415,7 +416,7 @@ Model and schema checks:
   `observedMs` at most 30,000;
 - unsupported saved records listed for explicit deletion without migration,
   rewrite or silent deletion;
-- 1,000 inventory entries per side, 2,000 changes, 4,096 characters per string,
+- 1,000 inventory entries per side, 2,000 changes, 4,096 code points per string,
   nesting depth 8, 1 MiB complete JSON and no truncation;
 - save, export and import byte accounting, including the local envelope in the
   stored record, the accepted-export re-import requirement for inspection and
@@ -455,8 +456,8 @@ UI checks:
 - normal, private and unknown context guards for every saved-data action;
 - imported label, untrusted rendering, separate Save imported report and no
   automatic persistence (future #9);
-- exact Markdown, JSON and printable HTML previews, and exact clipboard text
-  (future #8 through #11);
+- exact Markdown and JSON previews, and exact printable HTML previews and
+  clipboard text (future #10 and #11);
 - truthful clipboard success after a write and bounded denial or failure
   (future #11);
 - download and print reported as requests, not completion.
@@ -521,6 +522,42 @@ Browser and native evidence:
   matrix remain unqualified. See
   [product evidence](evidence/2026-10-30-saved-investigations.md) and the
   [Stage 1 feasibility record](evidence/2026-10-30-saved-storage-feasibility.md).
+
+#8 execution:
+
+- `tests/saved-record.test.ts` covers the exact `schemaVersion`/`provenance`/
+  `report` document, omitted envelope and live fields, preserved null and
+  diagnostic states, hostile strings as JSON data, malformed or non-finite
+  diagnostic values, the string, inventory, change and 1 MiB bounds without
+  truncation, and the future-import report shape through the existing archive
+  validator.
+- `tests/report-export.test.ts`, `tests/report-export-view.test.tsx` and
+  `tests/report-download.test.ts` cover the live Markdown default and explicit
+  JSON format, exact reviewed bytes, format-change invalidation, current
+  snapshot/generation/context/permission checks, deferred reset and context
+  races, over-limit refusal, bounded handoff failure, request-only wording and
+  the generic JSON filename and media type.
+- `tests/saved-export.test.ts`, `tests/saved-export-view.test.tsx` and
+  `tests/library-view.test.tsx` cover saved archive preview and handoff, no
+  permission call, private and unknown context refusal before storage access,
+  deleted, expired, unsupported, invalid and changed records, deferred reads
+  interrupted by cancel, dispose, selection change, context loss, deletion or
+  expiry, selection-change invalidation, bounded storage and handoff failures,
+  and escaped read-only rendering.
+- The product probes prepare and download JSON after the existing Markdown flow,
+  compare the exact preview UTF-8 bytes with one newly completed file, parse the
+  schema and field sets, and check omitted fixture IDs and internal labels. The
+  saved probe repeats after actual Firefox management removal, asserts the grant
+  is still absent, and records the observed generic filename. See the
+  [#8 evidence](evidence/2026-11-01-json-report-export.md) for exact source,
+  browser, OS and artifact identities and retained failures.
+- The browser helper snapshots the download directory before dispatch and
+  requires exactly one new or newer file named `addonray-investigation.json` or
+  a numbered browser variant. A fast completion therefore qualifies, as does a
+  browser update of a pre-existing same-name file. An unchanged pre-existing
+  file, an unrelated JSON file, multiple changed matching files and partial
+  content do not satisfy the byte comparison. The reported UI message remains a
+  request, not proof of browser acceptance or disk completion.
 
 A passing model or fixture check does not qualify storage, output, native
 usability or support. Run future exchange checks only when the corresponding

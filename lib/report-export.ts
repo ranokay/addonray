@@ -1,6 +1,8 @@
 import type { Browser } from 'wxt/browser';
 import type { Investigation } from './investigation';
 import { createInvestigationReport } from './investigation-report';
+import type { ReportFormat } from './report-download';
+import { createExchangeJson } from './saved-record';
 
 export interface ReportBrowser {
   tabs: {
@@ -12,12 +14,14 @@ export interface ReportBrowser {
 }
 
 interface ExportSnapshot {
+  format: ReportFormat;
   preview: string | null;
   busy: boolean;
   message: string | null;
 }
 
 interface ReportPermit {
+  format: ReportFormat;
   snapshot: ReturnType<Investigation['getSnapshot']> | null;
   generation: number;
   text: string | null;
@@ -27,9 +31,14 @@ interface ReportPermit {
 export function createReportExport(
   api: ReportBrowser,
   investigation: Investigation,
-  handoff: (markdown: string) => void,
+  handoff: (text: string, format: ReportFormat) => void,
 ) {
-  let state: ExportSnapshot = { preview: null, busy: false, message: null };
+  let state: ExportSnapshot = {
+    format: 'markdown',
+    preview: null,
+    busy: false,
+    message: null,
+  };
   let source: ReportPermit | null = null;
   let operation = 0;
   let live = true;
@@ -47,7 +56,7 @@ export function createReportExport(
       source.text = null;
     }
     source = null;
-    publish({ preview: null, busy: false, message });
+    publish({ ...state, preview: null, busy: false, message });
   };
   const current = (ticket: number, permit: ReportPermit) =>
     live &&
@@ -106,11 +115,17 @@ export function createReportExport(
         }
       };
     },
+    setFormat(format: ReportFormat) {
+      if (!live || state.busy || format === state.format) return;
+      discard();
+      publish({ ...state, format });
+    },
     async prepare() {
       if (!live || state.busy || subscribers.size === 0) return;
       const lease = investigation.activity.tryBegin('report');
       if (!lease) {
         publish({
+          ...state,
           preview: null,
           busy: false,
           message: 'Another action is in progress. Try again.',
@@ -120,6 +135,7 @@ export function createReportExport(
       try {
         discard();
         const permit: ReportPermit = {
+          format: state.format,
           snapshot: investigation.getSnapshot(),
           generation: investigation.getGeneration(),
           text: null,
@@ -130,6 +146,7 @@ export function createReportExport(
           permit.snapshot?.after?.status !== 'success'
         ) {
           publish({
+            ...state,
             preview: null,
             busy: false,
             message: 'Capture both inventories before previewing a report.',
@@ -138,17 +155,25 @@ export function createReportExport(
         }
         source = permit;
         const ticket = operation;
-        publish({ preview: null, busy: true, message: null });
+        publish({ ...state, preview: null, busy: true, message: null });
         try {
           if (!(await verify(ticket, permit)) || !permit.snapshot) return;
-          const result = createInvestigationReport(permit.snapshot);
+          const result =
+            permit.format === 'json'
+              ? createExchangeJson(permit.snapshot)
+              : createInvestigationReport(permit.snapshot);
           if (!current(ticket, permit)) return;
           if (result.status !== 'success') {
             discard(result.reason);
             return;
           }
           permit.text = result.value;
-          publish({ preview: permit.text, busy: false, message: null });
+          publish({
+            ...state,
+            preview: permit.text,
+            busy: false,
+            message: null,
+          });
         } catch {
           if (current(ticket, permit)) {
             discard(
@@ -167,6 +192,7 @@ export function createReportExport(
       const lease = investigation.activity.tryBegin('report');
       if (!lease) {
         publish({
+          ...state,
           preview: permit.text,
           busy: false,
           message: 'Another action is in progress. Try again.',
@@ -175,14 +201,15 @@ export function createReportExport(
       }
       try {
         const ticket = ++operation;
-        publish({ preview: permit.text, busy: true, message: null });
+        publish({ ...state, preview: permit.text, busy: true, message: null });
         try {
           if (!(await verify(ticket, permit))) return;
           if (!current(ticket, permit) || permit.text === null) return;
           // No await separates the final validity check from browser handoff.
-          handoff(permit.text);
+          handoff(permit.text, permit.format);
           if (!current(ticket, permit)) return;
           publish({
+            ...state,
             preview: permit.text,
             busy: false,
             message:
@@ -191,6 +218,7 @@ export function createReportExport(
         } catch {
           if (current(ticket, permit)) {
             publish({
+              ...state,
               preview: permit.text,
               busy: false,
               message:

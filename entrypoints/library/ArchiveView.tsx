@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { SavedLibraryEntry } from '../../lib/saved-library';
 import type {
   SavedChange,
@@ -241,7 +242,13 @@ function limitsText(limits: SavedObservationLimits) {
   )} events, ${numberFormat.format(limits.pageErrorSummaryBytes)}-byte summary`;
 }
 
-export function ArchiveView({ record }: { record: SavedRecord }) {
+export function ArchiveView({
+  record,
+  exportSection,
+}: {
+  record: SavedRecord;
+  exportSection?: ReactNode;
+}) {
   const report: SavedReport = record.report;
   const saved = dateFormat.format(new Date(record.savedAt));
   const expires = dateFormat.format(new Date(record.expiresAt));
@@ -313,6 +320,8 @@ export function ArchiveView({ record }: { record: SavedRecord }) {
           of these observations establishes what caused the page result.
         </p>
       </section>
+
+      {exportSection}
     </article>
   );
 }

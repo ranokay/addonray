@@ -303,6 +303,20 @@ input[type='radio'] {
   gap: 12px;
   margin: 18px 0;
 }
+.report-format {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 16px 0;
+  border: 1px solid #3c3c3c;
+  border-radius: 7px;
+  padding: 12px 16px;
+}
+.report-format label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .report-preview label {
   display: block;
   font-weight: 600;

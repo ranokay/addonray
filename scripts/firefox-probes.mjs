@@ -80,8 +80,14 @@ try {
   /* An initial unborn repository has no commit identity. */
 }
 
-async function fixture(name, id, extra = {}) {
-  const directory = join(work, name);
+const fixtureName = 'Controlled "quote" \\backslash 🧪 <b>fixture</b>';
+// Markdown code spans escape quotes and backslashes. This expected value is
+// independent of the production serializer.
+const markdownFixtureName =
+  'Controlled \\u0022quote\\u0022 \\u005Cbackslash 🧪 <b>fixture</b>';
+
+async function fixture(directoryName, name, id, extra = {}) {
+  const directory = join(work, directoryName);
   await mkdir(directory);
   await writeFile(
     join(directory, 'manifest.json'),
@@ -102,15 +108,20 @@ async function fixture(name, id, extra = {}) {
   return directory;
 }
 
-const ordinary = await fixture('Controlled ordinary extension', fixtureId, {
+const ordinary = await fixture('controlled-ordinary', fixtureName, fixtureId, {
   permissions: ['storage'],
   host_permissions: ['https://example.invalid/*'],
 });
-const harness = await fixture('AddonRay API harness', harnessId, {
-  // Test-only authority must never be copied into the product manifest.
-  permissions: ['management', 'scripting', 'tabs'],
-  host_permissions: ['<all_urls>'],
-});
+const harness = await fixture(
+  'addonray-api-harness',
+  'AddonRay API harness',
+  harnessId,
+  {
+    // Test-only authority must never be copied into the product manifest.
+    permissions: ['management', 'scripting', 'tabs'],
+    host_permissions: ['<all_urls>'],
+  },
+);
 await prepareTimingModule(harness);
 const handoffDirectory = join(work, 'timing-source-fixture');
 report.timingHandoffFixture = await prepareHandoffFixture(handoffDirectory);
@@ -250,7 +261,7 @@ try {
   await driver.wait(until.elementLocated(By.css('.inventory li')), 10000);
   assert(
     (await driver.findElement(By.css('.inventory')).getText()).includes(
-      'Controlled ordinary extension',
+      fixtureName,
     ),
   );
   passed(
@@ -275,7 +286,7 @@ try {
     ),
     'dark',
   );
-  await searchInventory('  CONTROLLED ordinary  ');
+  await searchInventory('  CONTROLLED "quote"  ');
   await driver.wait(async () => (await inventoryRows()).length === 1, 10000);
   await filterState('disabled');
   await driver.wait(until.elementLocated(By.css('.empty h3')), 10000);
@@ -518,7 +529,8 @@ try {
     localUrl,
     settingsUrl: 'about:addons',
     fixtureId,
-    fixtureName: 'Controlled ordinary extension',
+    fixtureName,
+    markdownFixtureName,
     fixtureInitiallyEnabled: false,
     setFixtureEnabled: async (enabled) => {
       await driver.setContext('chrome');

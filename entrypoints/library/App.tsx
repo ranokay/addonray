@@ -5,7 +5,9 @@ import {
   type SavedLibraryEntry,
 } from '../../lib/saved-library';
 import { recordLabel } from '../../lib/saved-record';
+import type { SavedExport } from '../../lib/saved-export';
 import { ArchiveView, unsupportedLabel } from './ArchiveView';
+import { SavedExportSection } from './SavedExport';
 
 const expiryFormat = new Intl.DateTimeFormat('en', {
   dateStyle: 'medium',
@@ -286,7 +288,13 @@ function Disclosures() {
   );
 }
 
-export function App({ library }: { library: SavedLibrary }) {
+export function App({
+  library,
+  exporter,
+}: {
+  library: SavedLibrary;
+  exporter: SavedExport;
+}) {
   const state = useSyncExternalStore(
     library.subscribe,
     library.getSnapshot,
@@ -403,7 +411,10 @@ export function App({ library }: { library: SavedLibrary }) {
               )}
             </div>
             {state.selected ? (
-              <ArchiveView record={state.selected} />
+              <ArchiveView
+                record={state.selected}
+                exportSection={<SavedExportSection exporter={exporter} />}
+              />
             ) : (
               <p role="status">
                 Choose Open on an available record to review it here. Opening

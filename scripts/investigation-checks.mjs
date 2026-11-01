@@ -23,6 +23,7 @@ export async function checkInvestigation({
   settingsUrl,
   fixtureId,
   fixtureName,
+  markdownFixtureName,
   fixtureInitiallyEnabled,
   setFixtureEnabled,
   revokeManagement,
@@ -251,6 +252,8 @@ export async function checkInvestigation({
     directory: reportDirectory,
     fixtureId,
     fixtureName,
+    markdownFixtureName,
+    fixtureInitiallyEnabled,
     authority,
     passed,
   });
@@ -272,6 +275,7 @@ export async function checkInvestigation({
     authority,
     passed,
     simulateQuota: simulateSavedQuota,
+    reportDirectory,
   });
 
   async function verifyRetainedReport(phase) {
@@ -355,7 +359,10 @@ export async function checkInvestigation({
     passed,
     revoked: Boolean(revokeManagement),
     fixtureName,
+    fixtureId,
     changeKind,
+    investigationLabel,
+    reportDirectory,
   });
 
   for (const handle of investigationWindows) {

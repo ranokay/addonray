@@ -154,20 +154,9 @@ function entry(value: InventorySnapshot[number]): SavedInventoryEntry {
   return { name: value.name, version: value.version, enabled: value.enabled };
 }
 
-export function createSavedRecord(
+export function createSavedReport(
   state: InvestigationState,
-  options: {
-    now: number;
-    recordId: string;
-    retentionDays?: SavedRetentionDays;
-  },
-): Result<SavedRecord> {
-  const retentionDays = options.retentionDays ?? SAVED_DEFAULT_RETENTION_DAYS;
-  if (!isRetentionDays(retentionDays))
-    return {
-      status: 'error',
-      reason: 'The selected retention is not an approved 7, 30 or 90 days.',
-    };
+): Result<SavedReport> {
   if (
     state.busy !== null ||
     state.before?.status !== 'success' ||
@@ -176,7 +165,7 @@ export function createSavedRecord(
     return {
       status: 'unavailable',
       reason:
-        'Capture both inventories and wait for any capture to finish before saving.',
+        'Capture both inventories and wait for any capture to finish before preparing a report.',
     };
   const before = state.before.value;
   const after = state.after.value;
@@ -186,14 +175,13 @@ export function createSavedRecord(
   )
     return {
       status: 'error',
-      reason: 'An inventory exceeds the 1,000-entry archive limit.',
+      reason: 'An inventory exceeds the 1,000-entry limit.',
     };
   const changes = compareInventories(before, after);
   if (changes.length > SAVED_LIMITS.changes)
     return {
       status: 'error',
-      reason:
-        'The inventory change list exceeds the 2,000-entry archive limit.',
+      reason: 'The inventory change list exceeds the 2,000-entry limit.',
     };
   const report: SavedReport = {
     before: { extensions: before.map(entry) },
@@ -217,6 +205,32 @@ export function createSavedRecord(
       pageErrorSummaryBytes: pageErrorLimits.summaryBytes,
     },
   };
+  // Live export and save share the archive's strict report schema. TypeScript
+  // describes the live state; this check decides whether its values may leave.
+  if (!validateReport(report))
+    return {
+      status: 'error',
+      reason: 'The live observations do not match the approved report schema.',
+    };
+  return { status: 'success', value: report };
+}
+
+export function createSavedRecord(
+  state: InvestigationState,
+  options: {
+    now: number;
+    recordId: string;
+    retentionDays?: SavedRetentionDays;
+  },
+): Result<SavedRecord> {
+  const retentionDays = options.retentionDays ?? SAVED_DEFAULT_RETENTION_DAYS;
+  if (!isRetentionDays(retentionDays))
+    return {
+      status: 'error',
+      reason: 'The selected retention is not an approved 7, 30 or 90 days.',
+    };
+  const report = createSavedReport(state);
+  if (report.status !== 'success') return report;
   return {
     status: 'success',
     value: {
@@ -225,9 +239,26 @@ export function createSavedRecord(
       origin: 'captured',
       savedAt: options.now,
       expiresAt: options.now + retentionMilliseconds(retentionDays),
-      report,
+      report: report.value,
     },
   };
+}
+
+export function createExchangeJson(state: InvestigationState): Result<string> {
+  const report = createSavedReport(state);
+  if (report.status !== 'success') return report;
+  const text = serializeExchange({
+    schemaVersion: SAVED_SCHEMA_VERSION,
+    origin: 'captured',
+    report: report.value,
+  });
+  if (byteLength(text) > SAVED_LIMITS.jsonBytes)
+    return {
+      status: 'error',
+      reason:
+        'The JSON report exceeds the 1 MiB limit. It cannot be previewed or downloaded.',
+    };
+  return { status: 'success', value: text };
 }
 
 export function serializeStoredRecord(record: SavedRecord) {
@@ -241,7 +272,9 @@ export function serializeStoredRecord(record: SavedRecord) {
   });
 }
 
-export function serializeExchange(record: SavedRecord) {
+export function serializeExchange(
+  record: Pick<SavedRecord, 'schemaVersion' | 'origin' | 'report'>,
+) {
   return JSON.stringify({
     schemaVersion: record.schemaVersion,
     provenance: record.origin,

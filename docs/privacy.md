@@ -145,10 +145,11 @@ qualification remains pending, and any future transmission needs reassessment.
 The user approved [the saved-data contract](plans/saved-investigation-data-rules.md)
 and Q1 through Q16 on 2026-10-30. The bounded #6 slice implements explicit
 Save, local list, read-only reopen and single-record delete. #7 adds a per-save
-7/30/90-day retention choice, bulk deletion and confirmed delete-all. Import,
-JSON exchange, printable HTML and clipboard remain future #8 through #11 work. The
-current investigation stays in the owning view's memory, and the Markdown
-download remains the only report output.
+7/30/90-day retention choice, bulk deletion and confirmed delete-all. #8 adds
+schema version 1 JSON preview and download for the live investigation and the
+saved archive. JSON import (#9), printable HTML (#10) and clipboard (#11) remain
+future work. The current investigation stays in the owning view's memory, and
+Markdown and JSON are the implemented report outputs.
 
 | Data                                                                                                         | Trigger                                          | Retention                                                                                                                                                   | Destination                                               |
 | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
@@ -157,7 +158,8 @@ download remains the only report output.
 | Validated imported report                                                                                    | Future #9 explicit file selection, then save     | Future contract                                                                                                                                             | Not implemented                                           |
 | Report preview                                                                                               | Explicit prepare action                          | Owning view memory                                                                                                                                          | View memory                                               |
 | Markdown download                                                                                            | Explicit download after preview                  | Browser or filesystem controls                                                                                                                              | User-chosen local destination                             |
-| Printable HTML, print output, clipboard text and JSON                                                        | Future #8 through #11                            | Future contract                                                                                                                                             | Not implemented                                           |
+| JSON preview and download                                                                                    | Explicit format and download action              | Owning view or library-view memory                                                                                                                          | User-chosen local destination                             |
+| Printable HTML, print output and clipboard text                                                              | Future #10 and #11                               | Future contract                                                                                                                                             | Not implemented                                           |
 
 The archive is immutable and read-only. Reopening collects no inventory or page
 data, prompts for no management or scripting permission, reattaches no source tab
@@ -250,6 +252,39 @@ and both deletion forms advance the epoch. Selection and confirmation are
 cleared on denied, unavailable and suspended transitions; no retained archive
 remains actionable after a refresh or resume.
 
+### JSON report export
+
+`lib/saved-record.ts` owns the schema version 1 exchange projection. The live
+investigation and the saved archive use one serializer. The document contains
+`schemaVersion`, `provenance` and the `report` object with both inventories,
+precomputed changes, assessment, optional timing and page-error summaries and
+observation limits. It carries no extension IDs, record or session identifiers,
+source tab, document or attempt IDs, permission or host metadata, URL, title,
+save time, page content or browser context. The serializer leaves hostile strings
+as JSON string data and rejects invalid diagnostic values, malformed states and
+over-limit documents without truncation or repair.
+
+The live report section offers Markdown, its existing default, or JSON. Both
+formats keep the idle completed-pair, snapshot and reset-generation checks, the
+verified normal-window guard and the current management or scripting guard. JSON
+export of a saved archive lives in the library view and uses
+`lib/saved-export.ts`. It requests no collection permission, so management or
+scripting removal does not block it. Before preparing and again before download,
+it rechecks normal context and the selected archive, re-reads IndexedDB and
+rejects a record that is missing, expired, unsupported, unreadable or different
+from the reviewed content. A selection change, suspension, deletion or context
+loss discards the preview. The browser receives a generic
+`addonray-investigation.json` download. Dispatch is only a request; the interface
+does not claim acceptance or a completed file, and accepted files leave
+AddonRay's control.
+
+Concurrent lifecycle and storage reads do not publish a preview after
+invalidation. The complete UTF-8 document is checked against 1 MiB, the
+inventories against 1,000 rows per side, the change list against 2,000, each
+string against 4,096 code points and nesting against depth 8. The output keeps
+the future strict-import shape; #9 owns parsing, rejection of unknown or
+duplicate keys, prototype-affecting keys and untrusted rendering.
+
 ### Retention, deletion and physical limits
 
 The default retention is 30 days from `savedAt`. Each new archive offers a 7, 30
@@ -320,15 +355,19 @@ record is written. AddonRay stores no original filename or path and
 keeps the imported provenance on every re-export. A file's self-asserted
 provenance is never authenticated as local capture.
 
-The approved formats are Markdown, JSON, printable HTML and explicit clipboard
-copy. Each has its own exact preview. JSON export and import share schema version
-1 and the 1 MiB complete-document cap. The per-record stored cap also includes the
-local envelope, so a maximum-size import is view-only if the envelope would
-exceed it. The other shared bounds are 1,000 inventory entries per side, 2,000
-changes, 4,096 characters per string and nesting depth 8. Save checks the exact
-would-be JSON export, so an accepted export re-imports for read-only inspection
-without truncation. No operation truncates, repairs or silently drops content. A
-report that fits JSON but whose printable HTML exceeds 1 MiB cannot be printed.
+The implemented report outputs are exact Markdown for the live investigation and
+exact schema version 1 JSON for the live investigation and saved archives. Each
+has its own preview. JSON export does not parse files. Import (#9), printable HTML
+(#10) and clipboard copy (#11) remain future work; their previews, bounds and
+trust rules stay under this contract. JSON export and future import share schema
+version 1 and the 1 MiB complete-document cap. The per-record stored cap also
+includes the local envelope, so a maximum-size import is view-only if the
+envelope would exceed it. The other shared bounds are 1,000 inventory entries per
+side, 2,000 changes, 4,096 code points per string and nesting depth 8. Save checks
+the exact would-be JSON export, so an accepted export keeps the future import
+shape without truncation. No operation truncates, repairs or silently drops
+content. A report that fits JSON but whose printable HTML exceeds 1 MiB cannot be
+printed.
 
 Download and print are requests, not proof of acceptance or completion. Keep the
 view open until the browser shows a download. The print dialog outcome is not

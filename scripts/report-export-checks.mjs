@@ -3,6 +3,11 @@ import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { By, until } from 'selenium-webdriver';
+import {
+  assertExchangeJson,
+  observeExactJsonDownload,
+  snapshotJsonDownloads,
+} from './json-export-checks.mjs';
 
 const filename = 'addonray-investigation.md';
 const beforeSelector = '[data-testid="before-snapshot"]';
@@ -18,6 +23,8 @@ export async function checkReportExport({
   directory,
   fixtureId,
   fixtureName,
+  markdownFixtureName,
+  fixtureInitiallyEnabled,
   authority,
   passed,
 }) {
@@ -102,7 +109,11 @@ export async function checkReportExport({
     assert(text.startsWith('# AddonRay investigation report\n\n'));
     assert(text.endsWith('\n'));
     assert(!text.includes('\r'));
-    assert(text.includes(fixtureName), 'Report must include the fixture name');
+    // The expected escaped name is declared independently by the caller.
+    assert(
+      text.includes(markdownFixtureName),
+      'Report must include the full escaped fixture name',
+    );
     assert(!text.includes(fixtureId), 'Report must omit the fixture ID');
     assert(
       !text.includes(investigationLabel),
@@ -117,8 +128,8 @@ export async function checkReportExport({
     const afterInventory = text
       .split('## After inventory\n\n')[1]
       ?.split('\n## Reported inventory changes')[0];
-    assert(beforeInventory?.includes(fixtureName));
-    assert(afterInventory?.includes(fixtureName));
+    assert(beforeInventory?.includes(markdownFixtureName));
+    assert(afterInventory?.includes(markdownFixtureName));
     assert(text.includes(`## Your page assessment\n\n${assessment}.`));
     for (const milestone of [
       'DOM content loaded',
@@ -304,5 +315,102 @@ export async function checkReportExport({
     `${authority}: Download report creates exactly the reviewed UTF-8 Markdown under the generic filename`,
     { reportExport: evidence },
   );
-  return evidence;
+
+  await driver.findElement(By.id('report-format-json')).click();
+  assert.equal(
+    await driver.findElement(By.id('report-format-json')).isSelected(),
+    true,
+    'The JSON format control must be selected before preparation',
+  );
+  await driver.findElement(By.id('report-prepare')).click();
+  const jsonPreview = await driver.wait(
+    until.elementLocated(By.id('report-text')),
+    10000,
+  );
+  assert.equal(
+    await jsonPreview.getAttribute('aria-describedby'),
+    'report-disclosure report-download-help',
+  );
+  const reviewedJson = await jsonPreview.getProperty('value');
+  assert.equal(typeof reviewedJson, 'string');
+  const parsedJson = assertExchangeJson(reviewedJson, {
+    fixtureName,
+    fixtureId,
+    investigationLabel,
+    assessment: 'uncertain',
+    changeKind: fixtureInitiallyEnabled ? 'disabled' : 'enabled',
+  });
+  const reviewedJsonBytes = Buffer.from(reviewedJson, 'utf8');
+  assert(reviewedJsonBytes.length <= 1_048_576);
+  assert.equal(
+    await driver.findElement(By.id('report-download')).isEnabled(),
+    true,
+  );
+  const jsonState = {
+    stage: 'previewed',
+    reviewedJson,
+    reviewedBytes: reviewedJsonBytes.length,
+    reviewedSha256: sha256(reviewedJsonBytes),
+    schemaKeys: Object.keys(parsedJson),
+    reportKeys: Object.keys(parsedJson.report),
+  };
+  const jsonBefore = await snapshotJsonDownloads(directory);
+  await driver.findElement(By.id('report-download')).click();
+  const downloadedJson = await observeExactJsonDownload({
+    driver,
+    directory,
+    expected: reviewedJson,
+    before: jsonBefore,
+  });
+  assert(downloadedJson.filename.endsWith('.json'));
+  assert.deepEqual(
+    await readFile(downloadedJson.path),
+    reviewedJsonBytes,
+    'Downloaded JSON must equal the reviewed UTF-8 preview byte for byte',
+  );
+  assert.equal(
+    await driver.findElement(By.id('report-text')).getProperty('value'),
+    reviewedJson,
+  );
+  await driver.wait(
+    async () =>
+      (
+        await driver
+          .findElement(By.css('[aria-labelledby="report-heading"]'))
+          .getText()
+      ).includes(
+        'Download requested. Check your browser downloads for its outcome.',
+      ),
+    10000,
+  );
+  await pairRemains();
+  Object.assign(jsonState, {
+    stage: 'verified',
+    filename: downloadedJson.filename,
+    downloadedPath: downloadedJson.path,
+    downloadedBytes: downloadedJson.bytes,
+    downloadedSha256: sha256(await readFile(downloadedJson.path)),
+    exactUtf8Match: true,
+    newlyObserved: downloadedJson.newlyObserved,
+    modifiedAtNs: downloadedJson.modifiedAtNs,
+    previousModifiedAtNs: downloadedJson.previousModifiedAtNs,
+    observedEntries: downloadedJson.observedEntries,
+    fixtureIdExcluded: true,
+    investigationLabelExcluded: true,
+    ownerStayedOpenUntilFileCompletion: true,
+    originalPairPreserved: true,
+    assessment: 'uncertain',
+  });
+  await driver.findElement(By.id('report-cancel')).click();
+  await driver.wait(
+    async () => (await driver.findElements(By.id('report-text'))).length === 0,
+    10000,
+  );
+  await noPreview();
+  await pairRemains();
+  passed(
+    `${authority}: live JSON report preview and download preserve the exact reviewed UTF-8 schema version 1 bytes`,
+    { reportExport: { ...evidence, json: jsonState } },
+  );
+  return { ...evidence, json: jsonState };
 }

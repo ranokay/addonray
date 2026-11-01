@@ -78,8 +78,9 @@ engine quota error, an exercised Chrome private main-frame library guard (the
 route is currently policy-blocked), unmodified Chrome optional-permission
 consent, the native OS/architecture matrix, retail installation and release
 approval. The PR records the hosted matrix, independent review coverage and
-final frozen gate separately. #8 through #11 remain unimplemented. No
-permission, publication or durability claim is included.
+final frozen gate separately. #8 is implemented with local model, UI and browser
+evidence; #9 through #11 remain unimplemented. No permission, publication or
+durability claim is included.
 
 ## History retention and bulk deletion (#7)
 
@@ -109,6 +110,44 @@ process restart. Its release gaps remain: natural eviction, an actual Chrome
 engine quota error, an exercised Chrome private main-frame library guard,
 unmodified Chrome optional consent, the native OS/architecture matrix and retail
 installation.
+
+## JSON report export (#8)
+
+The bounded #8 slice adds an explicit JSON format to the live report section and
+an exact JSON export to an open saved archive. The live controller keeps
+Markdown as its default and applies the same idle completed-pair, snapshot
+reference, reset generation, context and current-permission checks to both
+formats. The saved controller requests no collection permission, so archives
+remain exportable after management or scripting removal. It rechecks normal
+context and the selected record, re-reads IndexedDB before prepare and again
+before download, and rejects missing, expired, unsupported, unreadable or
+changed records. Selection, suspension, deletion and context loss discard the
+preview. It compares the fresh serialized document with the reviewed text before
+the synchronous browser handoff. A remote refresh hint is not required for the
+next action to fail closed.
+
+The document contains only `schemaVersion: 1`, `provenance` and the approved
+`report` object. It preserves null, measured, unrecorded and unavailable states,
+the precomputed ID-based changes and observation limits. It omits the local
+record envelope, extension and session identifiers, timestamps, permission
+metadata, URLs, titles and browser context. Both output paths share the compact
+exchange serializer used by save, check the complete UTF-8 document against
+1 MiB, and enforce 1,000 inventory rows per side, 2,000 changes, 4,096 code
+points per string and depth 8 without truncation. Hostile names stay string data
+in the read-only textarea and downloaded file. Request dispatch is not browser
+acceptance or disk completion; the interface keeps the owner open and reports
+only that a download was requested.
+
+Implementation and qualification evidence is recorded in
+[the #8 evidence](evidence/2026-11-01-json-report-export.md). At clean
+`4b51bc6bc5945dbadae4cabfb2822ab3231fd1d9`, 575 behavior tests with 2,022,641
+assertions across 38 files and native type checking of 87 files pass. The shared
+product probes pass 95 checks on each Firefox pin and 88 on Chrome for Testing
+156.0.8078.47, including exact UTF-8 JSON preview/download before and, on
+Firefox, after actual management removal. JSON import (#9), printable HTML
+(#10), clipboard (#11), saved-archive Markdown output, the hosted exact-OS
+matrix and native human download/cancellation observation remain open. The #6
+storage and private-context gaps and the #7 release gaps are unchanged.
 
 ## Brand asset kit
 
@@ -450,8 +489,9 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Implement #6 explicit save, list, read-only reopen and single-record delete with local behavior and browser evidence; see [product evidence](evidence/2026-10-30-saved-investigations.md).
 - [ ] Complete release qualification for #6: natural eviction, an actual Chrome engine quota error, an exercised Chrome private main-frame library guard, and the exact-OS/hosted matrix. Product restart and production-adapter regressions pass.
 - [x] Implement and qualify #7 per-save 7/30/90-day retention, bulk deletion and delete-all. See [the #7 evidence](evidence/2026-10-31-history-retention-bulk-deletion.md).
-- [ ] Implement and qualify #8 JSON export, #9 untrusted import, #10 printable HTML/PDF and #11 clipboard.
-- [ ] Qualify private and unknown contexts, multi-view deletion, expiry, storage failure and the exact browser and OS matrix.
+- [x] Implement and locally qualify #8 schema version 1 JSON preview and download for the live investigation and saved archives. See [the #8 evidence](evidence/2026-11-01-json-report-export.md).
+- [ ] Implement and qualify #9 untrusted import, #10 printable HTML/PDF and #11 clipboard.
+- [ ] Qualify private and unknown contexts, multi-view deletion, expiry, storage failure and the exact browser and OS matrix for the exchange outputs.
 - [ ] Reassess the Firefox declaration and Chrome Web Store privacy disclosure before publication.
 
 ## Next action
@@ -459,12 +499,12 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
 is the current scope and support record. #5's
 [saved-investigation and report-exchange contract](plans/saved-investigation-data-rules.md)
-was approved and recorded on 2026-10-30. The bounded #6 slice and the #7
-retention/bulk-delete slice are implemented and locally qualified with explicit
-gaps; product restart, production-adapter regressions and the simulated
-lifecycle path pass, and the local frozen gate passed, while the final release
-matrix and independent review remain. The next v1 decisions are #4, #13 and #20.
-#8 through #11 may start only under the approved #5 contract and their own gates.
+was approved and recorded on 2026-10-30. The bounded #6 slice, the #7 retention/bulk-delete slice and the #8 JSON export
+slice are implemented and locally qualified with explicit gaps; product restart,
+production-adapter regressions and the simulated lifecycle path pass, and the
+local frozen gate passed, while the final release matrix and independent review
+remain. The next v1 decisions are #4, #13 and #20.
+#9 through #11 may start only under the approved #5 contract and their own gates.
 This implementation task authorizes no push or PR. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
 current main includes the change at `a708fb5`. #33's bounded collector-budget

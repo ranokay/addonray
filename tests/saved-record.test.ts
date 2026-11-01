@@ -1,6 +1,7 @@
 import { expect, it } from 'bun:test';
 import type { Investigation } from '../lib/investigation';
 import {
+  createExchangeJson,
   createSavedRecord,
   exchangeBytes,
   inspectStoredRecord,
@@ -154,6 +155,233 @@ it('preserves measured, unrecorded, unavailable and null states exactly', () => 
   expect(saved.report.assessment).toBe('worse');
 });
 
+it('exports only the approved schema version, provenance and report fields', () => {
+  const current = complete({
+    timingBefore: {
+      domContentLoaded: { status: 'measured', milliseconds: 12.5 },
+      loadEvent: { status: 'unrecorded' },
+      firstContentfulPaint: { status: 'unavailable' },
+    },
+    errorAfter: {
+      scriptErrors: 1,
+      unhandledRejections: 0,
+      total: 1,
+      finish: 'stop',
+      observedMs: 1250.5,
+    },
+  });
+  const result = createExchangeJson(current);
+  if (result.status !== 'success') throw new Error(result.reason);
+  const parsed = JSON.parse(result.value) as Record<string, unknown>;
+  expect(Object.keys(parsed)).toEqual([
+    'schemaVersion',
+    'provenance',
+    'report',
+  ]);
+  expect(parsed).toEqual({
+    schemaVersion: 1,
+    provenance: 'captured',
+    report: {
+      before: {
+        extensions: [
+          { name: 'Same name', version: '1', enabled: true },
+          { name: 'Same name', version: '1', enabled: true },
+        ],
+      },
+      after: {
+        extensions: [
+          { name: 'Same name', version: '1', enabled: false },
+          { name: 'Same name', version: '1', enabled: true },
+        ],
+      },
+      changes: [
+        { kind: 'added', name: 'Same name', version: '1', enabled: true },
+        { kind: 'removed', name: 'Same name', version: '1', enabled: true },
+        { kind: 'disabled', name: 'Same name', version: '1', enabled: false },
+      ],
+      assessment: 'worse',
+      timing: {
+        before: {
+          domContentLoaded: { status: 'measured', milliseconds: 12.5 },
+          loadEvent: { status: 'unrecorded' },
+          firstContentfulPaint: { status: 'unavailable' },
+        },
+        after: null,
+      },
+      pageErrors: {
+        before: null,
+        after: {
+          scriptErrors: 1,
+          unhandledRejections: 0,
+          total: 1,
+          finish: 'stop',
+          observedMs: 1250.5,
+        },
+      },
+      observationLimits: {
+        pageErrorWindowMs: 30000,
+        pageErrorEvents: 200,
+        pageErrorSummaryBytes: 1024,
+      },
+    },
+  });
+  for (const forbidden of [
+    'alpha@test',
+    'beta@test',
+    'gamma@test',
+    'recordId',
+    'origin',
+    'savedAt',
+    'expiresAt',
+    '"id"',
+  ])
+    expect(result.value).not.toContain(forbidden);
+  const wrapped = {
+    schemaVersion: 1,
+    recordId: '12345678-1234-1234-1234-123456789abc',
+    origin: 'captured',
+    savedAt: 1,
+    expiresAt: 2,
+    report: (parsed.report as SavedRecord['report']) ?? null,
+  };
+  expect(inspectStoredRecord(wrapped).status).toBe('valid');
+});
+
+it('keeps hostile names and versions as JSON string data', () => {
+  const hostile = 'A"\\\n\u0000<script>alert(1)</script>\u2028🧪';
+  const result = createExchangeJson(
+    complete({
+      before: {
+        status: 'success',
+        value: [
+          {
+            id: 'alpha@test',
+            name: hostile,
+            version: 'v\u0007',
+            enabled: true,
+          },
+        ],
+      },
+      assessment: null,
+    }),
+  );
+  if (result.status !== 'success') throw new Error(result.reason);
+  const parsed = JSON.parse(result.value) as {
+    report: SavedRecord['report'];
+  };
+  expect(parsed.report.before.extensions[0]).toEqual({
+    name: hostile,
+    version: 'v\u0007',
+    enabled: true,
+  });
+  expect(parsed.report.assessment).toBeNull();
+  expect(result.value).toContain('\\"');
+  expect(result.value).toContain('\\\\');
+  expect(result.value).toContain('\\u0000');
+  expect(result.value).toContain('\\u0007');
+  expect(result.value).toContain('<script>alert(1)</script>');
+  expect(result.value).toContain('🧪');
+});
+
+it('rejects malformed diagnostic values and bounds instead of coercing them', () => {
+  const invalid: Array<Partial<State>> = [
+    {
+      timingBefore: {
+        domContentLoaded: { status: 'measured', milliseconds: Infinity },
+        loadEvent: { status: 'unrecorded' },
+        firstContentfulPaint: { status: 'unavailable' },
+      },
+    },
+    {
+      timingBefore: {
+        domContentLoaded: { status: 'measured', milliseconds: -1 },
+        loadEvent: { status: 'unrecorded' },
+        firstContentfulPaint: { status: 'unavailable' },
+      },
+    },
+    {
+      timingBefore: {
+        domContentLoaded: {
+          status: 'measured',
+          milliseconds: Number.MAX_SAFE_INTEGER + 1,
+        },
+        loadEvent: { status: 'unrecorded' },
+        firstContentfulPaint: { status: 'unavailable' },
+      },
+    },
+    {
+      errorAfter: {
+        scriptErrors: 0,
+        unhandledRejections: 0,
+        total: 0,
+        finish: 'stop',
+        observedMs: 30_001,
+      },
+    },
+    {
+      errorAfter: {
+        scriptErrors: 1,
+        unhandledRejections: 0,
+        total: 2,
+        finish: 'stop',
+        observedMs: 1,
+      },
+    },
+    {
+      before: {
+        status: 'success',
+        value: [
+          {
+            id: 'alpha@test',
+            name: 'x'.repeat(SAVED_LIMITS.stringCodePoints + 1),
+            version: '1',
+            enabled: true,
+          },
+        ],
+      },
+    },
+    {
+      before: {
+        status: 'success',
+        value: Array.from(
+          { length: SAVED_LIMITS.inventoryEntries + 1 },
+          (_, index) => ({
+            id: `entry-${index}`,
+            name: `Entry ${index}`,
+            version: '1',
+            enabled: true,
+          }),
+        ),
+      },
+    },
+  ];
+  for (const overrides of invalid)
+    expect(createExchangeJson(complete(overrides))).toMatchObject({
+      status: 'error',
+    });
+});
+
+it('refuses a complete UTF-8 JSON document above 1 MiB without truncating it', () => {
+  const result = createExchangeJson(
+    complete({
+      before: {
+        status: 'success',
+        value: Array.from({ length: 1000 }, (_, index) => ({
+          id: `entry-${index}`,
+          name: 'x'.repeat(SAVED_LIMITS.stringCodePoints),
+          version: '1',
+          enabled: true,
+        })),
+      },
+    }),
+  );
+  expect(result).toEqual({
+    status: 'error',
+    reason:
+      'The JSON report exceeds the 1 MiB limit. It cannot be previewed or downloaded.',
+  });
+});
+
 it('applies the 30-day default retention and complete byte accounting', () => {
   const saved = record();
   expect(saved.savedAt).toBe(1_800_000_000_000);
@@ -216,7 +444,7 @@ it('rejects inventories and change lists above their limits', () => {
   );
   expect(overInventory).toEqual({
     status: 'error',
-    reason: 'An inventory exceeds the 1,000-entry archive limit.',
+    reason: 'An inventory exceeds the 1,000-entry limit.',
   });
 });
 
