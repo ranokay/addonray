@@ -1,7 +1,7 @@
 # JSON report export
 
 Status: bounded #8 implementation qualified from clean
-`2dec79f8c487829ecfa79fe3b91f6782b95f139f`. Deterministic checks, native type
+`8f56e9a104294fb3f5de3190a88993e90b2562a2`. Deterministic checks, native type
 checking, four clean product browser runs and the frozen shared gate pass. The
 clean runs and gate receipt are recorded below. This record adds no permission,
 dependency, browser target, import path, printable HTML, clipboard action or
@@ -25,8 +25,8 @@ the approved [saved-investigation and report-exchange contract](../plans/saved-i
 
 ## Deterministic checks
 
-The full suite at clean `2dec79f8c487829ecfa79fe3b91f6782b95f139f`
-passes **572 tests / 2,022,629 assertions across 38 files** and native type
+The full suite at clean `8f56e9a104294fb3f5de3190a88993e90b2562a2`
+passes **575 tests / 2,022,641 assertions across 38 files** and native type
 checking passes **87 files**. Focused coverage includes:
 
 - exact approved JSON fields and omitted local/live fields, duplicate names,
@@ -49,22 +49,48 @@ checking passes **87 files**. Focused coverage includes:
 Model and server-rendered UI checks are not browser download or native
 interaction evidence.
 
+## Review corrections
+
+- The saved preview now revalidates the held record and its serialized identity
+  after the final context await and immediately before publication. A deferred
+  context/clock test advances past `expiresAt` while that await is pending and
+  proves no preview appears.
+- Every asynchronous continuation checks the operation ticket, permit identity
+  and current selection before it mutates state. A failed private or unknown
+  context result from an obsolete prepare or download cannot clear a newer
+  preview. Obsolete operations do not read storage or issue a second context
+  call after cancellation.
+- Download re-reads storage, then compares the exact freshly serialized document
+  with the reviewed text before the synchronous handoff. A deletion, expiry or
+  same-key replacement between preview and download fails without requiring a
+  delivered refresh hint.
+- The Markdown probe again compares the complete fixture name after its required
+  quote and backslash escapes. The expected escaped value is declared
+  independently next to the hostile fixture. The original full-name failure
+  remains recorded below.
+- Storage ordering: IndexedDB `get` returns one immutable record snapshot.
+  Prepare validates that exact snapshot after its last await and publishes no
+  later than the same task. A concurrent delete or replacement cannot rewrite
+  the held object; the next output action re-reads storage and compares the
+  exact serialized document before handoff. There is no atomic read-to-UI or
+  read-to-download transaction, and this record does not claim one.
+
 ## Clean browser qualification
 
 All runs used disposable profiles through the repository runners, sequentially,
-from clean `2dec79f8c487829ecfa79fe3b91f6782b95f139f` (`sourceDirty: false`).
+from clean `8f56e9a104294fb3f5de3190a88993e90b2562a2` (`sourceDirty: false`).
 Firefox runs install the unmodified development build in a temporary directory.
 The Chrome run extracts the validated ZIP. macOS is `darwin arm64`.
 
 | Target                                | Driver                     | Result                         | Checks | Report SHA-256                                                     |
 | ------------------------------------- | -------------------------- | ------------------------------ | ------ | ------------------------------------------------------------------ |
-| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `09a98838af3d15d52477a7880f1cde6acf00d4ba1c6d1e7bcfb1fb7a1f3cbc2e` |
-| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `da19759520963f0b9edbc54f65043de5811627a274b1c3d08a9d0cd501c5cccb` |
-| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `4a0f927c5993d1601c1d9de4e7f0ddc6481af55e3d058882b406d6d3d3ddf837` |
-| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 88     | `6a5e37da69a3cb182a494c8eaadf6ca10f16ae1ed52941a6396cc42c92144687` |
+| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `6a3150db0b66025fc1fad4af1e3ff59f67a9becbde189cce6d0c680c022bfb57` |
+| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `65fb33ebab90678a0c2a0c5277170f3d98a7323352f2055d05394183d023c83f` |
+| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `c715fd9e1bb9ab14f512be3815e708c32d9b13b5ec9f2b0a390aa8dbb3f2d422` |
+| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 88     | `8e7044c19e044895a8a4c93f6d8cc23599d05635585c16710db9ca46337841e8` |
 
 The Chrome ZIP SHA-256 is
-`a3cb6844d83158a6de0595f6fc7e963440dcaba34e36f017cb151ecdcd8c5af0`. The Firefox
+`003e3307d36512628470b070b936463587407eeb936dbd8a1e07df1611a6e73a`. The Firefox
 temporary-directory installation has no archive hash. Raw reports remain in
 ignored `.scratch/`: `firefox-evidence-140.0.json`,
 `firefox-evidence-153.5.1esr.json`, `firefox-evidence-158.0.1.json` and
@@ -81,8 +107,8 @@ generic filename; later saved exports observed `addonray-investigation(1).json`
 and `addonray-investigation(2).json`. Chrome produced 1,346 bytes with SHA-256
 `b3a6513321be574beee2ddf4bd090efa8f468a97abc853c1c26c05c69c717aea`; its second
 saved export reused the generic filename and was accepted only because its
-modification time advanced from `1793496289847454715` to
-`1793496290389717213` ns. Firefox exports all had new filenames and no previous
+modification time advanced from `1793497202921196667` to
+`1793497203893482821` ns. Firefox exports all had new filenames and no previous
 same-name artifact; their observed modification times are recorded per check in
 the raw reports. Every observed file was new or newer than the
 pre-dispatch snapshot, and partial files never matched the reviewed bytes.
