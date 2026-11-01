@@ -1,7 +1,7 @@
 # JSON report export
 
 Status: bounded #8 implementation qualified from clean
-`c9a9b3660433c8b56c30cba41c0a7939187acec0`. Deterministic checks, native type
+`2dec79f8c487829ecfa79fe3b91f6782b95f139f`. Deterministic checks, native type
 checking, four clean product browser runs and the frozen shared gate pass. The
 clean runs and gate receipt are recorded below. This record adds no permission,
 dependency, browser target, import path, printable HTML, clipboard action or
@@ -25,8 +25,8 @@ the approved [saved-investigation and report-exchange contract](../plans/saved-i
 
 ## Deterministic checks
 
-The full suite at clean `c9a9b3660433c8b56c30cba41c0a7939187acec0`
-passes **571 tests / 2,022,626 assertions across 38 files** and native type
+The full suite at clean `2dec79f8c487829ecfa79fe3b91f6782b95f139f`
+passes **572 tests / 2,022,629 assertions across 38 files** and native type
 checking passes **87 files**. Focused coverage includes:
 
 - exact approved JSON fields and omitted local/live fields, duplicate names,
@@ -52,19 +52,19 @@ interaction evidence.
 ## Clean browser qualification
 
 All runs used disposable profiles through the repository runners, sequentially,
-from clean `c9a9b3660433c8b56c30cba41c0a7939187acec0` (`sourceDirty: false`).
+from clean `2dec79f8c487829ecfa79fe3b91f6782b95f139f` (`sourceDirty: false`).
 Firefox runs install the unmodified development build in a temporary directory.
 The Chrome run extracts the validated ZIP. macOS is `darwin arm64`.
 
 | Target                                | Driver                     | Result                         | Checks | Report SHA-256                                                     |
 | ------------------------------------- | -------------------------- | ------------------------------ | ------ | ------------------------------------------------------------------ |
-| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `f027cfc189d1183624da22204914d1adfbf2e03e9f04b237e6aafc95f5696b97` |
-| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `f9c2f4407bddd3891152610c16ed29309b5761ee059ee34f8330d0e6ab8862cb` |
-| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `e30b5e6e2c53e43cdfc18c6e5008e7bcf922839c2b30f90a2832dd9ac8b3296d` |
-| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 88     | `1cf775c1a3f8e7e8cc856c197b58f4af5d4da2a794ee9cbdd164caed00bb80dd` |
+| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `09a98838af3d15d52477a7880f1cde6acf00d4ba1c6d1e7bcfb1fb7a1f3cbc2e` |
+| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `da19759520963f0b9edbc54f65043de5811627a274b1c3d08a9d0cd501c5cccb` |
+| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `4a0f927c5993d1601c1d9de4e7f0ddc6481af55e3d058882b406d6d3d3ddf837` |
+| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 88     | `6a5e37da69a3cb182a494c8eaadf6ca10f16ae1ed52941a6396cc42c92144687` |
 
 The Chrome ZIP SHA-256 is
-`f424285ecd83c6d93b98e2baf849679c5751ecfd0e674d63637e48284c441af4`. The Firefox
+`a3cb6844d83158a6de0595f6fc7e963440dcaba34e36f017cb151ecdcd8c5af0`. The Firefox
 temporary-directory installation has no archive hash. Raw reports remain in
 ignored `.scratch/`: `firefox-evidence-140.0.json`,
 `firefox-evidence-153.5.1esr.json`, `firefox-evidence-158.0.1.json` and
@@ -81,8 +81,8 @@ generic filename; later saved exports observed `addonray-investigation(1).json`
 and `addonray-investigation(2).json`. Chrome produced 1,346 bytes with SHA-256
 `b3a6513321be574beee2ddf4bd090efa8f468a97abc853c1c26c05c69c717aea`; its second
 saved export reused the generic filename and was accepted only because its
-modification time advanced from `1793495647678248648` to
-`1793495648513389227` ns. Firefox exports all had new filenames and no previous
+modification time advanced from `1793496289847454715` to
+`1793496290389717213` ns. Firefox exports all had new filenames and no previous
 same-name artifact; their observed modification times are recorded per check in
 the raw reports. Every observed file was new or newer than the
 pre-dispatch snapshot, and partial files never matched the reviewed bytes.
