@@ -553,10 +553,11 @@ Browser and native evidence:
   browser, OS and artifact identities and retained failures.
 - The browser helper snapshots the download directory before dispatch and
   requires exactly one new or newer file named `addonray-investigation.json` or
-  a numbered browser variant. A fast completion, a pre-existing same-name file,
-  an unrelated JSON file, multiple changed files and partial content cannot
-  satisfy the byte comparison. The reported UI message remains a request, not
-  proof of browser acceptance or disk completion.
+  a numbered browser variant. A fast completion therefore qualifies, as does a
+  browser update of a pre-existing same-name file. An unchanged pre-existing
+  file, an unrelated JSON file, multiple changed matching files and partial
+  content do not satisfy the byte comparison. The reported UI message remains a
+  request, not proof of browser acceptance or disk completion.
 
 A passing model or fixture check does not qualify storage, output, native
 usability or support. Run future exchange checks only when the corresponding
