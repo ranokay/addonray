@@ -467,7 +467,7 @@ it('refuses an oversized record before opening a storage transaction', async () 
   // Replace the captured pair with large, valid strings.
   const large = Array.from({ length: 300 }, (_, index) => ({
     id: `large-${index}`,
-    name: `${String(index).padStart(4, '0')}-${'x'.repeat(4092)}`,
+    name: `${String(index).padStart(4, '0')}-${'x'.repeat(4091)}`,
     version: '1',
     enabled: true,
   }));

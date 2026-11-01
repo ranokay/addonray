@@ -7,24 +7,28 @@ function view({
   preview = null,
   busy = false,
   message = null,
+  format = 'markdown' as const,
 }: {
   eligible?: boolean;
   preview?: string | null;
   busy?: boolean;
   message?: string | null;
+  format?: 'markdown' | 'json';
 } = {}) {
   const onPrepare = vi.fn(async () => {});
   const onDownload = vi.fn(async () => {});
+  const onFormat = vi.fn();
   const markup = renderToStaticMarkup(
     <ReportExportView
-      state={{ preview, busy, message }}
+      state={{ format, preview, busy, message }}
       eligible={eligible}
       onPrepare={onPrepare}
       onDownload={onDownload}
       onCancel={vi.fn()}
+      onFormat={onFormat}
     />,
   );
-  return { markup, onPrepare, onDownload };
+  return { markup, onPrepare, onDownload, onFormat };
 }
 
 it('explains disclosure, missing-data eligibility and the accepted download lifetime before preparation', () => {
@@ -54,6 +58,30 @@ it('renders the exact text as a labelled read-only value instead of interpreting
   expect(markup).not.toContain('<img');
   expect(markup).toContain('Download report');
   expect(markup).toContain('id="report-cancel"');
+});
+
+it('offers an explicit JSON format and describes its minimized schema', () => {
+  const { markup } = view({
+    format: 'json',
+    preview:
+      '{"schemaVersion":1,"provenance":"captured","report":{"before":{"extensions":[{"name":"<script>bad()</script>"}]}}}',
+  });
+  expect(markup).toContain('id="report-format-markdown"');
+  expect(markup).toContain('id="report-format-json"');
+  expect(markup).toMatch(/id="report-format-json"[^>]*checked/);
+  expect(markup).toContain('Exact JSON preview');
+  expect(markup).toContain('schema version 1');
+  expect(markup).toContain('omits extension IDs');
+  expect(markup).toContain('&quot;schemaVersion&quot;');
+  expect(markup).not.toContain('<script>bad()');
+  expect(markup).toMatch(/id="report-download"[^>]*/);
+});
+
+it('marks the Markdown format as the preserved default', () => {
+  const { markup } = view({ preview: '# Report\n' });
+  expect(markup).toMatch(/id="report-format-markdown"[^>]*checked/);
+  expect(markup).toContain('Exact Markdown preview');
+  expect(markup).not.toContain('Exact JSON preview');
 });
 
 it('disables duplicate actions during checks while keeping Cancel available', () => {

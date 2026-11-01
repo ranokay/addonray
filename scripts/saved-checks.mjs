@@ -1,6 +1,13 @@
 /* global browser, ChromeUtils, WebExtensionPolicy, OpenBrowserWindow, gBrowser */
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { By, until } from 'selenium-webdriver';
+import {
+  assertExchangeJson,
+  observeExactJsonDownload,
+  snapshotJsonDownloads,
+} from './json-export-checks.mjs';
 
 const beforeSelector = '[data-testid="before-snapshot"]';
 const afterSelector = '[data-testid="after-snapshot"]';
@@ -269,6 +276,108 @@ async function assertLibraryRecord({
   return archive;
 }
 
+async function checkSavedJsonExport({
+  driver,
+  directory,
+  fixtureId,
+  fixtureName,
+  investigationLabel,
+  changeKind,
+  authority,
+  passed,
+  stage,
+}) {
+  assert.equal(
+    (await driver.findElements(By.id('saved-json-prepare'))).length,
+    1,
+    'An open archive must offer JSON export',
+  );
+  assert.equal(
+    await driver.findElement(By.id('saved-json-prepare')).isEnabled(),
+    true,
+  );
+  assert.equal(
+    (await driver.findElements(By.id('saved-json-text'))).length,
+    0,
+    'Preparing saved JSON must be a separate explicit action',
+  );
+  await driver.findElement(By.id('saved-json-prepare')).click();
+  const preview = await driver.wait(
+    until.elementLocated(By.id('saved-json-text')),
+    10000,
+  );
+  assert.equal(await preview.getProperty('readOnly'), true);
+  const reviewedJson = await preview.getProperty('value');
+  assertExchangeJson(reviewedJson, {
+    fixtureName,
+    fixtureId,
+    investigationLabel,
+    assessment: 'uncertain',
+    changeKind: changeKind.toLowerCase(),
+  });
+  const reviewedBytes = Buffer.from(reviewedJson, 'utf8');
+  assert(reviewedBytes.length <= 1_048_576);
+  const before = await snapshotJsonDownloads(directory);
+  await driver.findElement(By.id('saved-json-download')).click();
+  const downloaded = await observeExactJsonDownload({
+    driver,
+    directory,
+    expected: reviewedJson,
+    before,
+  });
+  const downloadedBytes = await readFile(downloaded.path);
+  assert.deepEqual(
+    downloadedBytes,
+    reviewedBytes,
+    'Downloaded saved JSON must equal the reviewed UTF-8 preview byte for byte',
+  );
+  assert.equal(
+    await driver.findElement(By.id('saved-json-text')).getProperty('value'),
+    reviewedJson,
+  );
+  await driver.wait(
+    async () =>
+      (
+        await sectionText(
+          driver,
+          'section[aria-labelledby="saved-json-heading"]',
+        )
+      ).includes(
+        'Download requested. Check your browser downloads for its outcome.',
+      ),
+    10000,
+  );
+  const evidence = {
+    stage,
+    reviewedJson,
+    reviewedBytes: reviewedBytes.length,
+    reviewedSha256: createHash('sha256').update(reviewedBytes).digest('hex'),
+    filename: downloaded.filename,
+    downloadedPath: downloaded.path,
+    downloadedBytes: downloadedBytes.length,
+    downloadedSha256: createHash('sha256')
+      .update(downloadedBytes)
+      .digest('hex'),
+    exactUtf8Match: true,
+    newlyObserved: downloaded.newlyObserved,
+    observedEntries: downloaded.observedEntries,
+    fixtureIdExcluded: true,
+    investigationLabelExcluded: true,
+    requestOnlyWording: true,
+  };
+  await driver.findElement(By.id('saved-json-cancel')).click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.id('saved-json-text'))).length === 0,
+    10000,
+  );
+  passed(
+    `${authority}: ${stage} exposes the exact reviewed JSON preview and generic UTF-8 download`,
+    { savedInvestigations: { jsonExport: evidence } },
+  );
+  return evidence;
+}
+
 async function deleteShownRecord(driver) {
   const entry = await driver.findElement(By.css('.library-entry'));
   const deleteButton = await entry.findElement(
@@ -307,6 +416,7 @@ export async function checkSavedInvestigations({
   authority,
   passed,
   simulateQuota,
+  reportDirectory,
 }) {
   const investigationWindow = await driver.getWindowHandle();
   await saveOnce(driver, 7);
@@ -349,6 +459,17 @@ export async function checkSavedInvestigations({
       },
     },
   );
+  await checkSavedJsonExport({
+    driver,
+    directory: reportDirectory,
+    fixtureId,
+    fixtureName,
+    investigationLabel,
+    changeKind,
+    authority,
+    passed,
+    stage: 'saved archive',
+  });
   passed(
     `${authority}: the popup launcher opens the local library and the archive reopens read-only without extension IDs`,
     {
@@ -721,12 +842,17 @@ export async function finishSavedInvestigations({
   passed,
   revoked,
   fixtureName,
+  fixtureId,
   changeKind,
+  investigationLabel,
+  reportDirectory,
 }) {
   const handle = await openDirectLibrary(driver, libraryUrl);
   await assertLibraryRecord({
     driver,
+    fixtureId,
     fixtureName,
+    investigationLabel,
     changeKind,
   });
   const rows = await driver.findElements(By.css('.library-entry'));
@@ -748,6 +874,27 @@ export async function finishSavedInvestigations({
     passed(
       `${authority}: saved archives remain listable and readable after management access is removed`,
       { savedInvestigations: { permissionRemoval: 'archive remained usable' } },
+    );
+    await checkSavedJsonExport({
+      driver,
+      directory: reportDirectory,
+      fixtureId,
+      fixtureName,
+      investigationLabel,
+      changeKind,
+      authority,
+      passed,
+      stage: 'saved archive after management removal',
+    });
+    const stillGranted = await driver.executeAsyncScript((done) =>
+      (globalThis.browser ?? globalThis.chrome).permissions
+        .contains({ permissions: ['management'] })
+        .then(done),
+    );
+    assert.equal(
+      stillGranted,
+      false,
+      'JSON export must not request or restore collection access',
     );
   }
   await deleteShownRecord(driver);

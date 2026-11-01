@@ -251,6 +251,7 @@ export async function checkInvestigation({
     directory: reportDirectory,
     fixtureId,
     fixtureName,
+    fixtureInitiallyEnabled,
     authority,
     passed,
   });
@@ -272,6 +273,7 @@ export async function checkInvestigation({
     authority,
     passed,
     simulateQuota: simulateSavedQuota,
+    reportDirectory,
   });
 
   async function verifyRetainedReport(phase) {
@@ -355,7 +357,10 @@ export async function checkInvestigation({
     passed,
     revoked: Boolean(revokeManagement),
     fixtureName,
+    fixtureId,
     changeKind,
+    investigationLabel,
+    reportDirectory,
   });
 
   for (const handle of investigationWindows) {

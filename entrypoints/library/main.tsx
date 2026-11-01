@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { browser } from 'wxt/browser';
 import { createSavedLibrary } from '../../lib/saved-library';
 import { createSavedChangeHint } from '../../lib/saved-notifier';
+import { createSavedExport } from '../../lib/saved-export';
+import { requestReportDownload } from '../../lib/report-download';
 import { createIndexedDbSavedStore } from '../../lib/saved-store';
 import { App } from './App';
 import '../investigation/style.css';
@@ -13,7 +15,11 @@ if (!root) throw new Error('Missing library root');
 const hint = createSavedChangeHint();
 const store = createIndexedDbSavedStore();
 const library = createSavedLibrary(browser, store, hint);
+const exporter = createSavedExport(browser, store, library, (json) =>
+  requestReportDownload(json, 'json'),
+);
 window.addEventListener('pagehide', (event) => {
+  exporter.dispose();
   library.suspend();
   if (!event.persisted) {
     library.close();
@@ -26,6 +32,6 @@ window.addEventListener('pageshow', (event) => {
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
-    <App library={library} />
+    <App library={library} exporter={exporter} />
   </React.StrictMode>,
 );

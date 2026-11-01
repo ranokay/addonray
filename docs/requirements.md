@@ -126,9 +126,25 @@ for this new path are pending. The original immediate-owner-close candidate
 failures remain failed; revised feasibility, including ESR, must pass before
 product wiring.
 
+The approved #8 slice adds schema version 1 JSON as a second live report format
+and as the saved archive export. The live controller keeps the Markdown default
+and the same idle-pair, snapshot reference, reset generation, permission and
+normal-window checks for both formats. The JSON document contains only
+`schemaVersion`, `provenance` and the archive `report` fields. It preserves null,
+measured, unrecorded and unavailable states, the precomputed ID-based changes and
+the observation limits, and omits extension IDs, record and session identifiers,
+timestamps, permission metadata, URLs, titles and context. It shares the 1 MiB
+UTF-8 cap, 1,000 inventory rows per side, 2,000 changes, 4,096 code points per
+string and depth 8. Accepted output keeps the future strict-import shape; import
+remains #9. Saved archive JSON export re-reads storage before preparation and
+download, rejects deleted, expired, unsupported, invalid or changed records,
+requires a verified normal window and requests no collection permission, so it
+remains available after management or scripting removal. Neither format claims
+that dispatch proves browser acceptance or disk completion.
+
 ## Saved-investigation and report-exchange boundaries
 
-On 2026-10-30 the user approved Q1 through Q16 and the [saved-data contract](plans/saved-investigation-data-rules.md). The bounded #6 slice implements explicit Save, local list, read-only reopen and single-record delete. #7 adds a per-save 7/30/90-day retention choice, bulk deletion and explicit delete-all. Report exchange (#8 through #11) and imported records are not implemented. The current investigation remains session-only apart from an explicit saved archive, and the Markdown download remains the only report output.
+On 2026-10-30 the user approved Q1 through Q16 and the [saved-data contract](plans/saved-investigation-data-rules.md). The bounded #6 slice implements explicit Save, local list, read-only reopen and single-record delete. #7 adds a per-save 7/30/90-day retention choice, bulk deletion and explicit delete-all. #8 adds schema version 1 JSON export for the live investigation and the saved archive. JSON import (#9), printable HTML (#10) and clipboard (#11) are not implemented. The current investigation remains session-only apart from an explicit saved archive; Markdown and JSON are the implemented report outputs.
 
 An explicit Save creates an immutable, read-only local archive of one completed, idle investigation with both inventories successful. Each save creates a new record; there is no autosave or update. The archive keeps both inventories, precomputed ID-based changes, the assessment, optional timing and page-error summaries and observation limits. It omits extension IDs, live or ephemeral identifiers, page and browser context, user notes and exchanged timestamps. Reopening collects no inventory or page data, prompts for no collection permission and resumes no collector. It performs only the narrow current-view context and storage eligibility checks needed for the approved normal-window boundary.
 
@@ -136,13 +152,13 @@ Saved records stay in extension-origin IndexedDB in the current browser profile 
 
 Saved archives remain available after management or scripting revocation. Revocation still clears live investigations and cancels pending live saves. Single-record deletion, a frozen multi-record selection and confirmed delete-all apply across views and prevent resurrection. Delete-all clears the actual storage including unsupported and not-currently-listed rows. A deleted or expired record cannot be reopened or used, while browser backups and already handed-off files, prints or clipboard content remain outside recall. Unsupported and unreadable records stay listed for explicit deletion.
 
-Every saved-data action requires a verified normal window. Private, incognito and unknown contexts expose no saved data. The approved exchange formats remain future work: Markdown, schema version 1 JSON export and import, self-contained printable HTML through browser Print/Save as PDF, and explicit clipboard copy. Each has its own exact preview. Imports are untrusted, read-only and persist only after a separate save. Save imported report applies the stored-record bound including the local envelope, so a maximum-size import is view-only if the envelope would exceed that bound. Strict validation rejects malformed, negative and above-range duration values. The shared bounds are 1 MiB, 1,000 inventory entries per side, 2,000 changes, 4,096 characters per string and nesting depth 8. Accepted JSON exports re-import for read-only inspection without truncation. No runtime, permission, dependency or support change beyond the bounded #6 and #7 slices is authorized by this contract.
+Every saved-data action requires a verified normal window. Private, incognito and unknown contexts expose no saved data. Schema version 1 JSON export is implemented for the live investigation and the saved archive. Markdown exchange for saved archives, JSON import, self-contained printable HTML through browser Print/Save as PDF, and explicit clipboard copy remain future work. Each output has its own exact preview. Imports are untrusted, read-only and persist only after a separate save. Save imported report applies the stored-record bound including the local envelope, so a maximum-size import is view-only if the envelope would exceed that bound. Strict validation rejects malformed, negative and above-range duration values. The shared bounds are 1 MiB, 1,000 inventory entries per side, 2,000 changes, 4,096 characters per string and nesting depth 8. Accepted JSON exports keep the future import shape without truncation. No runtime, permission, dependency or support change beyond the bounded #6, #7 and #8 slices is authorized by this contract.
 
 ## Out of scope for Phase 0
 
 Continuous recording, network collection, page-world instrumentation, console interception, automatic culprit ranking, automated extension state changes, theme management, report export, persistent history, mobile support, additional Chromium browsers, accounts, sync, AMO publication, and a native companion implementation.
 
-That list was the Phase 0 boundary. The later expanded v1 target approves report exchange, local saved investigations and an optional companion as future work under [the v1 contract](v1-contract.md). The [#5 saved-data contract](plans/saved-investigation-data-rules.md) records the saved-data rules. The bounded #6 save/list/reopen/delete and #7 retention/bulk-delete slices are implemented; the remaining exchange work still requires its own implementation and qualification.
+That list was the Phase 0 boundary. The later expanded v1 target approves report exchange, local saved investigations and an optional companion as future work under [the v1 contract](v1-contract.md). The [#5 saved-data contract](plans/saved-investigation-data-rules.md) records the saved-data rules. The bounded #6 save/list/reopen/delete, #7 retention/bulk-delete and #8 JSON export slices are implemented; the remaining exchange work still requires its own implementation and qualification.
 
 ## Important edge cases
 

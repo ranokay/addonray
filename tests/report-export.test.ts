@@ -24,7 +24,17 @@ beforeEach(() => {
 });
 afterEach(() => cleanup.splice(0).forEach((dispose) => dispose()));
 
-async function fixture({ complete = true, timing = false } = {}) {
+async function fixture({
+  complete = true,
+  timing = false,
+  beforeEntries,
+  afterEntries,
+}: {
+  complete?: boolean;
+  timing?: boolean;
+  beforeEntries?: Awaited<ReturnType<typeof browser.management.getAll>>;
+  afterEntries?: Awaited<ReturnType<typeof browser.management.getAll>>;
+} = {}) {
   const request = vi
     .spyOn(browser.permissions, 'request')
     .mockResolvedValue(true);
@@ -41,7 +51,7 @@ async function fixture({ complete = true, timing = false } = {}) {
       ),
     },
   };
-  const handoff = vi.fn((_text: string) => {});
+  const handoff = vi.fn((_text: string, _format: 'markdown' | 'json') => {});
   const exporter = createReportExport(api, model, handoff);
   const unsubscribe = exporter.subscribe(() => {});
   cleanup.push(() => {
@@ -49,6 +59,13 @@ async function fixture({ complete = true, timing = false } = {}) {
     unsubscribe();
   });
   if (complete) {
+    const getAll = browser.management
+      .getAll as typeof browser.management.getAll & {
+      mockResolvedValue(
+        value: Awaited<ReturnType<typeof browser.management.getAll>>,
+      ): void;
+    };
+    if (beforeEntries) getAll.mockResolvedValue(beforeEntries);
     await model.captureBefore();
     if (timing) {
       model.attachTiming(
@@ -62,6 +79,7 @@ async function fixture({ complete = true, timing = false } = {}) {
         model.getGeneration(),
       );
     }
+    if (afterEntries) getAll.mockResolvedValue(afterEntries);
     await model.captureAfter();
   }
   return { api, model, handoff, exporter, request, unsubscribe };
@@ -70,6 +88,7 @@ async function fixture({ complete = true, timing = false } = {}) {
 it('starts empty without inspecting context or requesting a download', async () => {
   const { api, handoff, exporter } = await fixture();
   expect(exporter.getSnapshot()).toEqual({
+    format: 'markdown',
     preview: null,
     busy: false,
     message: null,
@@ -105,12 +124,110 @@ it('hands off exactly the reviewed text only after a separate action and new che
     permissions: ['management'],
   });
   await exporter.download();
-  expect(handoff.mock.calls).toEqual([[reviewed]]);
+  expect(handoff.mock.calls).toEqual([[reviewed, 'markdown']]);
   expect(api.tabs.getCurrent).toHaveBeenCalledTimes(2);
   expect(api.permissions.contains).toHaveBeenCalledTimes(2);
   expect(browser.permissions.request).toHaveBeenCalledTimes(requests);
   expect(exporter.getSnapshot().message).toContain('Download requested');
   expect(exporter.getSnapshot().preview).toBe(reviewed);
+});
+
+it('prepares and hands off the exact schema JSON only after its own checks', async () => {
+  const { api, exporter, handoff, request } = await fixture();
+  const requests = request.mock.calls.length;
+  exporter.setFormat('json');
+  await exporter.prepare();
+  const reviewed = exporter.getSnapshot().preview;
+  if (reviewed === null) throw new Error('Missing JSON preview');
+  expect(exporter.getSnapshot().format).toBe('json');
+  expect(JSON.parse(reviewed)).toEqual({
+    schemaVersion: 1,
+    provenance: 'captured',
+    report: {
+      before: { extensions: [] },
+      after: { extensions: [] },
+      changes: [],
+      assessment: null,
+      timing: { before: null, after: null },
+      pageErrors: { before: null, after: null },
+      observationLimits: {
+        pageErrorWindowMs: 30000,
+        pageErrorEvents: 200,
+        pageErrorSummaryBytes: 1024,
+      },
+    },
+  });
+  expect(handoff).not.toHaveBeenCalled();
+  expect(api.permissions.contains).toHaveBeenLastCalledWith({
+    permissions: ['management'],
+  });
+  await exporter.download();
+  expect(handoff.mock.calls).toEqual([[reviewed, 'json']]);
+  expect(api.tabs.getCurrent).toHaveBeenCalledTimes(2);
+  expect(browser.permissions.request).toHaveBeenCalledTimes(requests);
+  expect(exporter.getSnapshot().message).toContain('Download requested');
+  expect(exporter.getSnapshot().preview).toBe(reviewed);
+});
+
+it('includes attached diagnostics in JSON and keeps the page-data permission guard', async () => {
+  const { api, exporter, handoff } = await fixture({ timing: true });
+  exporter.setFormat('json');
+  await exporter.prepare();
+  expect(api.permissions.contains).toHaveBeenLastCalledWith({
+    permissions: ['management', 'scripting'],
+  });
+  const reviewed = exporter.getSnapshot().preview;
+  if (reviewed === null) throw new Error('Missing JSON preview');
+  const report = JSON.parse(reviewed).report;
+  expect(report.timing.before).toEqual({
+    domContentLoaded: { status: 'measured', milliseconds: 10 },
+    loadEvent: { status: 'unrecorded' },
+    firstContentfulPaint: { status: 'unavailable' },
+  });
+  expect(report.timing.after).toBeNull();
+  expect(report.pageErrors).toEqual({ before: null, after: null });
+  await exporter.download();
+  expect(handoff.mock.calls).toEqual([[reviewed, 'json']]);
+});
+
+it('discards a Markdown preview when the selected format changes', async () => {
+  const { exporter, handoff } = await fixture();
+  await exporter.prepare();
+  expect(exporter.getSnapshot().preview).toContain('# AddonRay');
+  exporter.setFormat('json');
+  expect(exporter.getSnapshot()).toMatchObject({
+    format: 'json',
+    preview: null,
+    busy: false,
+    message: null,
+  });
+  await exporter.download();
+  expect(handoff).not.toHaveBeenCalled();
+  exporter.setFormat('markdown');
+  await exporter.prepare();
+  expect(exporter.getSnapshot().preview).toContain('# AddonRay');
+});
+
+it('refuses over-limit JSON without truncation and keeps the live pair', async () => {
+  const entries = Array.from({ length: 1000 }, (_, index) => ({
+    id: `entry-${index}@test`,
+    name: 'x'.repeat(4096),
+    version: '1',
+    enabled: true,
+    type: 'extension' as const,
+  })) as unknown as Awaited<ReturnType<typeof browser.management.getAll>>;
+  const { exporter, model, handoff } = await fixture({
+    beforeEntries: entries,
+    afterEntries: entries,
+  });
+  exporter.setFormat('json');
+  await exporter.prepare();
+  expect(exporter.getSnapshot().busy).toBe(false);
+  expect(exporter.getSnapshot().preview).toBeNull();
+  expect(exporter.getSnapshot().message).toContain('1 MiB');
+  expect(model.getSnapshot().before?.status).toBe('success');
+  await exporter.download();
+  expect(handoff).not.toHaveBeenCalled();
 });
 
 for (const context of [true, undefined]) {
@@ -257,6 +374,29 @@ for (const permission of ['management', 'scripting'] as const) {
   });
 }
 
+it('rejects a reset while a JSON download revalidation is pending', async () => {
+  const { api, model, exporter, handoff } = await fixture();
+  exporter.setFormat('json');
+  await exporter.prepare();
+  const held =
+    Promise.withResolvers<
+      Awaited<ReturnType<ReportBrowser['tabs']['getCurrent']>>
+    >();
+  const started = Promise.withResolvers<void>();
+  api.tabs.getCurrent.mockImplementation(async () => {
+    started.resolve();
+    return held.promise;
+  });
+  const pending = exporter.download();
+  await started.promise;
+  model.startOver();
+  held.resolve({ incognito: false });
+  await pending;
+  expect(handoff).not.toHaveBeenCalled();
+  expect(exporter.getSnapshot().preview).toBeNull();
+  expect(exporter.getSnapshot().busy).toBe(false);
+});
+
 it('coalesces overlapping actions and permits only deliberate later download attempts', async () => {
   const { api, exporter, handoff } = await fixture();
   const held =
@@ -305,6 +445,7 @@ it('forgets previews and pending ownership when its last subscriber leaves', asy
   await exporter.prepare();
   unsubscribe();
   expect(exporter.getSnapshot()).toEqual({
+    format: 'markdown',
     preview: null,
     busy: false,
     message: null,

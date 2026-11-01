@@ -9,6 +9,7 @@ export function ReportExportView({
   onPrepare,
   onDownload,
   onCancel,
+  onFormat,
   previewRef,
 }: {
   state: ExportState;
@@ -16,17 +17,43 @@ export function ReportExportView({
   onPrepare: () => Promise<void>;
   onDownload: () => Promise<void>;
   onCancel: () => void;
+  onFormat: (format: 'markdown' | 'json') => void;
   previewRef?: Ref<HTMLTextAreaElement>;
 }) {
+  const json = state.format === 'json';
   return (
     <section aria-labelledby="report-heading" aria-busy={state.busy}>
       <h2 id="report-heading">Investigation report</h2>
       <p id="report-disclosure">
-        Review a Markdown file containing both extension inventories, their
-        changes, your assessment and any attached diagnostics. Extension names
-        and versions are included and can reveal your extension choices. No
-        report is sent automatically.
+        {json
+          ? 'Review a schema version 1 JSON file containing both extension inventories, their changes, your assessment and any attached diagnostics. It omits extension IDs, local record IDs, save times and browser context. Extension names and versions are included and can reveal your extension choices. No report is sent automatically.'
+          : 'Review a Markdown file containing both extension inventories, their changes, your assessment and any attached diagnostics. Extension names and versions are included and can reveal your extension choices. No report is sent automatically.'}
       </p>
+      <fieldset className="report-format" disabled={state.busy}>
+        <legend>Report format</legend>
+        <label>
+          <input
+            id="report-format-markdown"
+            type="radio"
+            name="report-format"
+            value="markdown"
+            checked={!json}
+            onChange={() => onFormat('markdown')}
+          />
+          Markdown
+        </label>
+        <label>
+          <input
+            id="report-format-json"
+            type="radio"
+            name="report-format"
+            value="json"
+            checked={json}
+            onChange={() => onFormat('json')}
+          />
+          JSON
+        </label>
+      </fieldset>
       <p className="metadata" id="report-download-help">
         Keep this investigation open until your browser shows the download.
         Closing or reloading may cancel a pending request. Your browser may save
@@ -54,7 +81,9 @@ export function ReportExportView({
       </div>
       {state.preview !== null && (
         <div className="report-preview">
-          <label htmlFor="report-text">Exact Markdown preview</label>
+          <label htmlFor="report-text">
+            {json ? 'Exact JSON preview' : 'Exact Markdown preview'}
+          </label>
           <textarea
             id="report-text"
             ref={previewRef}
@@ -70,7 +99,7 @@ export function ReportExportView({
             aria-describedby="report-download-help"
             onClick={() => void onDownload()}
           >
-            Download report
+            {json ? 'Download JSON report' : 'Download report'}
           </button>
         </div>
       )}
@@ -100,6 +129,7 @@ export function ReportExportSection({
       onPrepare={exporter.prepare}
       onDownload={exporter.download}
       onCancel={exporter.cancel}
+      onFormat={exporter.setFormat}
       previewRef={previewRef}
     />
   );

@@ -129,6 +129,16 @@ Blob and a temporary anchor with the generic filename. Its finally blocks remove
 the anchor and synchronously revoke its object URL. It reports no browser
 acceptance or completed-file status and retains no download owner.
 
+#8 adds schema version 1 JSON to the same owning-view controller. The format is
+part of the prepared permit. `lib/saved-record.ts` projects the live snapshot
+through the archive schema validation and serializes only `schemaVersion`,
+`provenance` and `report`; the complete UTF-8 document is checked against 1 MiB.
+Switching format discards a preview. Both formats use the same snapshot reference,
+reset generation, operation ticket, normal-window check and current permission
+check before prepare and download. The download adapter maps the reviewed format
+to a generic `.json` filename and application type. Dispatch remains only a
+download request.
+
 The revised candidate gate passed, including ESR, before product wiring.
 `entrypoints/investigation/main.tsx` creates the controller once for its owning
 investigation and passes it through `App.tsx` to `ReportExport.tsx`. The component
@@ -152,8 +162,9 @@ The [saved-data contract](plans/saved-investigation-data-rules.md) adds a
 saved-archive owner separate from the live investigation. The Stage 1
 IndexedDB candidate was accepted for the bounded #6 slice on 2026-10-30; save,
 list, read-only reopen and single-record delete are implemented. #7 adds a
-per-save retention choice, frozen bulk selection and confirmed delete-all.
-Import, JSON exchange, printable HTML and clipboard remain future work.
+per-save retention choice, frozen bulk selection and confirmed delete-all. #8
+adds JSON export from an open archive. Import, printable HTML and clipboard
+remain future work.
 
 `lib/saved-record.ts` is the pure schema/model boundary. It accepts one
 completed, idle live snapshot, requires both successful inventories, strips
@@ -213,6 +224,18 @@ is used again. The popup launcher classifies the active tab of the current windo
 requires `incognito === false`, so private, incognito and unknown contexts expose
 no saved data. The library remains usable after management or scripting
 permission removal.
+
+`lib/saved-export.ts` owns JSON export for an open archive. It derives the
+selected key and record ID from the library snapshot and subscribes to selection
+changes. Prepare and download each require a verified normal window, re-read
+IndexedDB and revalidate the stored record before publishing reviewed bytes or
+handing them off. Missing, expired, unsupported, unreadable or changed records
+and a changed selection fail closed; lifecycle suspension, `pagehide` disposal,
+deletion and context loss invalidate pending work. The controller makes no
+permission request and is independent of management or scripting grants. It
+compares the fresh `serializeExchange` output with the reviewed text before the
+synchronous browser handoff, which is a request rather than acceptance or disk
+completion.
 
 The still-future import owner will validate a selected file, render it as
 untrusted text and keep it separate from live observations. Persistence will

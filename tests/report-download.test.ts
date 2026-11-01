@@ -63,6 +63,22 @@ it('dispatches the exact UTF-8 text under a generic filename and releases the UR
   expect(revoke).toHaveBeenCalledWith('blob:controlled-fixture');
 });
 
+it('dispatches the exact reviewed JSON as UTF-8 under the generic JSON filename', async () => {
+  const { anchor, create, revoke, events } = fixture();
+  const reviewed =
+    '{"schemaVersion":1,"provenance":"captured","report":{"assessment":null,"name":"A\\"\\\\\\n🧪"}}';
+  requestReportDownload(reviewed, 'json');
+  const blob = create.mock.calls[0]?.[0];
+  if (!(blob instanceof Blob)) throw new Error('Expected a JSON Blob');
+  expect(await blob.text()).toBe(reviewed);
+  expect(blob.size).toBe(new TextEncoder().encode(reviewed).length);
+  expect(blob.type).toBe('application/json;charset=utf-8');
+  expect(anchor.download).toBe('addonray-investigation.json');
+  expect(anchor.href).toBe('blob:controlled-fixture');
+  expect(events).toEqual(['create', 'append', 'click', 'remove', 'revoke']);
+  expect(revoke).toHaveBeenCalledWith('blob:controlled-fixture');
+});
+
 it('releases the link and URL if the browser request throws without retrying', () => {
   const { anchor, revoke } = fixture();
   anchor.click.mockImplementation(() => {
