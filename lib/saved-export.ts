@@ -151,11 +151,12 @@ export function createSavedExport(
       permit = candidate;
       publish({ preview: null, busy: true, message: null });
       try {
-        if (!(await normalContext(api))) {
+        const normal = await normalContext(api);
+        if (!current(ticket, candidate)) return;
+        if (!normal) {
           discard(contextMessage);
           return;
         }
-        if (!current(ticket, candidate)) return;
         const raw = await store.get(candidate.key);
         if (!current(ticket, candidate)) return;
         const checked = validate(raw, candidate);
@@ -170,13 +171,28 @@ export function createSavedExport(
           );
           return;
         }
-        if (!(await normalContext(api))) {
+        const finalContext = await normalContext(api);
+        if (!current(ticket, candidate)) return;
+        if (!finalContext) {
           discard(contextMessage);
           return;
         }
-        if (!current(ticket, candidate)) return;
         if (source.getSnapshot().busy) {
           discard(busyMessage);
+          return;
+        }
+        // Expiry and the stored report identity are time/state dependent.
+        // Revalidate the held snapshot after the last await and immediately
+        // before publishing. The record object cannot mutate in memory; a
+        // later storage write is outside this read snapshot and the next
+        // output action re-reads storage without needing a delivered hint.
+        const finalCheck = validate(checked, candidate);
+        if (typeof finalCheck === 'string') {
+          discard(finalCheck);
+          return;
+        }
+        if (serializeExchange(finalCheck) !== text) {
+          discard('The saved record changed. Prepare its JSON report again.');
           return;
         }
         candidate.text = text;
@@ -196,17 +212,20 @@ export function createSavedExport(
       const ticket = ++operation;
       publish({ ...state, busy: true, message: null });
       try {
-        if (!(await normalContext(api))) {
+        const normal = await normalContext(api);
+        if (!current(ticket, candidate)) return;
+        if (!normal) {
           discard(contextMessage);
           return;
         }
-        if (!current(ticket, candidate)) return;
         const raw = await store.get(candidate.key);
-        if (!(await normalContext(api))) {
+        if (!current(ticket, candidate)) return;
+        const finalContext = await normalContext(api);
+        if (!current(ticket, candidate)) return;
+        if (!finalContext) {
           discard(contextMessage);
           return;
         }
-        if (!current(ticket, candidate)) return;
         if (source.getSnapshot().busy) {
           publish({
             ...state,

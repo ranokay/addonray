@@ -23,6 +23,7 @@ export async function checkReportExport({
   directory,
   fixtureId,
   fixtureName,
+  markdownFixtureName,
   fixtureInitiallyEnabled,
   authority,
   passed,
@@ -108,11 +109,10 @@ export async function checkReportExport({
     assert(text.startsWith('# AddonRay investigation report\n\n'));
     assert(text.endsWith('\n'));
     assert(!text.includes('\r'));
-    // Markdown escapes quotes and backslashes in code spans by design.
-    const markdownMarker = '🧪 <b>fixture</b>';
+    // The expected escaped name is declared independently by the caller.
     assert(
-      text.includes(markdownMarker),
-      'Report must include the fixture name',
+      text.includes(markdownFixtureName),
+      'Report must include the full escaped fixture name',
     );
     assert(!text.includes(fixtureId), 'Report must omit the fixture ID');
     assert(
@@ -128,8 +128,8 @@ export async function checkReportExport({
     const afterInventory = text
       .split('## After inventory\n\n')[1]
       ?.split('\n## Reported inventory changes')[0];
-    assert(beforeInventory?.includes(markdownMarker));
-    assert(afterInventory?.includes(markdownMarker));
+    assert(beforeInventory?.includes(markdownFixtureName));
+    assert(afterInventory?.includes(markdownFixtureName));
     assert(text.includes(`## Your page assessment\n\n${assessment}.`));
     for (const milestone of [
       'DOM content loaded',

@@ -64,6 +64,10 @@ async function fixture(directoryName, name, manifest) {
   return directory;
 }
 const fixtureName = 'Controlled "quote" \\backslash 🧪 <b>fixture</b>';
+// Markdown code spans escape quotes and backslashes. This expected value is
+// independent of the production serializer.
+const markdownFixtureName =
+  'Controlled \\u0022quote\\u0022 \\u005Cbackslash 🧪 <b>fixture</b>';
 const ordinary = await fixture('controlled-ordinary', fixtureName, {
   permissions: ['storage'],
   host_permissions: ['https://example.invalid/*'],
@@ -327,6 +331,7 @@ try {
     settingsUrl: 'chrome://extensions/',
     fixtureId,
     fixtureName,
+    markdownFixtureName,
     fixtureInitiallyEnabled: false,
     setFixtureEnabled: async (enabled) => {
       const investigationWindow = await driver.getWindowHandle();

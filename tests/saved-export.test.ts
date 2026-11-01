@@ -293,8 +293,9 @@ it('does not hand off after selection or context changes during a deferred downl
     'delete',
     'cancel',
   ] as const) {
-    const { store, exporter, handoff, publish, context } = fixture();
+    const { store, exporter, handoff, publish, context, api } = fixture();
     await exporter.prepare();
+    const contextCalls = api.tabs.getCurrent.mock.calls.length;
     const held = Promise.withResolvers<void>();
     store.getWait = held.promise;
     store.getStarted = Promise.withResolvers<void>();
@@ -315,9 +316,83 @@ it('does not hand off after selection or context changes during a deferred downl
     expect(handoff).not.toHaveBeenCalled();
     expect(exporter.getSnapshot().preview).toBeNull();
     expect(exporter.getSnapshot().busy).toBe(false);
+    if (interruption === 'cancel' || interruption === 'selection')
+      expect(api.tabs.getCurrent).toHaveBeenCalledTimes(contextCalls + 1);
   }
 });
 
+it('rechecks expiry after the final context await before publishing a preview', async () => {
+  const { api, store, exporter } = fixture();
+  const base = Date.now();
+  store.entries.set(key, record({ savedAt: base, expiresAt: base + 5000 }));
+  const second = Promise.withResolvers<void>();
+  const held =
+    Promise.withResolvers<
+      Awaited<ReturnType<SavedBrowser['tabs']['getCurrent']>>
+    >();
+  let calls = 0;
+  api.tabs.getCurrent.mockImplementation(async () => {
+    calls += 1;
+    if (calls === 1) return { incognito: false };
+    second.resolve();
+    return held.promise;
+  });
+  const now = vi.spyOn(Date, 'now').mockReturnValue(base);
+  const pending = exporter.prepare();
+  await second.promise;
+  now.mockReturnValue(base + 6000);
+  held.resolve({ incognito: false });
+  await pending;
+  expect(exporter.getSnapshot().preview).toBeNull();
+  expect(exporter.getSnapshot().busy).toBe(false);
+  expect(exporter.getSnapshot().message).toContain('expired');
+});
+
+it('does not let an obsolete private context clear a newer preview', async () => {
+  const { api, store, exporter } = fixture();
+  const stale =
+    Promise.withResolvers<
+      Awaited<ReturnType<SavedBrowser['tabs']['getCurrent']>>
+    >();
+  let calls = 0;
+  api.tabs.getCurrent.mockImplementation(async () => {
+    calls += 1;
+    return calls === 1 ? stale.promise : { incognito: false };
+  });
+  const first = exporter.prepare();
+  exporter.cancel();
+  await exporter.prepare();
+  const reviewed = exporter.getSnapshot().preview;
+  expect(reviewed).not.toBeNull();
+  stale.resolve({ incognito: true });
+  await first;
+  expect(exporter.getSnapshot().preview).toBe(reviewed);
+  expect(store.getCalls).toBe(1);
+});
+
+it('does not let an obsolete download context clear a newer preview', async () => {
+  const { api, store, exporter, handoff } = fixture();
+  await exporter.prepare();
+  const stale =
+    Promise.withResolvers<
+      Awaited<ReturnType<SavedBrowser['tabs']['getCurrent']>>
+    >();
+  let calls = 0;
+  api.tabs.getCurrent.mockImplementation(async () => {
+    calls += 1;
+    return calls === 1 ? stale.promise : { incognito: false };
+  });
+  const firstDownload = exporter.download();
+  exporter.cancel();
+  await exporter.prepare();
+  const reviewed = exporter.getSnapshot().preview;
+  expect(reviewed).not.toBeNull();
+  stale.resolve({ incognito: true });
+  await firstDownload;
+  expect(exporter.getSnapshot().preview).toBe(reviewed);
+  expect(handoff).not.toHaveBeenCalled();
+  expect(store.getCalls).toBe(2);
+});
 it('discards a preview when the selected archive changes or disappears', async () => {
   const { exporter, select } = fixture();
   await exporter.prepare();
