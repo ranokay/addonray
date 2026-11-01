@@ -360,6 +360,8 @@ async function checkSavedJsonExport({
       .digest('hex'),
     exactUtf8Match: true,
     newlyObserved: downloaded.newlyObserved,
+    modifiedAtNs: downloaded.modifiedAtNs,
+    previousModifiedAtNs: downloaded.previousModifiedAtNs,
     observedEntries: downloaded.observedEntries,
     fixtureIdExcluded: true,
     investigationLabelExcluded: true,

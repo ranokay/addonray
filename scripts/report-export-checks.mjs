@@ -392,6 +392,8 @@ export async function checkReportExport({
     downloadedSha256: sha256(await readFile(downloadedJson.path)),
     exactUtf8Match: true,
     newlyObserved: downloadedJson.newlyObserved,
+    modifiedAtNs: downloadedJson.modifiedAtNs,
+    previousModifiedAtNs: downloadedJson.previousModifiedAtNs,
     observedEntries: downloadedJson.observedEntries,
     fixtureIdExcluded: true,
     investigationLabelExcluded: true,

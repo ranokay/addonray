@@ -68,6 +68,8 @@ export async function observeExactJsonDownload({
             bytes: content.length,
             observedEntries: observed.slice(),
             newlyObserved: previous === undefined,
+            modifiedAtNs: details.mtimeNs.toString(),
+            previousModifiedAtNs: previous?.toString() ?? null,
           };
         }
         return false;
