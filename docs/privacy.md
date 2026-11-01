@@ -363,7 +363,7 @@ trust rules stay under this contract. JSON export and future import share schema
 version 1 and the 1 MiB complete-document cap. The per-record stored cap also
 includes the local envelope, so a maximum-size import is view-only if the
 envelope would exceed it. The other shared bounds are 1,000 inventory entries per
-side, 2,000 changes, 4,096 characters per string and nesting depth 8. Save checks
+side, 2,000 changes, 4,096 code points per string and nesting depth 8. Save checks
 the exact would-be JSON export, so an accepted export keeps the future import
 shape without truncation. No operation truncates, repairs or silently drops
 content. A report that fits JSON but whose printable HTML exceeds 1 MiB cannot be

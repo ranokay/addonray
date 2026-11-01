@@ -416,7 +416,7 @@ Model and schema checks:
   `observedMs` at most 30,000;
 - unsupported saved records listed for explicit deletion without migration,
   rewrite or silent deletion;
-- 1,000 inventory entries per side, 2,000 changes, 4,096 characters per string,
+- 1,000 inventory entries per side, 2,000 changes, 4,096 code points per string,
   nesting depth 8, 1 MiB complete JSON and no truncation;
 - save, export and import byte accounting, including the local envelope in the
   stored record, the accepted-export re-import requirement for inspection and
@@ -552,10 +552,11 @@ Browser and native evidence:
   [#8 evidence](evidence/2026-11-01-json-report-export.md) for exact source,
   browser, OS and artifact identities and retained failures.
 - The browser helper snapshots the download directory before dispatch and
-  requires a new or newer file. A fast completion, a pre-existing same-name file
-  and partial `.json` content cannot satisfy the byte comparison. The reported
-  UI message remains a request, not proof of browser acceptance or disk
-  completion.
+  requires exactly one new or newer file named `addonray-investigation.json` or
+  a numbered browser variant. A fast completion, a pre-existing same-name file,
+  an unrelated JSON file, multiple changed files and partial content cannot
+  satisfy the byte comparison. The reported UI message remains a request, not
+  proof of browser acceptance or disk completion.
 
 A passing model or fixture check does not qualify storage, output, native
 usability or support. Run future exchange checks only when the corresponding

@@ -111,7 +111,9 @@ modification time advanced from `1793497202921196667` to
 `1793497203893482821` ns. Firefox exports all had new filenames and no previous
 same-name artifact; their observed modification times are recorded per check in
 the raw reports. Every observed file was new or newer than the
-pre-dispatch snapshot, and partial files never matched the reviewed bytes.
+pre-dispatch snapshot, used the generic filename or a numbered variant, was the
+only changed matching file, and matched the reviewed bytes. Partial files and
+unrelated JSON files never satisfied the check.
 
 The reports record the observed browser/driver/OS identity, source commit,
 dirty flag, controlled fixture authority, download directory and every check.

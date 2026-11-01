@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
-export const jsonFilename = 'addonray-investigation.json';
+const jsonNamePattern = /^addonray-investigation(?: ?\(\d+\))?\.json$/;
 
 async function entries(directory) {
   return (await readdir(directory, { withFileTypes: true }))
@@ -38,12 +38,14 @@ export async function observeExactJsonDownload({
 }) {
   const bytes = Buffer.from(expected, 'utf8');
   const observed = [];
+  let changedNames = [];
   try {
     return await driver.wait(
       async () => {
         observed.splice(0, observed.length, ...(await entries(directory)));
+        const changed = [];
         for (const name of observed) {
-          if (!name.endsWith('.json')) continue;
+          if (!jsonNamePattern.test(name)) continue;
           const path = join(directory, name);
           let details;
           try {
@@ -54,31 +56,37 @@ export async function observeExactJsonDownload({
           }
           const previous = before.get(name);
           if (previous !== undefined && details.mtimeNs <= previous) continue;
-          let content;
-          try {
-            content = await readFile(path);
-          } catch (error) {
-            if (error.code === 'ENOENT') continue;
-            throw error;
-          }
-          if (!content.equals(bytes)) continue;
-          return {
-            filename: name,
-            path,
-            bytes: content.length,
-            observedEntries: observed.slice(),
-            newlyObserved: previous === undefined,
-            modifiedAtNs: details.mtimeNs.toString(),
-            previousModifiedAtNs: previous?.toString() ?? null,
-          };
+          changed.push({ name, path, details, previous });
         }
-        return false;
+        changedNames = changed.map((entry) => entry.name);
+        // One action must create or update exactly one generic JSON file.
+        // Numbered variants cover browsers that avoid overwriting a file.
+        if (changed.length !== 1) return false;
+        const [candidate] = changed;
+        let content;
+        try {
+          content = await readFile(candidate.path);
+        } catch (error) {
+          if (error.code === 'ENOENT') return false;
+          throw error;
+        }
+        if (!content.equals(bytes)) return false;
+        return {
+          filename: candidate.name,
+          path: candidate.path,
+          bytes: content.length,
+          observedEntries: observed.slice(),
+          changedEntries: changedNames.slice(),
+          newlyObserved: candidate.previous === undefined,
+          modifiedAtNs: candidate.details.mtimeNs.toString(),
+          previousModifiedAtNs: candidate.previous?.toString() ?? null,
+        };
       },
       timeout,
-      'The browser did not create one complete JSON file with the reviewed UTF-8 bytes',
+      'The browser did not create exactly one complete generic JSON file with the reviewed UTF-8 bytes',
     );
   } catch (error) {
-    error.message += ` Observed entries: ${JSON.stringify(observed)}`;
+    error.message += ` Observed entries: ${JSON.stringify(observed)}; changed JSON files: ${JSON.stringify(changedNames)}`;
     throw error;
   }
 }
