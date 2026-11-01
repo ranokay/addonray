@@ -1,7 +1,7 @@
 # JSON report export
 
 Status: bounded #8 implementation qualified from clean
-`6fc622b69db6ce364ef9ac9dfca95a765fca837c`. Deterministic checks, native type
+`c9a9b3660433c8b56c30cba41c0a7939187acec0`. Deterministic checks, native type
 checking, four clean product browser runs and the frozen shared gate pass. The
 clean runs and gate receipt are recorded below. This record adds no permission,
 dependency, browser target, import path, printable HTML, clipboard action or
@@ -25,7 +25,7 @@ the approved [saved-investigation and report-exchange contract](../plans/saved-i
 
 ## Deterministic checks
 
-The full suite at clean `6fc622b69db6ce364ef9ac9dfca95a765fca837c`
+The full suite at clean `c9a9b3660433c8b56c30cba41c0a7939187acec0`
 passes **571 tests / 2,022,626 assertions across 38 files** and native type
 checking passes **87 files**. Focused coverage includes:
 
@@ -52,16 +52,16 @@ interaction evidence.
 ## Clean browser qualification
 
 All runs used disposable profiles through the repository runners, sequentially,
-from clean `6fc622b69db6ce364ef9ac9dfca95a765fca837c` (`sourceDirty: false`).
+from clean `c9a9b3660433c8b56c30cba41c0a7939187acec0` (`sourceDirty: false`).
 Firefox runs install the unmodified development build in a temporary directory.
 The Chrome run extracts the validated ZIP. macOS is `darwin arm64`.
 
 | Target                                | Driver                     | Result                         | Checks | Report SHA-256                                                     |
 | ------------------------------------- | -------------------------- | ------------------------------ | ------ | ------------------------------------------------------------------ |
-| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `917124239bccf11baf06105238d28bc3e46c4ef229927bacd20db38f27fb50e6` |
-| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `8815ceaf0e4ac866c30ee062651c0c577cc1dfbf767d1173a04350cc78060281` |
-| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `54706e5f87de9674c7d5a1fd17871c6e58bcf034f0046dd5c2f506813f343691` |
-| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 88     | `53c97e560e2aef26f26d4a9c3eb7d1d5b238dc1be7012f58e78a0da6679e3d32` |
+| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `f027cfc189d1183624da22204914d1adfbf2e03e9f04b237e6aafc95f5696b97` |
+| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `f9c2f4407bddd3891152610c16ed29309b5761ee059ee34f8330d0e6ab8862cb` |
+| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `e30b5e6e2c53e43cdfc18c6e5008e7bcf922839c2b30f90a2832dd9ac8b3296d` |
+| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 88     | `1cf775c1a3f8e7e8cc856c197b58f4af5d4da2a794ee9cbdd164caed00bb80dd` |
 
 The Chrome ZIP SHA-256 is
 `f424285ecd83c6d93b98e2baf849679c5751ecfd0e674d63637e48284c441af4`. The Firefox
@@ -80,8 +80,11 @@ saved and post-management-removal exports. The live export created a fresh
 generic filename; later saved exports observed `addonray-investigation(1).json`
 and `addonray-investigation(2).json`. Chrome produced 1,346 bytes with SHA-256
 `b3a6513321be574beee2ddf4bd090efa8f468a97abc853c1c26c05c69c717aea`; its second
-saved export reused the generic filename and was accepted only because the
-modification time advanced. Every observed file was new or newer than the
+saved export reused the generic filename and was accepted only because its
+modification time advanced from `1793495647678248648` to
+`1793495648513389227` ns. Firefox exports all had new filenames and no previous
+same-name artifact; their observed modification times are recorded per check in
+the raw reports. Every observed file was new or newer than the
 pre-dispatch snapshot, and partial files never matched the reviewed bytes.
 
 The reports record the observed browser/driver/OS identity, source commit,
