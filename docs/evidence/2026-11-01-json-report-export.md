@@ -1,15 +1,14 @@
 # JSON report export
 
-Status: bounded #8 implementation. Model, controller and UI checks pass locally.
-Product browser iteration evidence is recorded below. Clean-source browser runs
-and the frozen shared gate will run on the implementation commit; this record is
-updated with their exact source and artifact identities before delivery.
+Status: bounded #8 implementation qualified from clean
+`6fc622b69db6ce364ef9ac9dfca95a765fca837c`. Deterministic checks, native type
+checking, four clean product browser runs and the frozen shared gate pass. The
+clean runs and gate receipt are recorded below. This record adds no permission,
+dependency, browser target, import path, printable HTML, clipboard action or
+saved-archive Markdown output. #9 through #11 remain future work.
 
 This record covers [issue #8](https://github.com/ranokay/addonray/issues/8) under
 the approved [saved-investigation and report-exchange contract](../plans/saved-investigation-data-rules.md).
-It adds no permission, dependency, browser target, import path, printable HTML,
-clipboard action or saved-archive Markdown output. #9 through #11 remain future
-work.
 
 ## Implemented boundary
 
@@ -26,10 +25,9 @@ work.
 
 ## Deterministic checks
 
-The full suite at the dirty implementation head based on
-`03eeea705cb8c8a9b6a374b99965c3367f766b90` passes **571 tests / 2,022,626
-assertions across 38 files** and native type checking of **87 files**. Focused
-coverage includes:
+The full suite at clean `6fc622b69db6ce364ef9ac9dfca95a765fca837c`
+passes **571 tests / 2,022,626 assertions across 38 files** and native type
+checking passes **87 files**. Focused coverage includes:
 
 - exact approved JSON fields and omitted local/live fields, duplicate names,
   ID-based changes, observation limits and future-import report shape;
@@ -51,16 +49,40 @@ coverage includes:
 Model and server-rendered UI checks are not browser download or native
 interaction evidence.
 
-## Browser iteration evidence
+## Clean browser qualification
 
-All runs used disposable profiles through the repository runners. Iteration runs
-were source-dirty at base `03eeea705cb8c8a9b6a374b99965c3367f766b90`; they are
-not clean-source qualification.
+All runs used disposable profiles through the repository runners, sequentially,
+from clean `6fc622b69db6ce364ef9ac9dfca95a765fca837c` (`sourceDirty: false`).
+Firefox runs install the unmodified development build in a temporary directory.
+The Chrome run extracts the validated ZIP. macOS is `darwin arm64`.
 
-| Target                           | Result                         | Checks | Report                                   |
-| -------------------------------- | ------------------------------ | ------ | ---------------------------------------- |
-| Firefox 158.0.1                  | passed-with-qualification-gaps | 95     | `.scratch/firefox-evidence-158.0.1.json` |
-| Chrome for Testing 156.0.8078.47 | passed-with-qualification-gaps | 88     | `.scratch/chrome-evidence.json`          |
+| Target                                | Driver                     | Result                         | Checks | Report SHA-256                                                     |
+| ------------------------------------- | -------------------------- | ------------------------------ | ------ | ------------------------------------------------------------------ |
+| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `917124239bccf11baf06105238d28bc3e46c4ef229927bacd20db38f27fb50e6` |
+| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `8815ceaf0e4ac866c30ee062651c0c577cc1dfbf767d1173a04350cc78060281` |
+| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `54706e5f87de9674c7d5a1fd17871c6e58bcf034f0046dd5c2f506813f343691` |
+| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 88     | `53c97e560e2aef26f26d4a9c3eb7d1d5b238dc1be7012f58e78a0da6679e3d32` |
+
+The Chrome ZIP SHA-256 is
+`f424285ecd83c6d93b98e2baf849679c5751ecfd0e674d63637e48284c441af4`. The Firefox
+temporary-directory installation has no archive hash. Raw reports remain in
+ignored `.scratch/`: `firefox-evidence-140.0.json`,
+`firefox-evidence-153.5.1esr.json`, `firefox-evidence-158.0.1.json` and
+`chrome-evidence.json`. Runner logs are `firefox-140-clean.log`,
+`firefox-153.5.1esr-clean.log`, `firefox-158.0.1-clean.log` and
+`chrome-clean.log`.
+
+The three JSON checks on every Firefox target and the two on Chrome passed with
+exact byte equality. On Firefox, the hostile fixture name produced a 1,340-byte
+JSON document with SHA-256
+`906ee92fa7cbeec850aa8e77fa13a10a24c36a9a9b012077e98a0aa6c820bf08` for the live,
+saved and post-management-removal exports. The live export created a fresh
+generic filename; later saved exports observed `addonray-investigation(1).json`
+and `addonray-investigation(2).json`. Chrome produced 1,346 bytes with SHA-256
+`b3a6513321be574beee2ddf4bd090efa8f468a97abc853c1c26c05c69c717aea`; its second
+saved export reused the generic filename and was accepted only because the
+modification time advanced. Every observed file was new or newer than the
+pre-dispatch snapshot, and partial files never matched the reviewed bytes.
 
 The reports record the observed browser/driver/OS identity, source commit,
 dirty flag, controlled fixture authority, download directory and every check.
@@ -90,8 +112,9 @@ begin after that run.
 
 ## Qualification gaps
 
-- Clean-source four-pin reruns and the frozen shared gate are recorded in the
-  final task receipt and replace the dirty iteration table above.
+- The clean four-pin browser runs above pass. The frozen shared gate for the
+  final documentation head is recorded in the task receipt; a documentation
+  change does not alter packaged product bytes.
 - No native human download observation, Save As, cancellation or retail
   installation is claimed. Automatic-download test preferences choose the
   destination and MIME handling.

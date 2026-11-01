@@ -139,15 +139,15 @@ acceptance or disk completion; the interface keeps the owner open and reports
 only that a download was requested.
 
 Implementation and qualification evidence is recorded in
-[the #8 evidence](evidence/2026-11-01-json-report-export.md). At the
-implementation head, 571 behavior tests with 2,022,626 assertions across 38
-files and native type checking of 87 files pass. The shared product probes pass
-95 checks on each Firefox pin and 88 on Chrome for Testing 156.0.8078.47,
-including exact UTF-8 JSON preview/download before and, on Firefox, after
-actual management removal. JSON import (#9), printable HTML (#10), clipboard
-(#11), saved-archive Markdown output, the hosted exact-OS matrix and native
-human download/cancellation observation remain open. The #6 storage and
-private-context gaps and the #7 release gaps are unchanged.
+[the #8 evidence](evidence/2026-11-01-json-report-export.md). At clean
+`6fc622b69db6ce364ef9ac9dfca95a765fca837c`, 571 behavior tests with 2,022,626
+assertions across 38 files and native type checking of 87 files pass. The shared
+product probes pass 95 checks on each Firefox pin and 88 on Chrome for Testing
+156.0.8078.47, including exact UTF-8 JSON preview/download before and, on
+Firefox, after actual management removal. JSON import (#9), printable HTML
+(#10), clipboard (#11), saved-archive Markdown output, the hosted exact-OS
+matrix and native human download/cancellation observation remain open. The #6
+storage and private-context gaps and the #7 release gaps are unchanged.
 
 ## Brand asset kit
 
