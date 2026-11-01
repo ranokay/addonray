@@ -1,7 +1,7 @@
 # JSON report export
 
 Status: bounded #8 implementation qualified from clean
-`8f56e9a104294fb3f5de3190a88993e90b2562a2`. Deterministic checks, native type
+`4b51bc6bc5945dbadae4cabfb2822ab3231fd1d9`. Deterministic checks, native type
 checking, four clean product browser runs and the frozen shared gate pass. The
 clean runs and gate receipt are recorded below. This record adds no permission,
 dependency, browser target, import path, printable HTML, clipboard action or
@@ -25,7 +25,7 @@ the approved [saved-investigation and report-exchange contract](../plans/saved-i
 
 ## Deterministic checks
 
-The full suite at clean `8f56e9a104294fb3f5de3190a88993e90b2562a2`
+The full suite at clean `4b51bc6bc5945dbadae4cabfb2822ab3231fd1d9`
 passes **575 tests / 2,022,641 assertions across 38 files** and native type
 checking passes **87 files**. Focused coverage includes:
 
@@ -78,16 +78,16 @@ interaction evidence.
 ## Clean browser qualification
 
 All runs used disposable profiles through the repository runners, sequentially,
-from clean `8f56e9a104294fb3f5de3190a88993e90b2562a2` (`sourceDirty: false`).
+from clean `4b51bc6bc5945dbadae4cabfb2822ab3231fd1d9` (`sourceDirty: false`).
 Firefox runs install the unmodified development build in a temporary directory.
 The Chrome run extracts the validated ZIP. macOS is `darwin arm64`.
 
 | Target                                | Driver                     | Result                         | Checks | Report SHA-256                                                     |
 | ------------------------------------- | -------------------------- | ------------------------------ | ------ | ------------------------------------------------------------------ |
-| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `6a3150db0b66025fc1fad4af1e3ff59f67a9becbde189cce6d0c680c022bfb57` |
-| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `65fb33ebab90678a0c2a0c5277170f3d98a7323352f2055d05394183d023c83f` |
-| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `c715fd9e1bb9ab14f512be3815e708c32d9b13b5ec9f2b0a390aa8dbb3f2d422` |
-| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 88     | `8e7044c19e044895a8a4c93f6d8cc23599d05635585c16710db9ca46337841e8` |
+| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `dae5c01a95fa3ea779e4a3e64d3547f6f6d329d7d95238a7a0ad4f6daf237d84` |
+| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `6e0418b790eca48b6fea849dcc8251ceeffa90278655521f1f986aac8e7e6347` |
+| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 95     | `cb86b8c843b10de5e45f4dae0d0b8a6f69a5e28fbad2c4335ae363e4074d7416` |
+| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 88     | `d78cc8e8e0c6753c036c2d3355b53f00b46fa5e33ad9e705648069d383831183` |
 
 The Chrome ZIP SHA-256 is
 `003e3307d36512628470b070b936463587407eeb936dbd8a1e07df1611a6e73a`. The Firefox

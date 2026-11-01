@@ -140,7 +140,7 @@ only that a download was requested.
 
 Implementation and qualification evidence is recorded in
 [the #8 evidence](evidence/2026-11-01-json-report-export.md). At clean
-`8f56e9a104294fb3f5de3190a88993e90b2562a2`, 575 behavior tests with 2,022,641
+`4b51bc6bc5945dbadae4cabfb2822ab3231fd1d9`, 575 behavior tests with 2,022,641
 assertions across 38 files and native type checking of 87 files pass. The shared
 product probes pass 95 checks on each Firefox pin and 88 on Chrome for Testing
 156.0.8078.47, including exact UTF-8 JSON preview/download before and, on
