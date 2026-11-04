@@ -183,12 +183,12 @@ disposal or context loss, and a pending save is rejected by a deletion epoch
 change.
 
 Implementation and qualification evidence is recorded in
-[the #9 evidence](evidence/2026-11-05-json-report-import.md). At clean
-`34f344d072fffbfd24600cea62b549eac2ac7033`, 619 behavior tests with 2,022,955
-assertions across 40 files and native type checking of 91 files pass. The shared
-product probes pass 100 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 pin
-and 93 on Chrome for Testing 156.0.8078.47, including five production file-input
-checks per target. Printable HTML (#10), clipboard (#11), native human
+[the #9 evidence](evidence/2026-11-05-json-report-import.md). At implementation
+head `b0cdc7504effde05d1a1f56b07fb8c7a78aaf122`, 619 behavior tests with
+2,022,955 assertions across 40 files and native type checking of 91 files pass.
+The shared product probes at clean `4e9ecab` pass 100 checks on each Firefox
+140.0, 153.5.1esr and 158.0.1 pin and 93 on Chrome for Testing 156.0.8078.47,
+including five production file-input checks per target. Printable HTML (#10), clipboard (#11), native human
 file-picker observation, the hosted exact-OS matrix and signed distribution
 remain open. The authentic private import action is model-tested; the Chrome
 private main-frame library route remains policy-blocked. The #6 storage and
