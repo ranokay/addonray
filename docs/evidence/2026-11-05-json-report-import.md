@@ -25,10 +25,11 @@ the approved [saved-investigation and report-exchange contract](../plans/saved-i
 
 ## Deterministic checks
 
-The final implementation code head is signed
-`b0cdc7504effde05d1a1f56b07fb8c7a78aaf122`; the earlier implementation commit is
-`34f344d072fffbfd24600cea62b549eac2ac7033`. The frozen shared gate passes
-**619 tests / 2,022,955 assertions across 40 files** and native type checking of
+The final implementation head is signed
+`113026ba7f27ce330455e1439f0713778097f5ed`; the earlier implementation commits
+are `34f344d072fffbfd24600cea62b549eac2ac7033` and
+`b0cdc7504effde05d1a1f56b07fb8c7a78aaf122`. The frozen shared gate passes
+**620 tests / 2,022,958 assertions across 40 files** and native type checking of
 **91 files**. Focused coverage includes:
 
 - 1 MiB rejection before reading or parsing, incomplete UTF-8, empty,
@@ -83,18 +84,17 @@ imported`; existing captured records without it remain readable.
 ## Browser qualification
 
 Runs used disposable profiles through the repository runners, sequentially,
-from clean `4e9ecabe59c9d63b06b6748425b0bad0c135ebdd`
-(`sourceDirty: false`). That documentation head contains product code identical
-to signed implementation `b0cdc7504effde05d1a1f56b07fb8c7a78aaf122`. Firefox
-used the unmodified development build in a temporary directory; Chrome extracted
-the validated ZIP. macOS is `darwin arm64`.
+from clean `113026ba7f27ce330455e1439f0713778097f5ed`
+(`sourceDirty: false`). Firefox used the unmodified development build in a
+temporary directory; Chrome extracted the validated ZIP. macOS is
+`darwin arm64`.
 
 | Target                                | Driver                     | Result                         | Checks | Report SHA-256                                                     |
 | ------------------------------------- | -------------------------- | ------------------------------ | ------ | ------------------------------------------------------------------ |
-| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `06bcbf804b110c4ee94d521c7063a0da11fbadcde639995b32825a46a2ff06d6` |
-| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `75971a18d02c512e7436bef8dae73e122603ed8cd1a228e6572eb308301b52e7` |
-| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `cccb8b13d18fb8ce860c8731633b246a0a342402a6680e01f46f5285b2f3869e` |
-| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 93     | `5a77be226b13c64deff39deaf1debee368b3110bb1e4698090715c6b864cc1e8` |
+| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `d3158d647d51efb234c6dd9c090767e5f94bf82f630e351ba3e562b1de3bad3d` |
+| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `b09fdd0cc4ef74145a3533249caec89db5d8e8229246b43d30def0b5c0627c84` |
+| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `788c7bd3fb41c289697981f15af4a2b6fa75b67ff7f22fec18b777fa760ec4ff` |
+| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 93     | `bac5853e240d8c4e846f5ec00ae5393edeba839b8c564ce7477302d44293afc9` |
 
 Raw reports remain in ignored `.scratch/`:
 `firefox-evidence-140.0.json`, `firefox-evidence-153.5.1esr.json`,
@@ -123,17 +123,17 @@ import and re-export neither requested nor restored collection access. Chrome
 ran them through its named pre-granted UI fixture with unchanged production
 assets.
 
-Package identities at clean `b0cdc75` are Firefox XPI SHA-256
-`c173fd2149be90f8da2269b305fa030de675f0a7fc52c9e95000cd10fe181012`,
+Package identities at clean `113026b` are Firefox XPI SHA-256
+`1f62da8c1cc44fa180d6eb942084332e80c70af32a77c313e5b33b2ce18cf099`,
 Chrome ZIP SHA-256
-`4af7b989e76fd2fa2103c4850fb606b26735b2ee4055be306ab4ccbade15f056`, and source
+`52913effa7d2ac6a935c0bea3d02e9aa5e7c6592b94a41f0fd2a21b3d14893a8`, and source
 archive SHA-256
-`c9206df4119c263cf3e3b2c06cffc28deba5ed6fefbcc06a2c78960683bd4063`.
+`e9777625c403081b5c7569a2fae4ad32bf8daa5273a1276474dc1846235c6236`.
 
 The frozen shared gate receipt for `34f344d` is
 `.local/state/agent-tools/gates/20261104T230646Z-1c11066af7a7.json`; the final
-documentation head requires its own frozen gate before delivery, recorded in the
-supervise thread.
+head requires its own frozen gate before delivery, recorded in the supervise
+thread.
 
 ## Gaps
 
