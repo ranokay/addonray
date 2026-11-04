@@ -330,7 +330,7 @@ export function App({
 
       <Disclosures />
 
-      <ImportReportSection importer={importer} />
+      {state.phase !== 'denied' && <ImportReportSection importer={importer} />}
 
       {state.phase === 'checking' && (
         <p role="status">

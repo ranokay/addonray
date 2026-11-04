@@ -290,6 +290,7 @@ it('exposes no saved rows when context is denied even if a caller supplies data'
   );
   expect(markup).toContain('Normal windows only');
   expect(markup).not.toContain('library-entry');
+  expect(markup).not.toContain('Import report');
   expect(markup).not.toContain('onerror');
   expect(markup).not.toContain(recordId.slice(0, 8));
 });
