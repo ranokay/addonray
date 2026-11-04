@@ -26,10 +26,11 @@ the approved [saved-investigation and report-exchange contract](../plans/saved-i
 ## Deterministic checks
 
 The final implementation head is signed
-`113026ba7f27ce330455e1439f0713778097f5ed`; the earlier implementation commits
-are `34f344d072fffbfd24600cea62b549eac2ac7033` and
-`b0cdc7504effde05d1a1f56b07fb8c7a78aaf122`. The frozen shared gate passes
-**620 tests / 2,022,958 assertions across 40 files** and native type checking of
+`e53184b9f1aa5fdb5af5f39bfbd8503c4792b4e5`; the earlier implementation commits
+are `34f344d072fffbfd24600cea62b549eac2ac7033`,
+`b0cdc7504effde05d1a1f56b07fb8c7a78aaf122` and
+`113026ba7f27ce330455e1439f0713778097f5ed`. The frozen shared gate passes
+**621 tests / 2,022,968 assertions across 40 files** and native type checking of
 **91 files**. Focused coverage includes:
 
 - 1 MiB rejection before reading or parsing, incomplete UTF-8, empty,
@@ -80,21 +81,28 @@ imported`; existing captured records without it remain readable.
   check is denied, in addition to controller fail-closed checks.
 - Duplicate DOM heading identifiers were removed by parameterizing the shared
   report detail component for imported and saved views.
+- Review finding F1: the imported save now reads and binds the store
+  identity/deletion epoch before its first asynchronous context check, matching
+  the live-save ordering. A regression holds the first context response during
+  a save, performs delete-all or store replacement, releases the response and
+  proves no record commits, the result is retryable stale and a later save
+  succeeds. Import without storage availability remains unaffected because file
+  selection never touches storage.
 
 ## Browser qualification
 
 Runs used disposable profiles through the repository runners, sequentially,
-from clean `113026ba7f27ce330455e1439f0713778097f5ed`
+from clean `e53184b9f1aa5fdb5af5f39bfbd8503c4792b4e5`
 (`sourceDirty: false`). Firefox used the unmodified development build in a
 temporary directory; Chrome extracted the validated ZIP. macOS is
 `darwin arm64`.
 
 | Target                                | Driver                     | Result                         | Checks | Report SHA-256                                                     |
 | ------------------------------------- | -------------------------- | ------------------------------ | ------ | ------------------------------------------------------------------ |
-| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `d3158d647d51efb234c6dd9c090767e5f94bf82f630e351ba3e562b1de3bad3d` |
-| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `b09fdd0cc4ef74145a3533249caec89db5d8e8229246b43d30def0b5c0627c84` |
-| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `788c7bd3fb41c289697981f15af4a2b6fa75b67ff7f22fec18b777fa760ec4ff` |
-| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 93     | `bac5853e240d8c4e846f5ec00ae5393edeba839b8c564ce7477302d44293afc9` |
+| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `33321680e6314f6f49409b18a437187ca600b51587a4946f804e45fa415cdcac` |
+| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `8b148f291672b354fcae1da5667e22c5a42d62e0ed2eb26d57c3fe8f6846e233` |
+| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `3395e67715928f6febe4c13db032741915869ef0c149e174ac39b77d08141797` |
+| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 93     | `24e94370e7f3d83cf46a5a7393c5a6d69d9773bfc138ab50efe3c95a6d331974` |
 
 Raw reports remain in ignored `.scratch/`:
 `firefox-evidence-140.0.json`, `firefox-evidence-153.5.1esr.json`,
@@ -123,12 +131,12 @@ import and re-export neither requested nor restored collection access. Chrome
 ran them through its named pre-granted UI fixture with unchanged production
 assets.
 
-Package identities at clean `113026b` are Firefox XPI SHA-256
-`1f62da8c1cc44fa180d6eb942084332e80c70af32a77c313e5b33b2ce18cf099`,
+Package identities at clean `e53184b` are Firefox XPI SHA-256
+`0ab79a31bab795b52d41b10f96cc7d94d72d1fbbb429faa993f3b881d77c91d2`,
 Chrome ZIP SHA-256
-`52913effa7d2ac6a935c0bea3d02e9aa5e7c6592b94a41f0fd2a21b3d14893a8`, and source
+`38b50c2ba93c19a35e4e77d31556c0a5e6e69742c34feed1b248029dc12eeb2a`, and source
 archive SHA-256
-`e9777625c403081b5c7569a2fae4ad32bf8daa5273a1276474dc1846235c6236`.
+`1aa02fa78f94c21b208ba9d22035fa65cb678743cd6c5ebe7e5e88e431d3f4fc`.
 
 The frozen shared gate receipt for `34f344d` is
 `.local/state/agent-tools/gates/20261104T230646Z-1c11066af7a7.json`; the final

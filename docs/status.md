@@ -184,7 +184,7 @@ change.
 
 Implementation and qualification evidence is recorded in
 [the #9 evidence](evidence/2026-11-05-json-report-import.md). At clean
-`113026ba7f27ce330455e1439f0713778097f5ed`, 620 behavior tests with 2,022,958
+`e53184b9f1aa5fdb5af5f39bfbd8503c4792b4e5`, 621 behavior tests with 2,022,968
 assertions across 40 files and native type checking of 91 files pass. The shared
 product probes pass 100 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 pin
 and 93 on Chrome for Testing 156.0.8078.47, including five production file-input
