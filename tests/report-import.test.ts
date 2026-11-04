@@ -393,6 +393,17 @@ it('enforces nesting depth before recursive parsing completes', () => {
   rejectedText(deep, /nesting depth|depth/i);
 });
 
+it('accepts a complete document padded to exactly the 1 MiB import cap', () => {
+  const text = JSON.stringify(document());
+  const encodedText = new TextEncoder().encode(text);
+  const padded = `${text}${' '.repeat(limitBytes - encodedText.byteLength)}`;
+  expect(new TextEncoder().encode(padded).byteLength).toBe(limitBytes);
+  const result = parseImportedReport(new TextEncoder().encode(padded));
+  expect(result.status).toBe('success');
+  if (result.status === 'success')
+    expect(result.value.report).toEqual(report());
+});
+
 it('rejects an incomplete UTF-8 file and a file above 1 MiB before parsing', () => {
   const invalidUtf8 = Uint8Array.from([0x7b, 0x22, 0xff, 0x7d]);
   const utf8 = parseImportedReport(invalidUtf8);

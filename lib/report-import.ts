@@ -104,12 +104,12 @@ function parseStrictJson(text: string): unknown {
     fail('unterminated string');
   };
 
+  const numberPattern = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
   const parseNumber = (): number => {
-    const match = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(
-      text.slice(index),
-    );
+    numberPattern.lastIndex = index;
+    const match = numberPattern.exec(text);
     if (!match) fail('invalid number');
-    index += match[0].length;
+    index = numberPattern.lastIndex;
     const value = Number(match[0]);
     if (!Number.isFinite(value)) fail('non-finite number');
     return value;
