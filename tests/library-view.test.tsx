@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { App } from '../entrypoints/library/App';
 import type { SavedLibrary, SavedLibrarySnapshot } from '../lib/saved-library';
 import type { SavedExport } from '../lib/saved-export';
+import type { ReportImport } from '../lib/report-import';
 import type { SavedRecord } from '../lib/saved-record';
 import { pageErrorLimits } from '../lib/page-error-check';
 import { SAVED_RETENTION_MS } from '../lib/saved-record';
@@ -101,6 +102,28 @@ function exporter(): SavedExport {
   };
 }
 
+function importer(): ReportImport {
+  return {
+    getSnapshot: () => ({
+      report: null,
+      claimedProvenance: null,
+      importedAt: null,
+      busy: false,
+      saveable: false,
+      retentionDays: 30,
+      message: null,
+    }),
+    subscribe: () => () => {},
+    select: vi.fn(async () => {}),
+    setRetentionDays: vi.fn(),
+    save: vi.fn(async () => {}),
+    clear: vi.fn(),
+    suspend: vi.fn(),
+    resume: vi.fn(),
+    dispose: vi.fn(),
+  };
+}
+
 function library(state: SavedLibrarySnapshot): SavedLibrary {
   return {
     getSnapshot: () => state,
@@ -130,6 +153,7 @@ it('lists a saved record and unsupported or unreadable rows for deletion only', 
   const markup = renderToStaticMarkup(
     <App
       exporter={exporter()}
+      importer={importer()}
       library={library(
         snapshot({
           entries: [
@@ -167,6 +191,7 @@ it('renders a selected archive as escaped untrusted text with no extension ident
   const markup = renderToStaticMarkup(
     <App
       exporter={exporter()}
+      importer={importer()}
       library={library(
         snapshot({
           selected,
@@ -202,7 +227,7 @@ it('renders an inline delete confirmation without mutating', () => {
     }),
   );
   const markup = renderToStaticMarkup(
-    <App library={current} exporter={exporter()} />,
+    <App library={current} exporter={exporter()} importer={importer()} />,
   );
   expect(markup).toContain('Delete this saved record?');
   expect(markup).toContain('Delete saved record');
@@ -218,7 +243,7 @@ it('renders a frozen bulk confirmation without mutating', () => {
     }),
   );
   const markup = renderToStaticMarkup(
-    <App library={current} exporter={exporter()} />,
+    <App library={current} exporter={exporter()} importer={importer()} />,
   );
   expect(markup).toContain('Confirm bulk delete');
   expect(markup).toContain('Delete 1 selected saved record?');
@@ -230,7 +255,7 @@ it('renders a frozen bulk confirmation without mutating', () => {
 it('requires explicit confirmation before delete-all', () => {
   const current = library(snapshot({ pendingBulk: { kind: 'all' } }));
   const markup = renderToStaticMarkup(
-    <App library={current} exporter={exporter()} />,
+    <App library={current} exporter={exporter()} importer={importer()} />,
   );
   expect(markup).toContain('Confirm delete all');
   expect(markup).toContain('Delete all saved records?');
@@ -242,7 +267,7 @@ it('requires explicit confirmation before delete-all', () => {
 it('offers delete-all even when the visible list is empty', () => {
   const current = library(snapshot({ entries: [] }));
   const markup = renderToStaticMarkup(
-    <App library={current} exporter={exporter()} />,
+    <App library={current} exporter={exporter()} importer={importer()} />,
   );
   expect(markup).toContain('No saved investigations.');
   expect(markup).toContain('Delete all saved records');
@@ -253,6 +278,7 @@ it('exposes no saved rows when context is denied even if a caller supplies data'
   const markup = renderToStaticMarkup(
     <App
       exporter={exporter()}
+      importer={importer()}
       library={library(
         snapshot({
           phase: 'denied',
@@ -272,6 +298,7 @@ it('reports unavailable storage with a retry action', () => {
   const markup = renderToStaticMarkup(
     <App
       exporter={exporter()}
+      importer={importer()}
       library={library(
         snapshot({
           phase: 'unavailable',

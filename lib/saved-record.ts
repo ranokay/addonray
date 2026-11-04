@@ -76,6 +76,7 @@ export interface SavedRecord {
   origin: 'captured' | 'imported';
   savedAt: number;
   expiresAt: number;
+  importedAt?: number;
   report: SavedReport;
 }
 
@@ -244,6 +245,49 @@ export function createSavedRecord(
   };
 }
 
+export function createImportedRecord(
+  report: SavedReport,
+  options: {
+    now: number;
+    recordId: string;
+    importedAt: number;
+    retentionDays?: SavedRetentionDays;
+  },
+): Result<SavedRecord> {
+  const retentionDays = options.retentionDays ?? SAVED_DEFAULT_RETENTION_DAYS;
+  if (!isRetentionDays(retentionDays))
+    return {
+      status: 'error',
+      reason: 'The selected retention is not an approved 7, 30 or 90 days.',
+    };
+  if (
+    !Number.isSafeInteger(options.importedAt) ||
+    options.importedAt < 0 ||
+    options.importedAt > maxDateMilliseconds
+  )
+    return {
+      status: 'error',
+      reason: 'The imported report does not have a valid local import time.',
+    };
+  if (!validateReport(report))
+    return {
+      status: 'error',
+      reason: 'The imported report does not match the approved report schema.',
+    };
+  return {
+    status: 'success',
+    value: {
+      schemaVersion: SAVED_SCHEMA_VERSION,
+      recordId: options.recordId,
+      origin: 'imported',
+      savedAt: options.now,
+      expiresAt: options.now + retentionMilliseconds(retentionDays),
+      importedAt: options.importedAt,
+      report,
+    },
+  };
+}
+
 export function createExchangeJson(state: InvestigationState): Result<string> {
   const report = createSavedReport(state);
   if (report.status !== 'success') return report;
@@ -268,6 +312,7 @@ export function serializeStoredRecord(record: SavedRecord) {
     origin: record.origin,
     savedAt: record.savedAt,
     expiresAt: record.expiresAt,
+    ...(record.origin === 'imported' ? { importedAt: record.importedAt } : {}),
     report: record.report,
   });
 }
@@ -362,7 +407,7 @@ function validateError(value: unknown): value is PageErrorSummary {
   return copyPageErrorSummary(value) !== null;
 }
 
-function validateReport(value: unknown): value is SavedReport {
+export function validateReport(value: unknown): value is SavedReport {
   if (
     !isRecord(value) ||
     !exactKeys(value, [
@@ -431,15 +476,29 @@ export function inspectStoredRecord(value: unknown): StoredRecordInspection {
       value.schemaVersion !== SAVED_SCHEMA_VERSION
     )
       return { status: 'unsupported', recordId };
+    const imported = value.origin === 'imported';
     if (
-      !exactKeys(value, [
-        'schemaVersion',
-        'recordId',
-        'origin',
-        'savedAt',
-        'expiresAt',
-        'report',
-      ]) ||
+      !exactKeys(
+        value,
+        imported
+          ? [
+              'schemaVersion',
+              'recordId',
+              'origin',
+              'savedAt',
+              'expiresAt',
+              'importedAt',
+              'report',
+            ]
+          : [
+              'schemaVersion',
+              'recordId',
+              'origin',
+              'savedAt',
+              'expiresAt',
+              'report',
+            ],
+      ) ||
       value.schemaVersion !== SAVED_SCHEMA_VERSION ||
       typeof value.recordId !== 'string' ||
       !recordIdPattern.test(value.recordId) ||
@@ -452,6 +511,10 @@ export function inspectStoredRecord(value: unknown): StoredRecordInspection {
       (value.expiresAt as number) <= (value.savedAt as number) ||
       (value.expiresAt as number) - (value.savedAt as number) >
         SAVED_MAX_RETENTION_MS ||
+      (imported &&
+        (!Number.isSafeInteger(value.importedAt) ||
+          (value.importedAt as number) < 0 ||
+          (value.importedAt as number) > maxDateMilliseconds)) ||
       !withinDepth(value) ||
       !validateReport(value.report)
     )
@@ -485,7 +548,8 @@ export function recordLabel(record: SavedRecord) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(record.savedAt));
-  return `${date} · ${assessment} · ${record.recordId.slice(0, 8)}`;
+  const prefix = record.origin === 'imported' ? 'Imported · ' : '';
+  return `${prefix}${date} · ${assessment} · ${record.recordId.slice(0, 8)}`;
 }
 
 export interface SavePlan {

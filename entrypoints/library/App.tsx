@@ -6,7 +6,9 @@ import {
 } from '../../lib/saved-library';
 import { recordLabel } from '../../lib/saved-record';
 import type { SavedExport } from '../../lib/saved-export';
+import type { ReportImport } from '../../lib/report-import';
 import { ArchiveView, unsupportedLabel } from './ArchiveView';
+import { ImportReportSection } from './ImportReport';
 import { SavedExportSection } from './SavedExport';
 
 const expiryFormat = new Intl.DateTimeFormat('en', {
@@ -291,9 +293,11 @@ function Disclosures() {
 export function App({
   library,
   exporter,
+  importer,
 }: {
   library: SavedLibrary;
   exporter: SavedExport;
+  importer: ReportImport;
 }) {
   const state = useSyncExternalStore(
     library.subscribe,
@@ -325,6 +329,8 @@ export function App({
       </header>
 
       <Disclosures />
+
+      <ImportReportSection importer={importer} />
 
       {state.phase === 'checking' && (
         <p role="status">

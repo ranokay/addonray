@@ -8,6 +8,7 @@ import {
   observeExactJsonDownload,
   snapshotJsonDownloads,
 } from './json-export-checks.mjs';
+import { checkReportImport } from './report-import-checks.mjs';
 
 const beforeSelector = '[data-testid="before-snapshot"]';
 const afterSelector = '[data-testid="after-snapshot"]';
@@ -900,6 +901,7 @@ export async function finishSavedInvestigations({
     );
   }
   await deleteShownRecord(driver);
+  await checkReportImport({ driver, reportDirectory, authority, passed });
   await driver.close();
   if ((await driver.getAllWindowHandles()).includes(returnWindow))
     await driver.switchTo().window(returnWindow);
