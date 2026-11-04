@@ -514,13 +514,10 @@ export function createReportImport(
       const retentionDays = state.retentionDays;
       publish({ ...state, busy: true, message: null });
       try {
-        if (!(await normalContext(api))) {
-          if (current(ticket)) discard(contextMessage);
-          return;
-        }
-        if (!current(ticket)) return;
         // Bind the pending write to the current store identity and deletion
-        // epoch before any further asynchronous work.
+        // epoch before the first asynchronous context check. Otherwise a
+        // delayed context response could let a delete commit first and this
+        // save adopt the post-delete barrier.
         const expected = await store.readState();
         if (!current(ticket)) return;
         if (!(await normalContext(api))) {

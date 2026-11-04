@@ -787,6 +787,50 @@ it('rejects a deletion epoch change while a save is pending and cannot resurrect
   expect(importer.getSnapshot().message).toMatch(/storage changed|try saving/i);
 });
 
+it('binds the store barrier before a delayed first save context check', async () => {
+  for (const change of ['deleteAll', 'replaceStore'] as const) {
+    const { importer, store, api } = controllerFixture();
+    await importer.select(importedFile(documentText()));
+    const held =
+      Promise.withResolvers<
+        Awaited<ReturnType<SavedBrowser['tabs']['getCurrent']>>
+      >();
+    const contextStarted = Promise.withResolvers<void>();
+    let firstSaveContext = true;
+    api.tabs.getCurrent.mockImplementation(async () => {
+      if (firstSaveContext) {
+        firstSaveContext = false;
+        contextStarted.resolve();
+        return held.promise;
+      }
+      return { incognito: false };
+    });
+
+    const pending = importer.save();
+    await contextStarted.promise;
+    // The store identity/epoch must be bound before the first async context
+    // check; otherwise a deletion can slip in and be adopted as the barrier.
+    expect(store.readStateCalls).toBe(1);
+    if (change === 'deleteAll') await store.deleteAll();
+    else
+      store.state = {
+        ...store.state,
+        storeId: 'replacement-store-identity-0123456789',
+      };
+    held.resolve({ incognito: false });
+    await pending;
+
+    expect(store.records.size).toBe(0);
+    expect(importer.getSnapshot().report).not.toBeNull();
+    expect(importer.getSnapshot().message).toMatch(
+      /storage changed|try saving/i,
+    );
+
+    await importer.save();
+    expect(store.records.size).toBe(1);
+  }
+});
+
 it('fails closed when normal context is lost before an imported save commits', async () => {
   const { importer, store, context, api } = controllerFixture();
   await importer.select(importedFile(documentText()));
