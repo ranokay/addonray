@@ -147,15 +147,16 @@ and Q1 through Q16 on 2026-10-30. The bounded #6 slice implements explicit
 Save, local list, read-only reopen and single-record delete. #7 adds a per-save
 7/30/90-day retention choice, bulk deletion and confirmed delete-all. #8 adds
 schema version 1 JSON preview and download for the live investigation and the
-saved archive. JSON import (#9), printable HTML (#10) and clipboard (#11) remain
-future work. The current investigation stays in the owning view's memory, and
-Markdown and JSON are the implemented report outputs.
+saved archive. #9 adds explicit strict import, read-only review and a separate
+imported save. Printable HTML (#10) and clipboard (#11) remain future work. The
+current investigation stays in the owning view's memory, and Markdown and JSON
+are the implemented report outputs.
 
 | Data                                                                                                         | Trigger                                          | Retention                                                                                                                                                   | Destination                                               |
 | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | Immutable archive: inventories, precomputed changes, assessment, optional timing and error summaries, limits | Explicit Save of a completed, idle investigation | Default 30 days; the user may choose 7, 30 or 90 days for each new archive, never beyond 90 days from `savedAt`. Existing records keep their stored expiry. | Extension-origin IndexedDB in the current browser profile |
-| Local record envelope: record ID, schema version, origin, `savedAt`, `expiresAt`                             | Save                                             | With the record                                                                                                                                             | Extension-origin IndexedDB in the current browser profile |
-| Validated imported report                                                                                    | Future #9 explicit file selection, then save     | Future contract                                                                                                                                             | Not implemented                                           |
+| Local record envelope: record ID, schema version, origin, `savedAt`, `expiresAt`, imported `importedAt`      | Save                                             | With the record                                                                                                                                             | Extension-origin IndexedDB in the current browser profile |
+| Validated imported report                                                                                    | Explicit file selection, then separate save      | View memory until saved; saved records use the chosen 7, 30 or 90 days and the 90-day maximum                                                               | View memory, then extension-origin IndexedDB              |
 | Report preview                                                                                               | Explicit prepare action                          | Owning view memory                                                                                                                                          | View memory                                               |
 | Markdown download                                                                                            | Explicit download after preview                  | Browser or filesystem controls                                                                                                                              | User-chosen local destination                             |
 | JSON preview and download                                                                                    | Explicit format and download action              | Owning view or library-view memory                                                                                                                          | User-chosen local destination                             |
@@ -282,8 +283,8 @@ Concurrent lifecycle and storage reads do not publish a preview after
 invalidation. The complete UTF-8 document is checked against 1 MiB, the
 inventories against 1,000 rows per side, the change list against 2,000, each
 string against 4,096 code points and nesting against depth 8. The output keeps
-the future strict-import shape; #9 owns parsing, rejection of unknown or
-duplicate keys, prototype-affecting keys and untrusted rendering.
+the strict-import shape; #9 implements parsing, rejection of unknown or duplicate
+keys, prototype-affecting keys and untrusted rendering.
 
 ### Retention, deletion and physical limits
 
@@ -353,14 +354,17 @@ the envelope would exceed that bound. The imported view stays available for
 inspection or deletion. The interface discloses that before save; no partial
 record is written. AddonRay stores no original filename or path and
 keeps the imported provenance on every re-export. A file's self-asserted
-provenance is never authenticated as local capture.
+provenance is never authenticated as local capture. Import does not require a
+collection permission or storage availability; a storage failure affects only
+the separate save and preserves the read-only imported view.
 
 The implemented report outputs are exact Markdown for the live investigation and
 exact schema version 1 JSON for the live investigation and saved archives. Each
-has its own preview. JSON export does not parse files. Import (#9), printable HTML
-(#10) and clipboard copy (#11) remain future work; their previews, bounds and
-trust rules stay under this contract. JSON export and future import share schema
-version 1 and the 1 MiB complete-document cap. The per-record stored cap also
+has its own preview. Import is a separate explicit file-selection action and does
+not reuse the export preview. Printable HTML (#10) and clipboard copy (#11)
+remain future work; their previews, bounds and trust rules stay under this
+contract. JSON export and import share schema version 1 and the 1 MiB
+complete-document cap. The per-record stored cap also
 includes the local envelope, so a maximum-size import is view-only if the
 envelope would exceed it. The other shared bounds are 1,000 inventory entries per
 side, 2,000 changes, 4,096 code points per string and nesting depth 8. Save checks

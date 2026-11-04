@@ -5,8 +5,9 @@ Status: approved by the user on 2026-10-30 after Q1 through Q16. The bounded
 single-record delete in extension-origin IndexedDB without a new permission.
 The #7 slice adds a per-save 7/30/90-day retention choice, bulk deletion and
 confirmed delete-all. The #8 slice adds schema version 1 JSON preview and
-download for the live investigation and the saved archive. JSON import,
-printable HTML and clipboard remain future #9 through #11 work. See the
+download for the live investigation and the saved archive. The #9 slice adds
+explicit strict import, read-only review and a separate imported save. Printable
+HTML and clipboard remain future #10 and #11 work. See the
 [Stage 1 feasibility record](../evidence/2026-10-30-saved-storage-feasibility.md),
 [Stage 2 product evidence](../evidence/2026-10-30-saved-investigations.md) and
 [the #8 evidence](../evidence/2026-11-01-json-report-export.md).
@@ -481,12 +482,13 @@ evidence:
   delete-all, stale-view invalidation, pending-save ordering and no resurrection.
   Implemented and locally qualified in [the #7 evidence](../evidence/2026-10-31-history-retention-bulk-deletion.md).
 - #8: exact JSON serialization, preview, stale-action guards, 1 MiB accounting and
-  future-import shape compatibility. Implemented and locally qualified in
-  [the #8 evidence](../evidence/2026-11-01-json-report-export.md); actual import
-  remains #9.
+  import-compatible shape. Implemented and locally qualified in
+  [the #8 evidence](../evidence/2026-11-01-json-report-export.md); the #9 slice
+  implements the corresponding file boundary.
 - #9: explicit file selection, hostile-file rejection, duplicate-key and
   prototype-trick rejection, bounds, imported label, separate save and
-  provenance retention.
+  provenance retention. Implemented and locally qualified in
+  [the #9 evidence](../evidence/2026-11-05-json-report-import.md).
 - #10: self-contained printable HTML, escaping, long names, pagination, empty
   sections, browser Print/Save as PDF, cancellation and exact bound.
 - #11: explicit clipboard copy, exact reviewed text, success after write, denial
@@ -524,9 +526,12 @@ automatic eviction of unexpired records.
 The existing investigation and Markdown download remain in the owning view's
 memory. #8 adds a schema version 1 JSON format to that view and to an open saved
 archive. The saved export requests no collection permission and re-reads storage
-before each action. There is no JSON import, printable HTML or clipboard action.
-Natural eviction, an actual Chrome engine quota error and a reachable Chrome
-private main-frame library route remain unqualified; see
+before each action. #9 adds explicit strict JSON file import in the library, an
+untrusted read-only imported view and a separate imported save; import alone
+persists nothing and needs no collection permission or storage availability.
+There is no printable HTML or clipboard action. Natural eviction, an actual
+Chrome engine quota error and a reachable Chrome private main-frame library route
+remain unqualified; see
 [product evidence](../evidence/2026-10-30-saved-investigations.md) and
 [#7 evidence](../evidence/2026-10-31-history-retention-bulk-deletion.md).
 

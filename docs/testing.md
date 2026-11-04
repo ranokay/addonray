@@ -394,11 +394,12 @@ until explicitly observed.
 ## Saved-investigation and exchange checks
 
 The [saved-data contract](plans/saved-investigation-data-rules.md) governs the
-bounded #6/#7/#8 slices and the future exchange work. #6 save/list/read-only
+bounded #6 through #9 slices and the future exchange work. #6 save/list/read-only
 reopen and single-record delete are implemented with model, storage, UI and
 product browser checks. #7 adds per-save 7/30/90-day retention, bulk deletion and
 confirmed delete-all. #8 adds exact schema version 1 JSON preview and download
-for the live investigation and saved archives. Import, printable HTML and
+for the live investigation and saved archives. #9 adds explicit strict file
+import, read-only review and a separate imported save. Printable HTML and
 clipboard remain future tests. Keep model tests, storage adapter tests, UI tests,
 browser evidence and native observations separate.
 
@@ -454,8 +455,8 @@ UI checks:
 - frozen bulk selection, explicit bulk and delete-all confirmations, and cleared
   selection/confirmation on denied, unavailable and suspended transitions;
 - normal, private and unknown context guards for every saved-data action;
-- imported label, untrusted rendering, separate Save imported report and no
-  automatic persistence (future #9);
+- imported label, untrusted rendering, separate Save imported report, view-only
+  disclosure and no automatic persistence;
 - exact Markdown and JSON previews, and exact printable HTML previews and
   clipboard text (future #10 and #11);
 - truthful clipboard success after a write and bounded denial or failure
@@ -558,6 +559,31 @@ Browser and native evidence:
   file, an unrelated JSON file, multiple changed matching files and partial
   content do not satisfy the byte comparison. The reported UI message remains a
   request, not proof of browser acceptance or disk completion.
+
+#9 execution:
+
+- `tests/report-import.test.ts` covers the byte cap before parsing, complete
+  UTF-8, malformed JSON, duplicate decoded keys, forbidden prototype keys
+  including escaped forms, unknown fields at every level, wrong types,
+  non-finite and out-of-range values, state/count/duration combinations,
+  1,000-row/2,000-change/4,096-code-point/depth-8 bounds, accepted-export
+  round trips, imported provenance, `importedAt`, retention, view-only
+  accounting, deletion-epoch changes, context loss, clear/replacement/
+  suspension/disposal and retry after ordinary file or storage failure.
+- `tests/report-import-view.test.tsx` and `tests/library-view.test.tsx` cover
+  the explicit file input, **Imported report** label, escaped hostile text,
+  no save before import, view-only disablement, separate save disclosure and
+  the denied-context guard.
+- `scripts/report-import-checks.mjs` drives the production library file input on
+  the pinned browsers: valid import, no persistence before save, lifecycle
+  clearing, five hostile files, replacement, separate save with imported
+  origin/`importedAt`/7-day retention, exact imported-provenance re-export and
+  download, and a near-limit view-only file. SSR assertions supplement the real
+  input; they do not replace it.
+- Native human file-picker selection/cancellation, other OS versions and signed
+  distribution remain unqualified. The authentic private import action is
+  model-tested; the Chrome private main-frame library route remains
+  policy-blocked.
 
 A passing model or fixture check does not qualify storage, output, native
 usability or support. Run future exchange checks only when the corresponding
