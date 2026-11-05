@@ -22,7 +22,7 @@ checksum = "sha512:f7d53136a934bdac5552d9284b9fa4a2381f6f046f8f3e0116a98a8841098
 
 [tasks.setup]
 description = "Install dependencies and repository hooks"
-run = "bun install --frozen-lockfile && hk install --mise"
+run = "bun install --frozen-lockfile && hk install --mise --legacy"
 
 [tasks.check]
 description = "Run the shared hk quality gate"
