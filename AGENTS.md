@@ -12,7 +12,7 @@ Run `mise run check` before committing. A review round runs the browser checks i
 
 The remote is `ranokay/addonray`, integration branch `main`. Owned code and documentation use Apache-2.0; preserve NOTICE and THIRD_PARTY_NOTICES.txt, including reserved branding and upstream terms. Sign commits and stage authored paths explicitly. Preserve other work. Before any push or PR, confirm the repository's current visibility from GitHub. Changing it needs explicit user authorization. License-policy changes, store publication and destructive operations also need explicit user authorization.
 
-Use the locally installed Matt Pocock grilling/domain-modeling skills for unresolved product decisions. Record answers in [docs/decisions.md](docs/decisions.md), product terms in the glossary, and durable trade-offs in ADRs. Use [docs/status.md](docs/status.md) as the local delivery checklist; do not create tracker issues or labels unless requested.
+Use the locally installed Matt Pocock grilling/domain-modeling skills for unresolved product decisions. Record answers in [docs/decisions.md](docs/decisions.md), product terms in the glossary, and durable trade-offs in ADRs. Use [docs/status.md](docs/status.md) as the local delivery checklist; do not create tracker issues or labels unless requested, except relabeling an issue from `needs-info` to `ready-for-agent` when a merged plan settles its decisions.
 
 ## Agent skills
 
