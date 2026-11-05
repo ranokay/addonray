@@ -294,9 +294,12 @@ export async function checkReportImport({
 
   await chooseFile(driver, replacementPath);
   await driver.wait(
-    async () =>
-      (await driver.findElement(By.css('.imported-report')).getText()).includes(
-        'Better',
+    () =>
+      driver.executeScript(
+        () =>
+          document
+            .querySelector('.imported-report')
+            ?.textContent?.includes('Better') ?? false,
       ),
     10000,
     'The replacement report was not rendered',
