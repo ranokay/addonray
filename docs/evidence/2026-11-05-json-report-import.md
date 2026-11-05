@@ -19,19 +19,22 @@ the approved [saved-investigation and report-exchange contract](../plans/saved-i
 | Import review   | A valid file opens as an explicitly labelled **Imported report** in read-only view memory. Hostile names and markup-like text render as escaped text. Import makes no inventory, page, collector, source-tab or permission call and cannot attach to a live investigation. Import alone persists nothing.                                              |
 | Provenance      | The file's `provenance` is descriptive only. A file claiming `captured` is still stored locally with `origin: imported` and never becomes a local capture. Re-export uses the local origin.                                                                                                                                                            |
 | Separate save   | **Save imported report** writes through the existing store transaction with local `importedAt`, `savedAt`, 7/30/90-day retention (default 30) and `origin: imported`. The existing 50-record, 5 MiB total and 1 MiB complete-record limits apply. A report whose envelope would exceed 1 MiB is view-only; no partial record or truncation is written. |
-| Context         | Import and save require a verified normal window. Private, unknown and lost contexts fail closed; the library hides import when its context check is denied. Import requires no collection permission and no storage availability. Storage failure affects only the separate save and preserves the imported view.                                     |
+| Context         | Import and save require a verified normal window. Private, unknown and lost contexts fail closed; a denied library transition clears the separate imported view and hides the import section. Import requires no collection permission and no storage availability. Storage failure affects only the separate save and preserves the imported view.    |
 | Invalidation    | Clear, replacement, suspension, disposal, context loss and deletion-epoch changes invalidate pending file reads or saves. A save that began before a delete cannot commit after the deletion epoch advances. Ordinary validation, file-read or storage failures preserve the current valid imported view where applicable.                             |
 | Report exchange | Re-export reuses the existing exact schema version 1 serializer and download path. It keeps imported provenance and omits `recordId`, `savedAt`, `expiresAt`, `importedAt`, extension IDs, page and browser context.                                                                                                                                   |
 
 ## Deterministic checks
 
 The final implementation head is signed
-`e53184b9f1aa5fdb5af5f39bfbd8503c4792b4e5`; the earlier implementation commits
-are `34f344d072fffbfd24600cea62b549eac2ac7033`,
-`b0cdc7504effde05d1a1f56b07fb8c7a78aaf122` and
-`113026ba7f27ce330455e1439f0713778097f5ed`. The frozen shared gate passes
-**621 tests / 2,022,968 assertions across 40 files** and native type checking of
-**91 files**. Focused coverage includes:
+`38a775888cc4300cb99d49caa8927a105abcc61b`; earlier implementation and evidence
+commits are `34f344d072fffbfd24600cea62b549eac2ac7033`,
+`b0cdc7504effde05d1a1f56b07fb8c7a78aaf122`,
+`113026ba7f27ce330455e1439f0713778097f5ed`,
+`e53184b9f1aa5fdb5af5f39bfbd8503c4792b4e5`,
+`8f770db51a5790752c1ad1db7b22e8dc8bb22d47` and
+`018925e65ab88edd7506e5b1ba5703e2b3406a87`. The frozen shared gate passes
+**621 tests / 2,022,970 assertions across 40 files** and native type checking of
+**94 files**. Focused coverage includes:
 
 - 1 MiB rejection before reading or parsing, incomplete UTF-8, empty,
   malformed, trailing and multiple-document input;
@@ -78,7 +81,8 @@ imported`; existing captured records without it remain readable.
   IndexedDB. The save controller reads the store identity/epoch only for the
   separate explicit save.
 - A later UI guard hides the import section when the library's normal-context
-  check is denied, in addition to controller fail-closed checks.
+  check is denied and clears the separate imported view, so stale file content
+  cannot reappear if a later refresh returns to the ready phase.
 - Duplicate DOM heading identifiers were removed by parameterizing the shared
   report detail component for imported and saved views.
 - Review finding F1: the imported save now reads and binds the store
@@ -92,17 +96,17 @@ imported`; existing captured records without it remain readable.
 ## Browser qualification
 
 Runs used disposable profiles through the repository runners, sequentially,
-from clean `e53184b9f1aa5fdb5af5f39bfbd8503c4792b4e5`
+from clean `38a775888cc4300cb99d49caa8927a105abcc61b`
 (`sourceDirty: false`). Firefox used the unmodified development build in a
 temporary directory; Chrome extracted the validated ZIP. macOS is
 `darwin arm64`.
 
 | Target                                | Driver                     | Result                         | Checks | Report SHA-256                                                     |
 | ------------------------------------- | -------------------------- | ------------------------------ | ------ | ------------------------------------------------------------------ |
-| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `33321680e6314f6f49409b18a437187ca600b51587a4946f804e45fa415cdcac` |
-| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `8b148f291672b354fcae1da5667e22c5a42d62e0ed2eb26d57c3fe8f6846e233` |
-| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `3395e67715928f6febe4c13db032741915869ef0c149e174ac39b77d08141797` |
-| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 93     | `24e94370e7f3d83cf46a5a7393c5a6d69d9773bfc138ab50efe3c95a6d331974` |
+| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `b904a00df2e07c6ad29997f15e69813558ae3ed38cbfac098dfa5c5d5da66b22` |
+| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `1b5df5db09c4d3c5784a7b5be91d31d4d5116cdc2a1bb5f0bfbd364233f171fe` |
+| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 100    | `922ce5d9cd58563856ee27e1f08bdde7cfbf783aa50189b9ffbaa0a89761abcf` |
+| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 93     | `d9e078d183a4c144d4961be7455c7c7a5033b1b568dbc7177a1f82d7a0ab1cfe` |
 
 Raw reports remain in ignored `.scratch/`:
 `firefox-evidence-140.0.json`, `firefox-evidence-153.5.1esr.json`,
@@ -131,12 +135,12 @@ import and re-export neither requested nor restored collection access. Chrome
 ran them through its named pre-granted UI fixture with unchanged production
 assets.
 
-Package identities at clean `e53184b` are Firefox XPI SHA-256
-`0ab79a31bab795b52d41b10f96cc7d94d72d1fbbb429faa993f3b881d77c91d2`,
+Package identities at clean `38a7758` are Firefox XPI SHA-256
+`1d34e150d87b34929aa52e474eaa1491a457e1236ed20eeb7bbc985e936250de`,
 Chrome ZIP SHA-256
-`38b50c2ba93c19a35e4e77d31556c0a5e6e69742c34feed1b248029dc12eeb2a`, and source
+`5e3a57924033a919c0870f2babcf9e589994287c80faea7c8029f5babd946521`, and source
 archive SHA-256
-`1aa02fa78f94c21b208ba9d22035fa65cb678743cd6c5ebe7e5e88e431d3f4fc`.
+`fa81fece1115011fa148df44f606a2412675b1bd454e0efcf2d1bfba18dba284`.
 
 The frozen shared gate receipt for `34f344d` is
 `.local/state/agent-tools/gates/20261104T230646Z-1c11066af7a7.json`; the final
@@ -147,7 +151,8 @@ thread.
 
 - The file-picker interaction is automated through Selenium's production file
   input, not a native human selection, cancellation or accessibility
-  observation.
+  observation. The replacement probe waits on rendered report text through the
+  page DOM rather than a retained Selenium element.
 - The authentic private import action is model-tested and the library
   denied-context view is SSR-tested. The Chrome private main-frame library route
   remains browser-policy-blocked, so private import is not exercised end to end

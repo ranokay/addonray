@@ -212,7 +212,8 @@ opens one inline read-only archive and owns explicit JSON file import. It import
 no inventory, session, collector or source-tab code and requests no permission.
 Every read/action rechecks the owning normal context; saved-data reads and writes
 re-read storage. Import itself reads only the selected file and keeps the
-validated report in view memory until a separate save. Expired valid rows are removed
+validated report in view memory until a separate save; a denied context
+transition clears that view. Expired valid rows are removed
 lazily; unsupported or unreadable rows stay visible for explicit deletion.
 Deleting one record, a frozen selected set or every record clears affected open
 copies. Selection and confirmation clear on denied, unavailable and suspended

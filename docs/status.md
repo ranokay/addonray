@@ -175,8 +175,8 @@ uses the existing exact serializer and keeps imported provenance even when the
 file claimed `captured`.
 
 Every import and save action rechecks normal context. Private and unknown
-contexts fail closed; the library hides the import section when its normal
-context check is denied. Import does not require collection permission or
+contexts fail closed; the library clears the separate imported view and hides
+the import section when its normal context check is denied. Import does not require collection permission or
 storage availability; storage failure belongs to the separate save. Pending
 file reads and saves are invalidated by clear, replacement, suspension,
 disposal or context loss, and a pending save is rejected by a deletion epoch
@@ -184,8 +184,8 @@ change.
 
 Implementation and qualification evidence is recorded in
 [the #9 evidence](evidence/2026-11-05-json-report-import.md). At clean
-`e53184b9f1aa5fdb5af5f39bfbd8503c4792b4e5`, 621 behavior tests with 2,022,968
-assertions across 40 files and native type checking of 91 files pass. The shared
+`38a775888cc4300cb99d49caa8927a105abcc61b`, 621 behavior tests with 2,022,970
+assertions across 40 files and native type checking of 94 files pass. The shared
 product probes pass 100 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 pin
 and 93 on Chrome for Testing 156.0.8078.47, including five production file-input
 checks per target. Printable HTML (#10), clipboard (#11), native human

@@ -356,7 +356,9 @@ record is written. AddonRay stores no original filename or path and
 keeps the imported provenance on every re-export. A file's self-asserted
 provenance is never authenticated as local capture. Import does not require a
 collection permission or storage availability; a storage failure affects only
-the separate save and preserves the read-only imported view.
+the separate save and preserves the read-only imported view. A denied library
+context also clears the imported view, so stale file content cannot reappear
+after a later normal-context refresh.
 
 The implemented report outputs are exact Markdown for the live investigation and
 exact schema version 1 JSON for the live investigation and saved archives. Each
