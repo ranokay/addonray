@@ -8,7 +8,11 @@ import {
   observeExactJsonDownload,
   snapshotJsonDownloads,
 } from './json-export-checks.mjs';
-import { deleteShownRecord, storedRecords } from './saved-ui-helpers.mjs';
+import {
+  deleteShownRecord,
+  dispatchPageTransition,
+  storedRecords,
+} from './saved-ui-helpers.mjs';
 
 const limitBytes = 1024 * 1024;
 
@@ -233,28 +237,14 @@ export async function checkReportImport({
 
   // Lifecycle suspension must clear imported content; a restored page must not
   // bring it back from memory.
-  await driver.executeScript(() => {
-    const event =
-      typeof PageTransitionEvent === 'function'
-        ? new PageTransitionEvent('pagehide')
-        : new Event('pagehide');
-    Object.defineProperty(event, 'persisted', { value: true });
-    window.dispatchEvent(event);
-  });
+  await dispatchPageTransition(driver, 'pagehide');
   await driver.wait(
     async () =>
       (await driver.findElements(By.id('imported-report-heading'))).length ===
       0,
     10000,
   );
-  await driver.executeScript(() => {
-    const event =
-      typeof PageTransitionEvent === 'function'
-        ? new PageTransitionEvent('pageshow')
-        : new Event('pageshow');
-    Object.defineProperty(event, 'persisted', { value: true });
-    window.dispatchEvent(event);
-  });
+  await dispatchPageTransition(driver, 'pageshow');
   await driver.wait(
     async () =>
       (await driver.findElements(By.id('imported-report-heading'))).length ===

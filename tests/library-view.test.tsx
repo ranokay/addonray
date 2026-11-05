@@ -3,10 +3,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { App } from '../entrypoints/library/App';
 import type { SavedLibrary, SavedLibrarySnapshot } from '../lib/saved-library';
 import type { SavedExport } from '../lib/saved-export';
-import type { ReportImport } from '../lib/report-import';
 import type { SavedRecord } from '../lib/saved-record';
-import { pageErrorLimits } from '../lib/page-error-check';
 import { SAVED_RETENTION_MS } from '../lib/saved-record';
+import { reportImportStub as importer } from './report-import-stub';
+import { hostileReport } from './saved-report-fixture';
 
 const recordId = '11111111-1111-1111-1111-111111111111';
 const savedAt = Date.now() - 60_000;
@@ -18,58 +18,7 @@ function record(overrides: Partial<SavedRecord> = {}): SavedRecord {
     origin: 'captured',
     savedAt,
     expiresAt: savedAt + SAVED_RETENTION_MS,
-    report: {
-      before: {
-        extensions: [
-          {
-            name: '<img src=x onerror=alert(1)>',
-            version: '<b>1.0</b>',
-            enabled: true,
-          },
-        ],
-      },
-      after: {
-        extensions: [
-          {
-            name: '<img src=x onerror=alert(1)>',
-            version: '<b>1.0</b>',
-            enabled: false,
-          },
-        ],
-      },
-      changes: [
-        {
-          kind: 'disabled',
-          name: '<script>alert(1)</script>',
-          version: '1.0',
-          enabled: false,
-        },
-      ],
-      assessment: 'worse',
-      timing: {
-        before: {
-          domContentLoaded: { status: 'measured', milliseconds: 12.5 },
-          loadEvent: { status: 'unrecorded' },
-          firstContentfulPaint: { status: 'unavailable' },
-        },
-        after: null,
-      },
-      pageErrors: {
-        before: null,
-        after: {
-          scriptErrors: 1,
-          unhandledRejections: 0,
-          total: 1,
-          finish: 'stop',
-          observedMs: 1200,
-        },
-      },
-      observationLimits: {
-        pageErrorWindowMs: pageErrorLimits.durationMs,
-        pageErrorEvents: pageErrorLimits.events,
-        pageErrorSummaryBytes: pageErrorLimits.summaryBytes,
-      },
-    },
+    report: hostileReport(),
     ...overrides,
   };
 }
@@ -98,28 +47,6 @@ function exporter(): SavedExport {
     prepare: vi.fn(async () => {}),
     download: vi.fn(async () => {}),
     cancel: vi.fn(),
-    dispose: vi.fn(),
-  };
-}
-
-function importer(): ReportImport {
-  return {
-    getSnapshot: () => ({
-      report: null,
-      claimedProvenance: null,
-      importedAt: null,
-      busy: false,
-      saveable: false,
-      retentionDays: 30,
-      message: null,
-    }),
-    subscribe: () => () => {},
-    select: vi.fn(async () => {}),
-    setRetentionDays: vi.fn(),
-    save: vi.fn(async () => {}),
-    clear: vi.fn(),
-    suspend: vi.fn(),
-    resume: vi.fn(),
     dispose: vi.fn(),
   };
 }
@@ -204,13 +131,13 @@ it('renders a selected archive as escaped untrusted text with no extension ident
   );
   expect(markup).toContain('Read-only saved investigation');
   expect(markup).toContain('&lt;img src=x onerror=alert(1)&gt;');
-  expect(markup).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+  expect(markup).toContain('&lt;script&gt;alert(3)&lt;/script&gt;');
   expect(markup).not.toContain('<img');
   expect(markup).not.toContain('<script>');
   expect(markup).not.toContain('fixture@test');
   expect(markup).not.toContain('sourceTabId');
   expect(markup).not.toContain('https://');
-  expect(markup).toContain('12.5 ms');
+  expect(markup).toContain('120.5 ms');
   expect(markup).toContain('Not recorded at capture');
   expect(markup).toContain('Unavailable at capture');
   expect(markup).toContain('Stopped by you');

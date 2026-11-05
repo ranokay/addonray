@@ -1,52 +1,13 @@
 import { expect, it } from 'bun:test';
-import { pageErrorLimits } from '../lib/page-error-check';
 import {
   SAVED_LIMITS,
   serializeExchange,
   type SavedReport,
 } from '../lib/saved-record';
+import { exampleReport as report } from './saved-report-fixture';
 import { parseImportedReport } from '../lib/report-import';
 
 const limitBytes = 1024 * 1024;
-
-function report(overrides: Partial<SavedReport> = {}): SavedReport {
-  return {
-    before: {
-      extensions: [{ name: 'Example', version: '1.0', enabled: true }],
-    },
-    after: {
-      extensions: [{ name: 'Example', version: '1.0', enabled: false }],
-    },
-    changes: [
-      { kind: 'disabled', name: 'Example', version: '1.0', enabled: false },
-    ],
-    assessment: 'worse',
-    timing: {
-      before: null,
-      after: {
-        domContentLoaded: { status: 'measured', milliseconds: 120.5 },
-        loadEvent: { status: 'unrecorded' },
-        firstContentfulPaint: { status: 'unavailable' },
-      },
-    },
-    pageErrors: {
-      before: null,
-      after: {
-        scriptErrors: 1,
-        unhandledRejections: 0,
-        total: 1,
-        finish: 'stop',
-        observedMs: 12_000,
-      },
-    },
-    observationLimits: {
-      pageErrorWindowMs: pageErrorLimits.durationMs,
-      pageErrorEvents: pageErrorLimits.events,
-      pageErrorSummaryBytes: pageErrorLimits.summaryBytes,
-    },
-    ...overrides,
-  };
-}
 
 function document(
   reportValue: SavedReport = report(),

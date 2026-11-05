@@ -12,6 +12,7 @@ import { checkReportImport } from './report-import-checks.mjs';
 import {
   databaseName,
   deleteShownRecord,
+  dispatchPageTransition,
   storedRecords,
 } from './saved-ui-helpers.mjs';
 
@@ -605,14 +606,7 @@ export async function checkSavedInvestigations({
   await deleteShownRecord(driver);
   await driver.switchTo().window(lifecycleLibrary);
   console.log('Saved lifecycle: dispatch pagehide');
-  await driver.executeScript(() => {
-    const event =
-      typeof PageTransitionEvent === 'function'
-        ? new PageTransitionEvent('pagehide')
-        : new Event('pagehide');
-    Object.defineProperty(event, 'persisted', { value: true });
-    window.dispatchEvent(event);
-  });
+  await dispatchPageTransition(driver, 'pagehide');
   await driver.wait(
     async () =>
       (await driver.findElements(By.id('archive-heading'))).length === 0 &&
@@ -622,14 +616,7 @@ export async function checkSavedInvestigations({
     10000,
   );
   console.log('Saved lifecycle: pagehide cleared archive');
-  await driver.executeScript(() => {
-    const event =
-      typeof PageTransitionEvent === 'function'
-        ? new PageTransitionEvent('pageshow')
-        : new Event('pageshow');
-    Object.defineProperty(event, 'persisted', { value: true });
-    window.dispatchEvent(event);
-  });
+  await dispatchPageTransition(driver, 'pageshow');
   await driver.wait(
     async () =>
       (await driver.findElement(By.css('body')).getText()).includes(

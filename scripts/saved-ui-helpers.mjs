@@ -2,6 +2,17 @@ import { By } from 'selenium-webdriver';
 
 export const databaseName = 'addonray-saved-investigations';
 
+export async function dispatchPageTransition(driver, type) {
+  await driver.executeScript((eventType) => {
+    const event =
+      typeof PageTransitionEvent === 'function'
+        ? new PageTransitionEvent(eventType)
+        : new Event(eventType);
+    Object.defineProperty(event, 'persisted', { value: true });
+    window.dispatchEvent(event);
+  }, type);
+}
+
 export async function storedRecords(driver) {
   return driver.executeAsyncScript((name, done) => {
     const request = indexedDB.open(name, 1);
