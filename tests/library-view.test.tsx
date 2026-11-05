@@ -181,7 +181,9 @@ it('lists a saved record and unsupported or unreadable rows for deletion only', 
     'no encryption layer',
     'Browser or OS backups',
     'Uninstall clearing is browser-controlled',
-    'does not export, print or copy saved reports',
+    'can export an open saved report as JSON and import a JSON report',
+    'does not print or copy saved reports',
+    'import alone stores nothing',
   ])
     expect(markup).toContain(phrase);
 });

@@ -283,8 +283,10 @@ function Disclosures() {
         clearing is browser-controlled and can have documented exceptions.
       </p>
       <p>
-        This build does not export, print or copy saved reports. Exported files
-        from the live report remain outside AddonRay's control.
+        This build can export an open saved report as JSON and import a JSON
+        report for read-only review. It does not print or copy saved reports.
+        Exported files remain outside AddonRay's control, and import alone
+        stores nothing.
       </p>
     </aside>
   );
