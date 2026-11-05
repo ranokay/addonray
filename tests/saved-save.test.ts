@@ -28,6 +28,7 @@ class MemoryStore implements SavedStore {
   records = new Map<IDBValidKey, SavedRecord>();
   saveCalls = 0;
   readyCalls = 0;
+  readStateCalls = 0;
   readyError: Error | null = null;
   result: SavedStoreSaveResult | null = null;
   pending: Promise<SavedStoreSaveResult> | null = null;
@@ -39,6 +40,7 @@ class MemoryStore implements SavedStore {
     return this.state;
   }
   async readState() {
+    this.readStateCalls += 1;
     return this.state;
   }
   async list(): Promise<SavedStoreEntry[]> {
@@ -360,6 +362,45 @@ it('cancels a pending save when the investigation resets', async () => {
   );
   expect(model.getSnapshot().before).toBeNull();
 });
+
+it.each(['deleteAll', 'replaceStore'] as const)(
+  'binds the store barrier before a delayed first save context check (%s)',
+  async (change) => {
+    const { model, store, saver, currentApi } = await fixture();
+    const held = Promise.withResolvers<{ incognito: boolean }>();
+    const contextStarted = Promise.withResolvers<void>();
+    let firstSaveContext = true;
+    currentApi.tabs.getCurrent = vi.fn(async () => {
+      if (firstSaveContext) {
+        firstSaveContext = false;
+        contextStarted.resolve();
+        return held.promise;
+      }
+      return { incognito: false };
+    });
+
+    const pending = saver.save();
+    await contextStarted.promise;
+    expect(store.readStateCalls).toBe(1);
+    if (change === 'deleteAll') await store.deleteAll();
+    else
+      store.state = {
+        ...store.state,
+        storeId: 'replacement-store-identity-0123456789',
+      };
+    held.resolve({ incognito: false });
+    await pending;
+
+    expect(store.records.size).toBe(0);
+    expect(model.getSnapshot().before).not.toBeNull();
+    expect(saver.getSnapshot().message).toContain(
+      'Save again from the current investigation.',
+    );
+
+    await saver.save();
+    expect(store.records.size).toBe(1);
+  },
+);
 
 it('refuses when normal context is lost during the permission wait', async () => {
   const grant = Promise.withResolvers<boolean>();
