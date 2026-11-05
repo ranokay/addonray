@@ -157,16 +157,20 @@ function ErrorTable({
 function Inventory({
   label,
   entries,
+  idPrefix,
 }: {
   label: 'Before' | 'After';
   entries: readonly SavedInventoryEntry[];
+  idPrefix: string;
 }) {
   return (
     <section
       className="archive-inventory"
-      aria-labelledby={`archive-${label.toLowerCase()}-heading`}
+      aria-labelledby={`${idPrefix}-${label.toLowerCase()}-heading`}
     >
-      <h3 id={`archive-${label.toLowerCase()}-heading`}>{label} inventory</h3>
+      <h3 id={`${idPrefix}-${label.toLowerCase()}-heading`}>
+        {label} inventory
+      </h3>
       <p className="metadata" role="status">
         {entries.length === 1
           ? '1 extension row reported.'
@@ -193,13 +197,19 @@ function Inventory({
   );
 }
 
-function Changes({ changes }: { changes: readonly SavedChange[] }) {
+function Changes({
+  changes,
+  idPrefix,
+}: {
+  changes: readonly SavedChange[];
+  idPrefix: string;
+}) {
   return (
     <section
       className="archive-changes"
-      aria-labelledby="archive-changes-heading"
+      aria-labelledby={`${idPrefix}-changes-heading`}
     >
-      <h3 id="archive-changes-heading">Reported inventory changes</h3>
+      <h3 id={`${idPrefix}-changes-heading`}>Reported inventory changes</h3>
       {changes.length === 0 ? (
         <p role="status">
           No reported additions, removals or enabled-state changes were stored.
@@ -242,6 +252,68 @@ function limitsText(limits: SavedObservationLimits) {
   )} events, ${numberFormat.format(limits.pageErrorSummaryBytes)}-byte summary`;
 }
 
+export function ReportDetails({
+  report,
+  idPrefix = 'archive',
+}: {
+  report: SavedReport;
+  idPrefix?: string;
+}) {
+  return (
+    <>
+      <section aria-labelledby={`${idPrefix}-assessment-heading`}>
+        <h3 id={`${idPrefix}-assessment-heading`}>Page assessment</h3>
+        <p>
+          {report.assessment === null
+            ? 'Not recorded.'
+            : assessmentLabels[report.assessment]}
+        </p>
+      </section>
+
+      <div className="archive-inventory-grid">
+        <Inventory
+          label="Before"
+          entries={report.before.extensions}
+          idPrefix={idPrefix}
+        />
+        <Inventory
+          label="After"
+          entries={report.after.extensions}
+          idPrefix={idPrefix}
+        />
+      </div>
+
+      <Changes changes={report.changes} idPrefix={idPrefix} />
+
+      <section aria-labelledby={`${idPrefix}-timing-heading`}>
+        <h3 id={`${idPrefix}-timing-heading`}>Loading timings</h3>
+        <TimingTable
+          before={report.timing.before}
+          after={report.timing.after}
+        />
+      </section>
+
+      <section aria-labelledby={`${idPrefix}-errors-heading`}>
+        <h3 id={`${idPrefix}-errors-heading`}>Page-error counts</h3>
+        <ErrorTable
+          before={report.pageErrors.before}
+          after={report.pageErrors.after}
+        />
+      </section>
+
+      <section aria-labelledby={`${idPrefix}-limits-heading`}>
+        <h3 id={`${idPrefix}-limits-heading`}>Observation limits</h3>
+        <p>Page-error observation: {limitsText(report.observationLimits)}.</p>
+        <p className="metadata">
+          These limits applied to the capture and are retained with the archive.
+          Zero observed events does not mean the page was error-free, and none
+          of these observations establishes what caused the page result.
+        </p>
+      </section>
+    </>
+  );
+}
+
 export function ArchiveView({
   record,
   exportSection,
@@ -279,47 +351,7 @@ export function ArchiveView({
         can reveal extension choices.
       </p>
 
-      <section aria-labelledby="archive-assessment-heading">
-        <h3 id="archive-assessment-heading">Page assessment</h3>
-        <p>
-          {report.assessment === null
-            ? 'Not recorded.'
-            : assessmentLabels[report.assessment]}
-        </p>
-      </section>
-
-      <div className="archive-inventory-grid">
-        <Inventory label="Before" entries={report.before.extensions} />
-        <Inventory label="After" entries={report.after.extensions} />
-      </div>
-
-      <Changes changes={report.changes} />
-
-      <section aria-labelledby="archive-timing-heading">
-        <h3 id="archive-timing-heading">Loading timings</h3>
-        <TimingTable
-          before={report.timing.before}
-          after={report.timing.after}
-        />
-      </section>
-
-      <section aria-labelledby="archive-errors-heading">
-        <h3 id="archive-errors-heading">Page-error counts</h3>
-        <ErrorTable
-          before={report.pageErrors.before}
-          after={report.pageErrors.after}
-        />
-      </section>
-
-      <section aria-labelledby="archive-limits-heading">
-        <h3 id="archive-limits-heading">Observation limits</h3>
-        <p>Page-error observation: {limitsText(report.observationLimits)}.</p>
-        <p className="metadata">
-          These limits applied to the capture and are retained with the archive.
-          Zero observed events does not mean the page was error-free, and none
-          of these observations establishes what caused the page result.
-        </p>
-      </section>
+      <ReportDetails report={report} />
 
       {exportSection}
     </article>

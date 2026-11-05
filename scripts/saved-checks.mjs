@@ -8,13 +8,19 @@ import {
   observeExactJsonDownload,
   snapshotJsonDownloads,
 } from './json-export-checks.mjs';
+import { checkReportImport } from './report-import-checks.mjs';
+import {
+  databaseName,
+  deleteShownRecord,
+  dispatchPageTransition,
+  storedRecords,
+} from './saved-ui-helpers.mjs';
 
 const beforeSelector = '[data-testid="before-snapshot"]';
 const afterSelector = '[data-testid="after-snapshot"]';
 const assessmentSelector = 'input[name="page-assessment"]:checked';
 const saveSection = 'section[aria-labelledby="save-heading"]';
 const libraryReady = '#library-list-heading';
-const databaseName = 'addonray-saved-investigations';
 const dayMs = 24 * 60 * 60 * 1000;
 
 const disclosures = [
@@ -89,30 +95,6 @@ async function selectRetention(driver, days) {
       )) === String(days),
     10000,
   );
-}
-
-async function storedRecords(driver) {
-  return driver.executeAsyncScript((name, done) => {
-    const request = indexedDB.open(name, 1);
-    request.onerror = () => done({ error: String(request.error) });
-    request.onsuccess = () => {
-      const database = request.result;
-      const transaction = database.transaction('records', 'readonly');
-      const all = transaction.objectStore('records').getAll();
-      all.onerror = () => done({ error: String(all.error) });
-      all.onsuccess = () => {
-        database.close();
-        done({
-          records: all.result.map((record) => ({
-            recordId: record.recordId,
-            schemaVersion: record.schemaVersion,
-            savedAt: record.savedAt,
-            expiresAt: record.expiresAt,
-          })),
-        });
-      };
-    };
-  }, databaseName);
 }
 
 async function seedUnsupportedRecord(driver, recordId) {
@@ -380,33 +362,6 @@ async function checkSavedJsonExport({
   return evidence;
 }
 
-async function deleteShownRecord(driver) {
-  const entry = await driver.findElement(By.css('.library-entry'));
-  const deleteButton = await entry.findElement(
-    By.xpath('.//button[normalize-space(.)="Delete"]'),
-  );
-  await driver.wait(async () => deleteButton.isEnabled(), 10000);
-  await deleteButton.click();
-  await driver
-    .findElement(By.xpath('//button[normalize-space(.)="Delete saved record"]'))
-    .click();
-  await driver.wait(
-    async () =>
-      (await driver.findElements(By.css('.library-entry'))).length === 0,
-    10000,
-  );
-  await driver.wait(
-    async () =>
-      (
-        await sectionText(
-          driver,
-          'section[aria-labelledby="library-list-heading"]',
-        )
-      ).includes('No saved investigations.'),
-    10000,
-  );
-}
-
 export async function checkSavedInvestigations({
   driver,
   popupWindow,
@@ -651,14 +606,7 @@ export async function checkSavedInvestigations({
   await deleteShownRecord(driver);
   await driver.switchTo().window(lifecycleLibrary);
   console.log('Saved lifecycle: dispatch pagehide');
-  await driver.executeScript(() => {
-    const event =
-      typeof PageTransitionEvent === 'function'
-        ? new PageTransitionEvent('pagehide')
-        : new Event('pagehide');
-    Object.defineProperty(event, 'persisted', { value: true });
-    window.dispatchEvent(event);
-  });
+  await dispatchPageTransition(driver, 'pagehide');
   await driver.wait(
     async () =>
       (await driver.findElements(By.id('archive-heading'))).length === 0 &&
@@ -668,14 +616,7 @@ export async function checkSavedInvestigations({
     10000,
   );
   console.log('Saved lifecycle: pagehide cleared archive');
-  await driver.executeScript(() => {
-    const event =
-      typeof PageTransitionEvent === 'function'
-        ? new PageTransitionEvent('pageshow')
-        : new Event('pageshow');
-    Object.defineProperty(event, 'persisted', { value: true });
-    window.dispatchEvent(event);
-  });
+  await dispatchPageTransition(driver, 'pageshow');
   await driver.wait(
     async () =>
       (await driver.findElement(By.css('body')).getText()).includes(
@@ -900,6 +841,7 @@ export async function finishSavedInvestigations({
     );
   }
   await deleteShownRecord(driver);
+  await checkReportImport({ driver, reportDirectory, authority, passed });
   await driver.close();
   if ((await driver.getAllWindowHandles()).includes(returnWindow))
     await driver.switchTo().window(returnWindow);

@@ -4,8 +4,9 @@ import { App } from '../entrypoints/library/App';
 import type { SavedLibrary, SavedLibrarySnapshot } from '../lib/saved-library';
 import type { SavedExport } from '../lib/saved-export';
 import type { SavedRecord } from '../lib/saved-record';
-import { pageErrorLimits } from '../lib/page-error-check';
 import { SAVED_RETENTION_MS } from '../lib/saved-record';
+import { reportImportStub as importer } from './report-import-stub';
+import { hostileReport } from './saved-report-fixture';
 
 const recordId = '11111111-1111-1111-1111-111111111111';
 const savedAt = Date.now() - 60_000;
@@ -17,58 +18,7 @@ function record(overrides: Partial<SavedRecord> = {}): SavedRecord {
     origin: 'captured',
     savedAt,
     expiresAt: savedAt + SAVED_RETENTION_MS,
-    report: {
-      before: {
-        extensions: [
-          {
-            name: '<img src=x onerror=alert(1)>',
-            version: '<b>1.0</b>',
-            enabled: true,
-          },
-        ],
-      },
-      after: {
-        extensions: [
-          {
-            name: '<img src=x onerror=alert(1)>',
-            version: '<b>1.0</b>',
-            enabled: false,
-          },
-        ],
-      },
-      changes: [
-        {
-          kind: 'disabled',
-          name: '<script>alert(1)</script>',
-          version: '1.0',
-          enabled: false,
-        },
-      ],
-      assessment: 'worse',
-      timing: {
-        before: {
-          domContentLoaded: { status: 'measured', milliseconds: 12.5 },
-          loadEvent: { status: 'unrecorded' },
-          firstContentfulPaint: { status: 'unavailable' },
-        },
-        after: null,
-      },
-      pageErrors: {
-        before: null,
-        after: {
-          scriptErrors: 1,
-          unhandledRejections: 0,
-          total: 1,
-          finish: 'stop',
-          observedMs: 1200,
-        },
-      },
-      observationLimits: {
-        pageErrorWindowMs: pageErrorLimits.durationMs,
-        pageErrorEvents: pageErrorLimits.events,
-        pageErrorSummaryBytes: pageErrorLimits.summaryBytes,
-      },
-    },
+    report: hostileReport(),
     ...overrides,
   };
 }
@@ -130,6 +80,7 @@ it('lists a saved record and unsupported or unreadable rows for deletion only', 
   const markup = renderToStaticMarkup(
     <App
       exporter={exporter()}
+      importer={importer()}
       library={library(
         snapshot({
           entries: [
@@ -157,7 +108,9 @@ it('lists a saved record and unsupported or unreadable rows for deletion only', 
     'no encryption layer',
     'Browser or OS backups',
     'Uninstall clearing is browser-controlled',
-    'does not export, print or copy saved reports',
+    'can export an open saved report as JSON and import a JSON report',
+    'does not print or copy saved reports',
+    'import alone stores nothing',
   ])
     expect(markup).toContain(phrase);
 });
@@ -167,6 +120,7 @@ it('renders a selected archive as escaped untrusted text with no extension ident
   const markup = renderToStaticMarkup(
     <App
       exporter={exporter()}
+      importer={importer()}
       library={library(
         snapshot({
           selected,
@@ -177,13 +131,13 @@ it('renders a selected archive as escaped untrusted text with no extension ident
   );
   expect(markup).toContain('Read-only saved investigation');
   expect(markup).toContain('&lt;img src=x onerror=alert(1)&gt;');
-  expect(markup).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+  expect(markup).toContain('&lt;script&gt;alert(3)&lt;/script&gt;');
   expect(markup).not.toContain('<img');
   expect(markup).not.toContain('<script>');
   expect(markup).not.toContain('fixture@test');
   expect(markup).not.toContain('sourceTabId');
   expect(markup).not.toContain('https://');
-  expect(markup).toContain('12.5 ms');
+  expect(markup).toContain('120.5 ms');
   expect(markup).toContain('Not recorded at capture');
   expect(markup).toContain('Unavailable at capture');
   expect(markup).toContain('Stopped by you');
@@ -202,7 +156,7 @@ it('renders an inline delete confirmation without mutating', () => {
     }),
   );
   const markup = renderToStaticMarkup(
-    <App library={current} exporter={exporter()} />,
+    <App library={current} exporter={exporter()} importer={importer()} />,
   );
   expect(markup).toContain('Delete this saved record?');
   expect(markup).toContain('Delete saved record');
@@ -218,7 +172,7 @@ it('renders a frozen bulk confirmation without mutating', () => {
     }),
   );
   const markup = renderToStaticMarkup(
-    <App library={current} exporter={exporter()} />,
+    <App library={current} exporter={exporter()} importer={importer()} />,
   );
   expect(markup).toContain('Confirm bulk delete');
   expect(markup).toContain('Delete 1 selected saved record?');
@@ -230,7 +184,7 @@ it('renders a frozen bulk confirmation without mutating', () => {
 it('requires explicit confirmation before delete-all', () => {
   const current = library(snapshot({ pendingBulk: { kind: 'all' } }));
   const markup = renderToStaticMarkup(
-    <App library={current} exporter={exporter()} />,
+    <App library={current} exporter={exporter()} importer={importer()} />,
   );
   expect(markup).toContain('Confirm delete all');
   expect(markup).toContain('Delete all saved records?');
@@ -242,7 +196,7 @@ it('requires explicit confirmation before delete-all', () => {
 it('offers delete-all even when the visible list is empty', () => {
   const current = library(snapshot({ entries: [] }));
   const markup = renderToStaticMarkup(
-    <App library={current} exporter={exporter()} />,
+    <App library={current} exporter={exporter()} importer={importer()} />,
   );
   expect(markup).toContain('No saved investigations.');
   expect(markup).toContain('Delete all saved records');
@@ -253,6 +207,7 @@ it('exposes no saved rows when context is denied even if a caller supplies data'
   const markup = renderToStaticMarkup(
     <App
       exporter={exporter()}
+      importer={importer()}
       library={library(
         snapshot({
           phase: 'denied',
@@ -264,6 +219,7 @@ it('exposes no saved rows when context is denied even if a caller supplies data'
   );
   expect(markup).toContain('Normal windows only');
   expect(markup).not.toContain('library-entry');
+  expect(markup).not.toContain('Import report');
   expect(markup).not.toContain('onerror');
   expect(markup).not.toContain(recordId.slice(0, 8));
 });
@@ -272,6 +228,7 @@ it('reports unavailable storage with a retry action', () => {
   const markup = renderToStaticMarkup(
     <App
       exporter={exporter()}
+      importer={importer()}
       library={library(
         snapshot({
           phase: 'unavailable',

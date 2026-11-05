@@ -163,8 +163,9 @@ saved-archive owner separate from the live investigation. The Stage 1
 IndexedDB candidate was accepted for the bounded #6 slice on 2026-10-30; save,
 list, read-only reopen and single-record delete are implemented. #7 adds a
 per-save retention choice, frozen bulk selection and confirmed delete-all. #8
-adds JSON export from an open archive. Import, printable HTML and clipboard
-remain future work.
+adds JSON export from an open archive. #9 adds explicit file import, read-only
+review and a separate imported save. Printable HTML and clipboard remain future
+work.
 
 `lib/saved-record.ts` is the pure schema/model boundary. It accepts one
 completed, idle live snapshot, requires both successful inventories, strips
@@ -206,10 +207,13 @@ Reset, assessment/attachment changes, permission removal or context loss abort
 the pending write. Ordinary storage, quota or size failure keeps the live
 investigation. A successful save notifies other views only as a hint.
 
-`entrypoints/library` is a separate normal-window document. It lists records and
-opens one inline read-only archive; it imports no inventory, session, collector
-or source-tab code and requests no permission. Every read/action rechecks the
-owning normal context and re-reads storage. Expired valid rows are removed
+`entrypoints/library` is a separate normal-window document. It lists records,
+opens one inline read-only archive and owns explicit JSON file import. It imports
+no inventory, session, collector or source-tab code and requests no permission.
+Every read/action rechecks the owning normal context; saved-data reads and writes
+re-read storage. Import itself reads only the selected file and keeps the
+validated report in view memory until a separate save; a denied context
+transition clears that view. Expired valid rows are removed
 lazily; unsupported or unreadable rows stay visible for explicit deletion.
 Deleting one record, a frozen selected set or every record clears affected open
 copies. Selection and confirmation clear on denied, unavailable and suspended
@@ -237,13 +241,21 @@ compares the fresh `serializeExchange` output with the reviewed text before the
 synchronous browser handoff, which is a request rather than acceptance or disk
 completion.
 
-The still-future import owner will validate a selected file, render it as
-untrusted text and keep it separate from live observations. Persistence will
-require a separate save and mark the record imported, subject to the
-stored-record bound that includes the local envelope. The report-exchange owner
-will use one bounded report model for JSON, printable HTML and clipboard, each
-with its own exact preview and output lifetime. No PDF library, remote resource,
-automatic sharing or collector is introduced.
+`lib/report-import.ts` owns the import boundary. It rejects a file above 1 MiB
+before parsing, decodes complete UTF-8, and uses a bounded strict JSON parser
+that rejects duplicate decoded keys, forbidden prototype-affecting names
+including escaped forms, malformed values and depth over 8 before accepting the
+approved schema. It then reuses the saved-report validator for exact fields,
+types, ranges, state/count/duration consistency, inventory and change bounds and
+string lengths. A valid file is copied into ordinary data objects and rendered
+as untrusted text in an explicitly labelled **Imported report**. Import makes no
+collection, permission, source-tab, collector or persistence call. A separate
+Save imported report action uses the existing store transaction, deletion epoch,
+retention and complete-record bounds and writes local imported origin plus
+`importedAt`; a near-limit file whose envelope would exceed 1 MiB remains
+view-only. The saved archive's existing exact serializer derives re-export
+provenance from the local origin, never from the file's claim. No PDF library,
+remote resource, automatic sharing or collector is introduced.
 
 ## Expanded v1 target
 

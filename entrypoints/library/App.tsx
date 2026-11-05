@@ -6,7 +6,9 @@ import {
 } from '../../lib/saved-library';
 import { recordLabel } from '../../lib/saved-record';
 import type { SavedExport } from '../../lib/saved-export';
+import type { ReportImport } from '../../lib/report-import';
 import { ArchiveView, unsupportedLabel } from './ArchiveView';
+import { ImportReportSection } from './ImportReport';
 import { SavedExportSection } from './SavedExport';
 
 const expiryFormat = new Intl.DateTimeFormat('en', {
@@ -281,8 +283,10 @@ function Disclosures() {
         clearing is browser-controlled and can have documented exceptions.
       </p>
       <p>
-        This build does not export, print or copy saved reports. Exported files
-        from the live report remain outside AddonRay's control.
+        This build can export an open saved report as JSON and import a JSON
+        report for read-only review. It does not print or copy saved reports.
+        Exported files remain outside AddonRay's control, and import alone
+        stores nothing.
       </p>
     </aside>
   );
@@ -291,9 +295,11 @@ function Disclosures() {
 export function App({
   library,
   exporter,
+  importer,
 }: {
   library: SavedLibrary;
   exporter: SavedExport;
+  importer: ReportImport;
 }) {
   const state = useSyncExternalStore(
     library.subscribe,
@@ -303,6 +309,13 @@ export function App({
   useEffect(() => {
     library.start();
   }, [library]);
+
+  // A denied library context must also discard the separate imported view;
+  // hiding the section alone would let stale file content reappear if a later
+  // refresh returned to the ready phase.
+  useEffect(() => {
+    if (state.phase === 'denied') importer.clear();
+  }, [importer, state.phase]);
 
   return (
     <main>
@@ -325,6 +338,8 @@ export function App({
       </header>
 
       <Disclosures />
+
+      {state.phase !== 'denied' && <ImportReportSection importer={importer} />}
 
       {state.phase === 'checking' && (
         <p role="status">

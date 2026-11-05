@@ -2,6 +2,7 @@ import { expect, it } from 'bun:test';
 import type { Investigation } from '../lib/investigation';
 import {
   createExchangeJson,
+  createImportedRecord,
   createSavedRecord,
   exchangeBytes,
   inspectStoredRecord,
@@ -640,4 +641,84 @@ it('treats the exact stored-byte boundary as valid and one byte over as invalid'
     status: 'invalid',
     recordId: exact.recordId,
   });
+});
+
+it('creates an imported record with local importedAt and imported provenance', () => {
+  const captured = record();
+  const result = createImportedRecord(captured.report, {
+    now: 1_800_000_100_000,
+    recordId: '87654321-4321-4321-4321-cba987654321',
+    importedAt: 1_800_000_000_000,
+    retentionDays: 7,
+  });
+  expect(result.status).toBe('success');
+  if (result.status !== 'success') return;
+  expect(result.value).toMatchObject({
+    schemaVersion: 1,
+    origin: 'imported',
+    importedAt: 1_800_000_000_000,
+    savedAt: 1_800_000_100_000,
+  });
+  expect(result.value.expiresAt - result.value.savedAt).toBe(
+    7 * 24 * 60 * 60 * 1000,
+  );
+  expect(inspectStoredRecord(result.value).status).toBe('valid');
+  const stored = serializeStoredRecord(result.value);
+  expect(stored).toContain('"origin":"imported"');
+  expect(stored).toContain('"importedAt":1800000000000');
+  const exchange = serializeExchange(result.value);
+  expect(exchange).toContain('"provenance":"imported"');
+  expect(exchange).not.toContain('importedAt');
+  expect(exchange).not.toContain('savedAt');
+  expect(recordLabel(result.value)).toContain('Imported');
+});
+
+it('keeps captured records readable without importedAt and rejects mismatched envelopes', () => {
+  const captured = record();
+  expect(inspectStoredRecord(captured).status).toBe('valid');
+  expect(serializeStoredRecord(captured)).not.toContain('importedAt');
+
+  const imported = createImportedRecord(captured.report, {
+    now: 1_800_000_100_000,
+    recordId: '87654321-4321-4321-4321-cba987654321',
+    importedAt: 1_800_000_000_000,
+  });
+  if (imported.status !== 'success') throw new Error(imported.reason);
+
+  const capturedWithImportedAt = {
+    ...captured,
+    importedAt: 1_800_000_000_000,
+  };
+  expect(inspectStoredRecord(capturedWithImportedAt).status).toBe('invalid');
+
+  const importedWithoutImportedAt = { ...imported.value } as Record<
+    string,
+    unknown
+  >;
+  delete importedWithoutImportedAt.importedAt;
+  expect(inspectStoredRecord(importedWithoutImportedAt).status).toBe('invalid');
+
+  for (const importedAt of [-1, 1.5, 'now', 9_000_000_000_000_000]) {
+    expect(inspectStoredRecord({ ...imported.value, importedAt }).status).toBe(
+      'invalid',
+    );
+  }
+});
+
+it('validates importedAt and retention when creating an imported record', () => {
+  const captured = record();
+  for (const options of [
+    { importedAt: -1 },
+    { importedAt: 1.5 },
+    { importedAt: 9_000_000_000_000_000 },
+    { retentionDays: 14 as SavedRetentionDays },
+  ]) {
+    const result = createImportedRecord(captured.report, {
+      now: 1_800_000_100_000,
+      recordId: '87654321-4321-4321-4321-cba987654321',
+      importedAt: 1_800_000_000_000,
+      ...options,
+    });
+    expect(result.status).toBe('error');
+  }
 });

@@ -78,9 +78,9 @@ engine quota error, an exercised Chrome private main-frame library guard (the
 route is currently policy-blocked), unmodified Chrome optional-permission
 consent, the native OS/architecture matrix, retail installation and release
 approval. The PR records the hosted matrix, independent review coverage and
-final frozen gate separately. #8 is implemented with local model, UI and browser
-evidence; #9 through #11 remain unimplemented. No permission, publication or
-durability claim is included.
+final frozen gate separately. #8 and #9 are implemented with local model, UI and
+browser evidence; #10 and #11 remain unimplemented. No permission, publication
+or durability claim is included.
 
 ## History retention and bulk deletion (#7)
 
@@ -144,10 +144,55 @@ Implementation and qualification evidence is recorded in
 assertions across 38 files and native type checking of 87 files pass. The shared
 product probes pass 95 checks on each Firefox pin and 88 on Chrome for Testing
 156.0.8078.47, including exact UTF-8 JSON preview/download before and, on
-Firefox, after actual management removal. JSON import (#9), printable HTML
-(#10), clipboard (#11), saved-archive Markdown output, the hosted exact-OS
-matrix and native human download/cancellation observation remain open. The #6
-storage and private-context gaps and the #7 release gaps are unchanged.
+Firefox, after actual management removal. Printable HTML (#10), clipboard (#11),
+saved-archive Markdown output, the hosted exact-OS matrix and native human
+download/cancellation observation remain open. The #6 storage and
+private-context gaps and the #7 release gaps are unchanged.
+
+## JSON report import (#9)
+
+The bounded #9 slice adds explicit file selection and a strict import path in
+the library document. The selected file is checked against 1 MiB before parsing,
+decoded as complete UTF-8, then accepted only as schema version 1. The strict
+parser rejects malformed JSON, duplicate decoded keys, `__proto__`,
+`prototype` and `constructor` names including escaped forms, unknown fields at
+every level, wrong types, non-finite or out-of-range numbers and invalid
+state/count/duration combinations. It enforces 1,000 inventory rows per side,
+2,000 changes, 4,096 code points per string and nesting depth 8 without
+truncation. Accepted null, measured, unrecorded and unavailable states and the
+precomputed change list are preserved; an existing JSON export re-imports for
+read-only inspection.
+
+A valid import opens as an explicitly labelled, untrusted, read-only **Imported
+report**. It makes no inventory or page collection call, requests no permission,
+attaches no source tab, resumes no collector and cannot attach to a live
+investigation. Import alone persists nothing and stores no filename or path. A
+separate **Save imported report** action writes a local record with imported
+origin and `importedAt` under the existing 50-record, 5 MiB and 1 MiB complete
+record limits, 7/30/90-day retention (default 30) and deletion epoch. A
+near-limit file whose envelope would exceed 1 MiB remains view-only. Re-export
+uses the existing exact serializer and keeps imported provenance even when the
+file claimed `captured`.
+
+Every import and save action rechecks normal context. Private and unknown
+contexts fail closed; the library clears the separate imported view and hides
+the import section when its normal context check is denied. Import does not require collection permission or
+storage availability; storage failure belongs to the separate save. Pending
+file reads and saves are invalidated by clear, replacement, suspension,
+disposal or context loss, and a pending save is rejected by a deletion epoch
+change.
+
+Implementation and qualification evidence is recorded in
+[the #9 evidence](evidence/2026-11-05-json-report-import.md). At clean
+`38a775888cc4300cb99d49caa8927a105abcc61b`, 621 behavior tests with 2,022,970
+assertions across 40 files and native type checking of 94 files pass. The shared
+product probes pass 100 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 pin
+and 93 on Chrome for Testing 156.0.8078.47, including five production file-input
+checks per target. Printable HTML (#10), clipboard (#11), native human
+file-picker observation, the hosted exact-OS matrix and signed distribution
+remain open. The authentic private import action is model-tested; the Chrome
+private main-frame library route remains policy-blocked. The #6 storage and
+private-context gaps and the #7 release gaps are unchanged.
 
 ## Brand asset kit
 
@@ -490,7 +535,8 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [ ] Complete release qualification for #6: natural eviction, an actual Chrome engine quota error, an exercised Chrome private main-frame library guard, and the exact-OS/hosted matrix. Product restart and production-adapter regressions pass.
 - [x] Implement and qualify #7 per-save 7/30/90-day retention, bulk deletion and delete-all. See [the #7 evidence](evidence/2026-10-31-history-retention-bulk-deletion.md).
 - [x] Implement and locally qualify #8 schema version 1 JSON preview and download for the live investigation and saved archives. See [the #8 evidence](evidence/2026-11-01-json-report-export.md).
-- [ ] Implement and qualify #9 untrusted import, #10 printable HTML/PDF and #11 clipboard.
+- [x] Implement and locally qualify #9 explicit untrusted import, read-only inspection and separate imported save. See [the #9 evidence](evidence/2026-11-05-json-report-import.md).
+- [ ] Implement and qualify #10 printable HTML/PDF and #11 clipboard.
 - [ ] Qualify private and unknown contexts, multi-view deletion, expiry, storage failure and the exact browser and OS matrix for the exchange outputs.
 - [ ] Reassess the Firefox declaration and Chrome Web Store privacy disclosure before publication.
 
@@ -499,12 +545,13 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.md)
 is the current scope and support record. #5's
 [saved-investigation and report-exchange contract](plans/saved-investigation-data-rules.md)
-was approved and recorded on 2026-10-30. The bounded #6 slice, the #7 retention/bulk-delete slice and the #8 JSON export
-slice are implemented and locally qualified with explicit gaps; product restart,
-production-adapter regressions and the simulated lifecycle path pass, and the
-local frozen gate passed, while the final release matrix and independent review
-remain. The next v1 decisions are #4, #13 and #20.
-#9 through #11 may start only under the approved #5 contract and their own gates.
+was approved and recorded on 2026-10-30. The bounded #6 slice, the #7 retention/bulk-delete slice, the #8 JSON export
+slice and the #9 untrusted import slice are implemented and locally qualified
+with explicit gaps; product restart, production-adapter regressions and the
+simulated lifecycle path pass, and the local frozen gate passed, while the final
+release matrix and independent review remain. The next v1 decisions are #4, #13
+and #20. #10 and #11 may start only under the approved #5 contract and their own
+gates.
 This implementation task authorizes no push or PR. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
 current main includes the change at `a708fb5`. #33's bounded collector-budget
