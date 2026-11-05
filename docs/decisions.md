@@ -326,8 +326,10 @@ in NOTICE. Existing Git authorship, development paths in history and normal
 issue/PR discussion remain intact. Current setup instructions should be portable.
 
 This approval authorizes the licensing, notice, packaging and documentation
-preparation. Repository visibility remains private until a separately authorized
-change. Store identities, signing, native/runtime qualification and publication
-remain separate release decisions. This settles the license choice within #4,
-not that ticket's remaining distribution responsibilities. Package metadata keeps
-`private: true`; npm publication is not authorized.
+preparation. Store identities, signing, native/runtime qualification and
+publication remain separate release decisions. This settles the license choice
+within #4, not that ticket's remaining distribution responsibilities. Package
+metadata keeps `private: true`; npm publication is not authorized.
+
+On 2026-11-05 the owner confirmed the repository is public. Changing repository
+visibility needs explicit user authorization.
