@@ -2,6 +2,7 @@ import type { SavedBrowser } from './saved-context';
 import { normalContext } from './saved-context';
 import type { SavedReport } from './saved-record';
 import {
+  copyErrorSnapshot,
   createImportedRecord,
   exchangeBytes,
   inspectStoredRecord,
@@ -11,15 +12,16 @@ import {
   SAVED_LIMITS,
   storedRecordBytes,
   validateReport,
+  type SavedRecord,
   type SavedRetentionDays,
 } from './saved-record';
+import { copyTimingSnapshot, exactKeys, isRecord } from './report-shape';
 import {
   SavedStoreError,
   type SavedStore,
   type SavedStoreSaveResult,
 } from './saved-store';
-import type { Result, TimingMeasurement, TimingSnapshot } from './inspector';
-import type { PageErrorSummary } from './page-error-check';
+import type { Result } from './inspector';
 
 export type ImportedProvenance = 'captured' | 'imported';
 
@@ -36,20 +38,18 @@ const forbiddenPropertyNames = new Set([
 
 class StrictJsonFailure extends Error {}
 
-type JsonObject = Record<string, unknown>;
-
-function isRecord(value: unknown): value is JsonObject {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function exactKeys(value: object, keys: readonly string[]) {
-  const present = Object.keys(value).sort();
-  const expected = [...keys].sort();
-  return (
-    present.length === expected.length &&
-    present.every((key, index) => key === expected[index])
-  );
-}
+const numberPattern = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
+const digitPattern = /\d/;
+const simpleEscapes: Record<string, string> = {
+  '"': '"',
+  '\\': '\\',
+  '/': '/',
+  b: '\b',
+  f: '\f',
+  n: '\n',
+  r: '\r',
+  t: '\t',
+};
 
 function fail(reason: string): never {
   throw new StrictJsonFailure(reason);
@@ -58,172 +58,151 @@ function fail(reason: string): never {
 // This parser owns the import boundary rather than JSON.parse: JSON.parse
 // silently keeps the last duplicate key and materializes prototype keys before
 // a reviver can inspect them. The grammar and depth are bounded while reading.
-function parseStrictJson(text: string): unknown {
-  let index = 0;
+class StrictJsonParser {
+  private index = 0;
+  private readonly text: string;
 
-  const skipWhitespace = () => {
-    while (index < text.length) {
-      const code = text.charCodeAt(index);
+  constructor(text: string) {
+    this.text = text;
+  }
+
+  parse(): unknown {
+    const value = this.parseValue(1);
+    this.skipWhitespace();
+    if (this.index !== this.text.length) fail('unexpected trailing content');
+    return value;
+  }
+
+  private skipWhitespace() {
+    while (this.index < this.text.length) {
+      const code = this.text.charCodeAt(this.index);
       if (code === 0x20 || code === 0x09 || code === 0x0a || code === 0x0d)
-        index += 1;
-      else break;
+        this.index += 1;
+      else return;
     }
-  };
+  }
 
-  const parseString = (): string => {
-    if (text[index] !== '"') fail('expected a string');
-    index += 1;
+  private parseString(): string {
+    if (this.text[this.index] !== '"') fail('expected a string');
+    this.index += 1;
     let value = '';
-    while (index < text.length) {
-      const character = text[index]!;
-      index += 1;
+    while (this.index < this.text.length) {
+      const character = this.text[this.index]!;
+      this.index += 1;
       if (character === '"') return value;
       if (character === '\\') {
-        if (index >= text.length) fail('unterminated string escape');
-        const escape = text[index]!;
-        index += 1;
-        if (escape === '"') value += '"';
-        else if (escape === '\\') value += '\\';
-        else if (escape === '/') value += '/';
-        else if (escape === 'b') value += '\b';
-        else if (escape === 'f') value += '\f';
-        else if (escape === 'n') value += '\n';
-        else if (escape === 'r') value += '\r';
-        else if (escape === 't') value += '\t';
-        else if (escape === 'u') {
-          const hex = text.slice(index, index + 4);
+        if (this.index >= this.text.length) fail('unterminated string escape');
+        const escape = this.text[this.index]!;
+        this.index += 1;
+        if (escape === 'u') {
+          const hex = this.text.slice(this.index, this.index + 4);
           if (!/^[0-9a-f]{4}$/i.test(hex)) fail('invalid Unicode escape');
           value += String.fromCharCode(Number.parseInt(hex, 16));
-          index += 4;
-        } else fail('invalid string escape');
+          this.index += 4;
+          continue;
+        }
+        const mapped = simpleEscapes[escape];
+        if (mapped === undefined) fail('invalid string escape');
+        value += mapped;
         continue;
       }
       if (character.charCodeAt(0) < 0x20) fail('unescaped control character');
       value += character;
     }
     fail('unterminated string');
-  };
+  }
 
-  const numberPattern = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
-  const parseNumber = (): number => {
-    numberPattern.lastIndex = index;
-    const match = numberPattern.exec(text);
+  private parseNumber(): number {
+    numberPattern.lastIndex = this.index;
+    const match = numberPattern.exec(this.text);
     if (!match) fail('invalid number');
-    index = numberPattern.lastIndex;
+    this.index = numberPattern.lastIndex;
     const value = Number(match[0]);
     if (!Number.isFinite(value)) fail('non-finite number');
     return value;
-  };
+  }
 
-  const parseObject = (depth: number): JsonObject => {
-    index += 1;
-    const value = Object.create(null) as JsonObject;
+  private parseObject(depth: number): Record<string, unknown> {
+    this.index += 1;
+    const value = Object.create(null) as Record<string, unknown>;
     const keys = new Set<string>();
-    skipWhitespace();
-    if (text[index] === '}') {
-      index += 1;
+    this.skipWhitespace();
+    if (this.text[this.index] === '}') {
+      this.index += 1;
       return value;
     }
-    for (;;) {
-      skipWhitespace();
-      const key = parseString();
+    while (true) {
+      this.skipWhitespace();
+      const key = this.parseString();
       if (forbiddenPropertyNames.has(key)) fail('forbidden property name');
       if (keys.has(key)) fail('duplicate property name');
       keys.add(key);
-      skipWhitespace();
-      if (text[index] !== ':') fail('expected a colon');
-      index += 1;
-      value[key] = parseValue(depth + 1);
-      skipWhitespace();
-      if (text[index] === ',') {
-        index += 1;
+      this.skipWhitespace();
+      if (this.text[this.index] !== ':') fail('expected a colon');
+      this.index += 1;
+      value[key] = this.parseValue(depth + 1);
+      this.skipWhitespace();
+      if (this.text[this.index] === ',') {
+        this.index += 1;
         continue;
       }
-      if (text[index] === '}') {
-        index += 1;
+      if (this.text[this.index] === '}') {
+        this.index += 1;
         return value;
       }
       fail('expected a comma or closing brace');
     }
-  };
+  }
 
-  const parseArray = (depth: number): unknown[] => {
-    index += 1;
+  private parseArray(depth: number): unknown[] {
+    this.index += 1;
     const value: unknown[] = [];
-    skipWhitespace();
-    if (text[index] === ']') {
-      index += 1;
+    this.skipWhitespace();
+    if (this.text[this.index] === ']') {
+      this.index += 1;
       return value;
     }
-    for (;;) {
-      value.push(parseValue(depth + 1));
-      skipWhitespace();
-      if (text[index] === ',') {
-        index += 1;
+    while (true) {
+      value.push(this.parseValue(depth + 1));
+      this.skipWhitespace();
+      if (this.text[this.index] === ',') {
+        this.index += 1;
         continue;
       }
-      if (text[index] === ']') {
-        index += 1;
+      if (this.text[this.index] === ']') {
+        this.index += 1;
         return value;
       }
       fail('expected a comma or closing bracket');
     }
-  };
+  }
 
-  const parseValue = (depth: number): unknown => {
+  private parseValue(depth: number): unknown {
     if (depth > SAVED_LIMITS.depth) fail('nesting depth limit of 8');
-    skipWhitespace();
-    const character = text[index];
-    if (character === '{') return parseObject(depth);
-    if (character === '[') return parseArray(depth);
-    if (character === '"') return parseString();
-    if (character === '-' || (character !== undefined && /\d/.test(character)))
-      return parseNumber();
-    if (text.startsWith('true', index)) {
-      index += 4;
+    this.skipWhitespace();
+    const character = this.text[this.index];
+    if (character === '{') return this.parseObject(depth);
+    if (character === '[') return this.parseArray(depth);
+    if (character === '"') return this.parseString();
+    if (
+      character === '-' ||
+      (character !== undefined && digitPattern.test(character))
+    )
+      return this.parseNumber();
+    if (this.text.startsWith('true', this.index)) {
+      this.index += 4;
       return true;
     }
-    if (text.startsWith('false', index)) {
-      index += 5;
+    if (this.text.startsWith('false', this.index)) {
+      this.index += 5;
       return false;
     }
-    if (text.startsWith('null', index)) {
-      index += 4;
+    if (this.text.startsWith('null', this.index)) {
+      this.index += 4;
       return null;
     }
     fail('unexpected token');
-  };
-
-  const value = parseValue(1);
-  skipWhitespace();
-  if (index !== text.length) fail('unexpected trailing content');
-  return value;
-}
-
-function copyMeasurement(value: TimingMeasurement): TimingMeasurement {
-  return value.status === 'measured'
-    ? { status: 'measured', milliseconds: value.milliseconds }
-    : { status: value.status };
-}
-
-function copyTiming(value: TimingSnapshot | null): TimingSnapshot | null {
-  if (!value) return null;
-  return {
-    domContentLoaded: copyMeasurement(value.domContentLoaded),
-    loadEvent: copyMeasurement(value.loadEvent),
-    firstContentfulPaint: copyMeasurement(value.firstContentfulPaint),
-  };
-}
-
-function copyError(value: PageErrorSummary | null): PageErrorSummary | null {
-  if (!value) return null;
-  return {
-    scriptErrors: value.scriptErrors,
-    unhandledRejections: value.unhandledRejections,
-    total: value.total,
-    finish: value.finish,
-    observedMs: value.observedMs,
-  };
+  }
 }
 
 // Copy only approved fields into ordinary data objects. The strict parser
@@ -253,12 +232,12 @@ function copyReport(value: SavedReport): SavedReport {
     })),
     assessment: value.assessment,
     timing: {
-      before: copyTiming(value.timing.before),
-      after: copyTiming(value.timing.after),
+      before: copyTimingSnapshot(value.timing.before),
+      after: copyTimingSnapshot(value.timing.after),
     },
     pageErrors: {
-      before: copyError(value.pageErrors.before),
-      after: copyError(value.pageErrors.after),
+      before: copyErrorSnapshot(value.pageErrors.before),
+      after: copyErrorSnapshot(value.pageErrors.after),
     },
     observationLimits: {
       pageErrorWindowMs: value.observationLimits.pageErrorWindowMs,
@@ -285,7 +264,7 @@ export function parseImportedReport(bytes: Uint8Array): Result<ImportedReport> {
   }
   let parsed: unknown;
   try {
-    parsed = parseStrictJson(text);
+    parsed = new StrictJsonParser(text).parse();
   } catch (error) {
     const detail =
       error instanceof StrictJsonFailure
@@ -296,6 +275,10 @@ export function parseImportedReport(bytes: Uint8Array): Result<ImportedReport> {
       reason: `The selected file is not valid JSON: ${detail}.`,
     };
   }
+  return readImportedReport(parsed);
+}
+
+function readImportedReport(parsed: unknown): Result<ImportedReport> {
   if (
     !isRecord(parsed) ||
     !exactKeys(parsed, ['schemaVersion', 'provenance', 'report'])
@@ -381,6 +364,52 @@ function computedSaveable(
   );
 }
 
+type PreparedImportedRecord =
+  | { status: 'ready'; record: SavedRecord }
+  | { status: 'view-only' }
+  | { status: 'error'; reason: string };
+
+function prepareImportedRecord(
+  reportValue: SavedReport,
+  importedAt: number,
+  retentionDays: SavedRetentionDays,
+): PreparedImportedRecord {
+  const result = createImportedRecord(reportValue, {
+    now: Date.now(),
+    recordId: crypto.randomUUID(),
+    importedAt,
+    retentionDays,
+  });
+  if (result.status !== 'success')
+    return { status: 'error', reason: result.reason };
+  const record = result.value;
+  if (
+    storedRecordBytes(record) > SAVED_LIMITS.recordBytes ||
+    exchangeBytes(record) > SAVED_LIMITS.jsonBytes
+  )
+    return { status: 'view-only' };
+  if (inspectStoredRecord(record).status !== 'valid')
+    return {
+      status: 'error',
+      reason: 'The imported record could not be validated.',
+    };
+  return { status: 'ready', record };
+}
+
+const saveResultMessages: Record<string, string> = {
+  records:
+    'The library already contains 50 saved records. Delete one before saving.',
+  total:
+    'The library would exceed its 5 MiB limit. Delete a saved record before saving.',
+  exhausted:
+    'Saved storage cannot accept another record because its deletion counter is exhausted.',
+  quota: 'Browser storage quota was exceeded. The imported report was kept.',
+  timeout: 'Saved storage did not respond. The imported report was kept.',
+  cancelled: 'The save was cancelled. The imported report was kept.',
+  duplicate:
+    'A saved record with this ID already exists. The imported report was kept.',
+};
+
 export function createReportImport(
   api: SavedBrowser,
   store: SavedStore,
@@ -421,6 +450,20 @@ export function createReportImport(
     });
   };
   const keep = (message: string) => publish({ ...state, busy: false, message });
+  const verifyContext = async (ticket: number) => {
+    if (!(await normalContext(api))) {
+      if (current(ticket)) discard(contextMessage);
+      return false;
+    }
+    return current(ticket);
+  };
+  const showViewOnly = () =>
+    publish({
+      ...state,
+      busy: false,
+      saveable: false,
+      message: viewOnlyMessage,
+    });
 
   return {
     getSnapshot: () => state,
@@ -520,43 +563,22 @@ export function createReportImport(
         // save adopt the post-delete barrier.
         const expected = await store.readState();
         if (!current(ticket)) return;
-        if (!(await normalContext(api))) {
-          if (current(ticket)) discard(contextMessage);
-          return;
-        }
-        if (!current(ticket)) return;
-        const recordResult = createImportedRecord(reportValue, {
-          now: Date.now(),
-          recordId: crypto.randomUUID(),
+        if (!(await verifyContext(ticket))) return;
+        const prepared = prepareImportedRecord(
+          reportValue,
           importedAt,
           retentionDays,
-        });
-        if (recordResult.status !== 'success') {
-          keep(recordResult.reason);
+        );
+        if (prepared.status === 'view-only') {
+          showViewOnly();
           return;
         }
-        const record = recordResult.value;
-        if (
-          storedRecordBytes(record) > SAVED_LIMITS.recordBytes ||
-          exchangeBytes(record) > SAVED_LIMITS.jsonBytes
-        ) {
-          publish({
-            ...state,
-            busy: false,
-            saveable: false,
-            message: viewOnlyMessage,
-          });
+        if (prepared.status === 'error') {
+          keep(prepared.reason);
           return;
         }
-        if (inspectStoredRecord(record).status !== 'valid') {
-          keep('The imported record could not be validated.');
-          return;
-        }
-        if (!(await normalContext(api))) {
-          if (current(ticket)) discard(contextMessage);
-          return;
-        }
-        if (!current(ticket)) return;
+        const record = prepared.record;
+        if (!(await verifyContext(ticket))) return;
         const result: SavedStoreSaveResult = await store.save(
           record,
           expected,
@@ -581,53 +603,10 @@ export function createReportImport(
           return;
         }
         if (result === 'record') {
-          publish({
-            ...state,
-            busy: false,
-            saveable: false,
-            message: viewOnlyMessage,
-          });
+          showViewOnly();
           return;
         }
-        if (result === 'records') {
-          keep(
-            'The library already contains 50 saved records. Delete one before saving.',
-          );
-          return;
-        }
-        if (result === 'total') {
-          keep(
-            'The library would exceed its 5 MiB limit. Delete a saved record before saving.',
-          );
-          return;
-        }
-        if (result === 'exhausted') {
-          keep(
-            'Saved storage cannot accept another record because its deletion counter is exhausted.',
-          );
-          return;
-        }
-        if (result === 'quota') {
-          keep(
-            'Browser storage quota was exceeded. The imported report was kept.',
-          );
-          return;
-        }
-        if (result === 'timeout') {
-          keep('Saved storage did not respond. The imported report was kept.');
-          return;
-        }
-        if (result === 'cancelled') {
-          keep('The save was cancelled. The imported report was kept.');
-          return;
-        }
-        if (result === 'duplicate') {
-          keep(
-            'A saved record with this ID already exists. The imported report was kept.',
-          );
-          return;
-        }
-        keep(storageMessage);
+        keep(saveResultMessages[result] ?? storageMessage);
       } catch (error) {
         if (!current(ticket)) return;
         if (error instanceof SavedStoreError)

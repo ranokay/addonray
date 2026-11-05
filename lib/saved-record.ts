@@ -4,7 +4,8 @@ import {
   type InventorySnapshot,
   type PageAssessment,
 } from './comparison';
-import type { Result, TimingMeasurement, TimingSnapshot } from './inspector';
+import type { Result, TimingSnapshot } from './inspector';
+import { copyTimingSnapshot, exactKeys, isRecord } from './report-shape';
 import type { Investigation } from './investigation';
 import {
   copyPageErrorSummary,
@@ -96,19 +97,6 @@ function codePoints(value: string) {
   return [...value].length;
 }
 
-function exactKeys(value: object, keys: readonly string[]) {
-  const present = Object.keys(value).sort();
-  const expected = [...keys].sort();
-  return (
-    present.length === expected.length &&
-    present.every((key, index) => key === expected[index])
-  );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
 function boundedString(value: unknown) {
   return (
     typeof value === 'string' &&
@@ -125,22 +113,9 @@ function withinDepth(value: unknown, depth = 1): boolean {
   return true;
 }
 
-function copyMeasurement(value: TimingMeasurement): TimingMeasurement {
-  return value.status === 'measured'
-    ? { status: 'measured', milliseconds: value.milliseconds }
-    : { status: value.status };
-}
-
-function copyTiming(value: TimingSnapshot | null): TimingSnapshot | null {
-  if (!value) return null;
-  return {
-    domContentLoaded: copyMeasurement(value.domContentLoaded),
-    loadEvent: copyMeasurement(value.loadEvent),
-    firstContentfulPaint: copyMeasurement(value.firstContentfulPaint),
-  };
-}
-
-function copyError(value: PageErrorSummary | null): PageErrorSummary | null {
+export function copyErrorSnapshot(
+  value: PageErrorSummary | null,
+): PageErrorSummary | null {
   if (!value) return null;
   return {
     scriptErrors: value.scriptErrors,
@@ -193,12 +168,12 @@ export function createSavedReport(
     })),
     assessment: state.assessment,
     timing: {
-      before: copyTiming(state.timingBefore),
-      after: copyTiming(state.timingAfter),
+      before: copyTimingSnapshot(state.timingBefore),
+      after: copyTimingSnapshot(state.timingAfter),
     },
     pageErrors: {
-      before: copyError(state.errorBefore),
-      after: copyError(state.errorAfter),
+      before: copyErrorSnapshot(state.errorBefore),
+      after: copyErrorSnapshot(state.errorAfter),
     },
     observationLimits: {
       pageErrorWindowMs: pageErrorLimits.durationMs,
