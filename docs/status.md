@@ -5,8 +5,9 @@
 The owner approved Apache-2.0 for owned code/docs, preserved third-party terms,
 reserved branding and retained development history. See the [decision](decisions.md#publication-preparation-2026-10-31).
 License and notice files are included in both browser extension packages and
-source archives. Repository visibility remains private pending a separate owner
-action. This preparation does not claim a completed v1 or store qualification.
+source archives. Repository visibility is public, confirmed by the owner on
+2026-11-05; changing it needs explicit user authorization. This preparation does
+not claim a completed v1 or store qualification.
 The license portion of #4 is decided; its other release responsibilities remain.
 
 ## Expanded v1 target

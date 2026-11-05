@@ -8,4 +8,6 @@
 | ready-for-human | ready-for-human | Requires human implementation.                |
 | wontfix         | wontfix         | Will not be actioned.                         |
 
+An issue whose decisions are settled by a merged plan moves from `needs-info` to `ready-for-agent`.
+
 Skills must use these label names when referring to canonical triage roles. Preserve unrelated labels.

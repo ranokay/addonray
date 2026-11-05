@@ -33,6 +33,7 @@
     "package:chrome": "bun --bun run wxt zip --browser chrome --mv3 && bun scripts/check-manifest.mjs chrome && bun scripts/check-package.mjs chrome",
     "test:source-build:chrome": "bun run package:chrome && bun scripts/check-source-build.mjs chrome",
     "test:chrome": "bun run package:chrome && bun scripts/chrome-probes.mjs",
+    "test:browsers": "bun run test:chrome && FIREFOX_VERSION=140.0 bun run test:firefox && FIREFOX_VERSION=153.5.1esr bun run test:firefox && FIREFOX_VERSION=158.0.1 bun run test:firefox",
     "test:chrome-popup": "bun run package:chrome && bun scripts/chrome-popup.mjs",
     "test:saved-restart:firefox": "bun run build && bun scripts/saved-restart-checks.mjs firefox",
     "test:saved-restart:chrome": "bun run package:chrome && bun scripts/saved-restart-checks.mjs chrome",
