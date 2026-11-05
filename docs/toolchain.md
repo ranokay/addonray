@@ -14,8 +14,7 @@ On 2026-10-23 the user reviewed stable Bun 1.4.4 and chose to retain this pin. T
 
 ```sh
 mise install http:bun hk jactionlint shellcheck
-mise exec -- bun install --frozen-lockfile
-mise run hooks-install
+mise run setup
 mise run check
 ```
 
@@ -23,6 +22,7 @@ Activate mise in the shell for direct Bun commands. Otherwise use `mise exec -- 
 
 | Command                               | Purpose                                                       |
 | ------------------------------------- | ------------------------------------------------------------- |
+| `mise run setup`                      | Install dependencies and repository-local hooks.              |
 | `mise run fmt`                        | Format source and documentation with native Bun fmt.          |
 | `mise run lint`                       | Run native Bun lint with zero warnings allowed.               |
 | `mise exec -- bun run typecheck`      | Run the native TypeScript checker.                            |

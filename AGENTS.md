@@ -6,7 +6,7 @@ Before changing permissions, browser integrations, or capability claims, read [d
 
 Implement one approved phase at a time. Keep missing metadata unknown. Separate documentation, fake-browser tests, and observed Firefox evidence. Browser probes use disposable profiles and controlled fixture extensions. Product code offers inspection and explanations; it never attempts to change other extensions' state.
 
-Before changing development tools, hooks, or CI, read [docs/toolchain.md](docs/toolchain.md). Use the checksum-pinned Bun canary through mise. The shared hk gate includes jactionlint. Keep hooks in check-only mode without automatic staging or stashing.
+Before changing development tools, hooks, or CI, or setting up a worktree, read [docs/toolchain.md](docs/toolchain.md). Run `mise run setup` in each fresh worktree. Use the checksum-pinned Bun canary through mise. The shared hk gate includes jactionlint. Keep hooks in check-only mode without automatic staging or stashing.
 
 Run `mise run check` before committing. Run `mise run test-firefox` and `mise run test-chrome` for shared browser API changes and record exact distributions, versions, observed results, and gaps in [docs/evidence](docs/evidence). Read [the Chrome plan](docs/plans/chrome-mv3.md) before changing target support or test authority. If a probe cannot run, leave its qualification incomplete. Keep raw local data in ignored `.scratch/`.
 
