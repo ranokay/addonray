@@ -293,12 +293,13 @@ export async function checkReportImport({
   );
 
   await chooseFile(driver, replacementPath);
-  await waitForImportedReport(driver);
-  assert(
-    (await driver.findElement(By.css('.imported-report')).getText()).includes(
-      'Better',
-    ),
-    'A successful replacement selection must replace the imported view',
+  await driver.wait(
+    async () =>
+      (await driver.findElement(By.css('.imported-report')).getText()).includes(
+        'Better',
+      ),
+    10000,
+    'The replacement report was not rendered',
   );
   assert.equal((await storedRecords(driver)).records.length, 0);
 
