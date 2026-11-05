@@ -310,6 +310,13 @@ export function App({
     library.start();
   }, [library]);
 
+  // A denied library context must also discard the separate imported view;
+  // hiding the section alone would let stale file content reappear if a later
+  // refresh returned to the ready phase.
+  useEffect(() => {
+    if (state.phase === 'denied') importer.clear();
+  }, [importer, state.phase]);
+
   return (
     <main>
       <header>
