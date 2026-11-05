@@ -142,9 +142,11 @@ Chrome ZIP SHA-256
 archive SHA-256
 `fa81fece1115011fa148df44f606a2412675b1bd454e0efcf2d1bfba18dba284`.
 
-The frozen shared gate receipt for `34f344d` is
-`.local/state/agent-tools/gates/20261104T230646Z-1c11066af7a7.json`; the final
-head requires its own frozen gate before delivery, recorded in the supervise
+The frozen shared gate for the qualified product content was run at
+`0e03608b3fcf448d478bd6f4b74c940ecad90952`, whose product files are identical to
+`38a7758`; its receipt is
+`.local/state/agent-tools/gates/20261105T101756Z-10061165dd36.json`. This evidence
+commit adds no product change, and its final frozen gate is recorded in the PR
 thread.
 
 ## Gaps
