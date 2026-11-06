@@ -355,11 +355,21 @@ page-error, saved-data and report behavior described elsewhere in this record.
 | Q5       | Retain Firefox `addonray@ranokay.dev`; use AMO unlisted signing for test candidates. The Chrome Web Store assigns the Chrome ID under the user publisher account with private/trusted-tester distribution. #4 stays open until identities, accounts and route availability are verified. No upload, signing or publication is authorized.                                                                                                                                                                                                                                                                                                                                                |
 | Q6       | Retain macOS arm64, Windows x64 and Linux x64 intent with floors macOS 14, Windows 11 24H2 and Ubuntu 24.04 GNOME Wayland. Qualify the minimum and candidate-current versions separately. Missing environments stay explicit blockers; no purchases or OS/VM installation are authorized. No future “latest” version is hardcoded and macOS-only support is not narrowed.                                                                                                                                                                                                                                                                                                                |
 
+“Direct” in Q3 means the native process's OS resolver and OS routing, not a VPN
+bypass or a claim about the browser's proxy path. The OS may carry the target
+connection or DNS through a VPN, split tunnel or OS proxy; the companion makes no
+network-isolation guarantee beyond the permitted target/resolver traffic. Online
+TLS-verifier traffic is not part of v1 unless declared and qualified.
+
 The approved collector contract is [the mutation and request-failure
 plan](plans/mutation-request-failure.md). It separates mutation notifications
 from DOM operations, defines terminal request observations, preserves pre-existing
 permissions while cleaning temporary grants, and freezes schema version 1 while
-adding an explicit version 2 path. The approved guided flow is [the guided-trial
+adding an explicit version 2 path. The request contract uses a small
+extension-origin cleanup ledger to distinguish expected operation-owned cleanup
+from external revocation and to reconcile a lost owner tab. Cleanup after abrupt
+loss is explicitly best-effort: a missing or corrupt ledger causes no automatic
+removal and reports a retained grant. The approved guided flow is [the guided-trial
 plan](plans/v1-guided-trials.md). The approved companion capability is [the
 connectivity plan](plans/companion-connectivity.md); it remains display-only and
 optional. [ADR 0006](adr/0006-request-failure-observation.md) and

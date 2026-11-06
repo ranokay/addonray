@@ -37,9 +37,12 @@ current runtime:
 - the request-failure check may declare optional `webRequest` and a runtime
   host template, then request only the selected page's exact scheme and host at
   an explicit Start. The user grant may cover all ports on that host, but the
-  runtime filter includes the selected port. Newly granted permissions are
-  removed after the check; pre-existing grants are preserved. The background
-  event page/service worker counts only during an active check;
+  runtime filter includes the selected port. A small extension-origin
+  permission-cleanup ledger records the attempt ID, exact origin pattern,
+  pre-existing/newly granted flags and cleanup state, never request or result
+  data. Newly granted permissions are removed after the check; pre-existing
+  grants are preserved. The background event page/service worker counts only
+  during an active check;
 - the optional companion may declare optional `nativeMessaging` and request it
   only on first use. No native host or permission exists in the current package.
 
@@ -425,7 +428,11 @@ approved on 2026-11-06. It is a future data lifecycle, not current behavior.
   text, error string, IP or derived request detail is retained. Third-party and
   cross-origin-frame requests are excluded. Blocked-request coverage is
   incomplete. The check may use an event page/service worker, but only while an
-  explicit check is active; it keeps no ambient record.
+  explicit check is active; it keeps no ambient record. The permission-cleanup
+  ledger keeps only attempt/permission state so expected cleanup can be
+  distinguished from external revocation. A sealed result and an independent
+  attached copy survive expected cleanup; external revocation clears live
+  results, pending transfers and attached copies.
 - **Investigation, save and report:** a confirmed summary is memory-only until an
   explicit attachment or Save. Attachment follows the existing one-use,
   destination/side, source-tab, stale-action and reset/revocation rules. Saved
@@ -446,14 +453,22 @@ request and receives no URL path, query, cookie, credential, header or page
 content. The result contains stage outcomes, durations and a coarse error class,
 at most 1 KiB, and is not saved, attached or exported.
 
-The direct check does not reproduce the browser's proxy, PAC, VPN, DNS-over-HTTPS,
-cache, cookies, authentication or TLS session, and it does not identify a culprit
-extension. Its installation must never become a prerequisite for basic inventory,
-capability explanations or extension-only inspection. Companion host identity,
-distribution channel and native platform signing remain open with #4 and #25–#28.
-#21 to #23 prove the operation per intended OS and architecture. #24 to #28
-deliver, install, remove and upgrade it. The companion supplies no implicit
-browser authority.
+The check uses the native process's OS resolver and OS routing. It does not read
+or reproduce the browser's proxy, PAC, DNS-over-HTTPS, cache, cookies,
+authentication or TLS session. The OS may carry the target connection through a
+VPN, split tunnel, firewall or OS-level proxy, and may resolve the hostname
+through a VPN-provided or OS-configured DNS service. There is no VPN-bypass or
+“direct internet” guarantee. OS resolver traffic and offline trust-store reads
+are permitted; any online TLS-verifier traffic must be declared and qualified or
+the verifier is rejected. The companion process makes no HTTP request, follows no
+redirect and opens no unrelated destination. It does not identify a culprit
+extension.
+
+Its installation must never become a prerequisite for basic inventory, capability
+explanations or extension-only inspection. Companion host identity, distribution
+channel and native platform signing remain open with #4 and #25–#28. #21 to #23
+prove the operation per intended OS and architecture. #24 to #28 deliver, install,
+remove and upgrade it. The companion supplies no implicit browser authority.
 
 ## References
 

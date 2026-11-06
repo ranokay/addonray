@@ -14,8 +14,8 @@ When a page or its requests fail, the user cannot tell whether the machine can
 reach the page's host at all. The optional companion supplies one narrow,
 read-only check: DNS resolution, a TCP connection and, for HTTPS, a TLS
 handshake to the selected page's exact host and port. It does not send an HTTP
-request. The result helps the user compare the machine's direct network path with
-the browser's failed request, without claiming that a network path, extension or
+request. The result helps the user compare the machine's OS network path with the
+browser's failed request, without claiming that a network path, extension or
 server caused the page problem.
 
 ## Approved operation
@@ -30,9 +30,13 @@ NET-1 is a **local connectivity check**:
 5. Return stage outcomes, durations and a coarse error class.
 6. Disconnect and clear the result when the view closes or the user clears it.
 
-The check makes no HTTP request, sends no path, query, fragment, cookie,
-credential or header, follows no redirect and contacts no other host. It is one
-attempt, not a background monitor.
+The companion process makes no HTTP request itself, sends no path, query,
+fragment, cookie, credential or header, and follows no redirect. Its only
+application-level connection is one TCP connection and, for HTTPS, one TLS
+handshake to the selected host and port. OS resolver queries for that hostname
+necessarily contact the configured resolver infrastructure and may use DoH; they
+are permitted and scoped below. No other destination is chosen by the companion.
+It is one attempt, not a background monitor.
 
 ## Input boundary
 
@@ -113,14 +117,36 @@ removal or context loss.
 
 ## Direct-network limits
 
-The check measures the machine's **direct** DNS/TCP/TLS path. It does not use the
-browser's proxy, PAC, VPN, DNS-over-HTTPS, connection pool, HTTP cache, cookies,
-authentication, service worker or TLS session. A browser request can fail while
-the direct check succeeds, and the reverse can also occur.
+The check uses the native process's **OS resolver and OS routing**. It does not
+read or reproduce the browser's proxy, PAC, DNS-over-HTTPS, connection pool, HTTP
+cache, cookies, authentication, service worker or TLS session. The OS may route
+the target TCP/TLS connection through a VPN, split tunnel, firewall or OS-level
+proxy, and may resolve the hostname through a VPN-provided or OS-configured DNS
+service. The companion makes no VPN-bypass or “direct internet” guarantee.
 
-The result is not evidence that an extension caused a failure, that the network
-is healthy, that the server is reachable through the browser, or that the page
-would work after a reload. The UI states these limits next to the result.
+A browser request can fail while the OS path succeeds, and the reverse can also
+occur. The result is not evidence that an extension caused a failure, that the
+network is healthy, that the server is reachable through the browser, or that the
+page would work after a reload. The UI states these limits next to the result.
+
+## Permitted network traffic
+
+The only permitted application-level destinations are:
+
+- OS resolver queries for the selected hostname, through the system's configured
+  resolver path, which may itself use DNS-over-HTTPS, a VPN resolver or a local
+  stub;
+- one TCP connection and, for HTTPS, one TLS handshake to the selected host and
+  actual port;
+- offline reads of the platform or pinned trust store used for certificate and
+  hostname validation.
+
+The v1 verifier must not perform online OCSP, CRL, certificate-transparency or
+other network fetches. If a platform verifier makes such requests, that traffic
+must be declared and qualified, or the verifier is rejected. The companion makes
+no HTTP request, no redirect, no telemetry or update check, and opens no other
+host or port. “No unrelated destination” means this bounded set, not “no resolver
+or VPN traffic.”
 
 ## Native host boundary
 
@@ -145,8 +171,11 @@ per OS and are #25–#28. Exact host identity and artifact naming remain open.
 HTTPS validation checks the certificate chain and hostname. The implementation
 should use the platform trust store where the Rust TLS stack exposes it; otherwise
 it uses a pinned root set and records the difference as a limitation. Enterprise
-or user-installed roots may not be visible to a pinned set. #21–#23 must prove
-the chosen verifier and document which trust source was used. A certificate
+or user-installed roots may not be visible to a pinned set. The verifier must not
+perform online OCSP, CRL, certificate-transparency or other network fetches in
+v1; if a platform verifier does, that traffic is declared and qualified or the
+verifier is rejected. #21–#23 must prove the chosen verifier, document which trust
+source was used and capture the actual resolver/verifier traffic. A certificate
 warning does not identify an extension or a browser policy cause.
 
 ## Feasibility pass/fail
@@ -162,7 +191,14 @@ warning does not identify an extension or a browser policy cause.
 - malformed, oversized and unknown messages are rejected without network access;
 - an absent host, wrong protocol version, crashed process and disconnect produce
   bounded unavailable results;
-- no profile mutation, unrelated file access or extra network destination;
+- no profile mutation or unrelated file access;
+- with controlled network observation, the only application-level destination is
+  the selected host and actual port; OS resolver queries are the only other
+  permitted traffic; any declared TLS-verifier traffic is bounded and recorded;
+  there is no HTTP request, redirect, telemetry, update check or arbitrary
+  host/port;
+- record whether an OS VPN, DNS policy or OS proxy was active, and prove the
+  result describes OS routing rather than a VPN bypass;
 - exact browser distribution/version, OS, architecture and source identities;
 - cleanup of the child process and any pending socket.
 

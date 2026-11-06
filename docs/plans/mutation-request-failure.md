@@ -67,14 +67,15 @@ Rules:
 - The summary is a fixed object, at most 1 KiB. No per-event list, queue, ring
   buffer, target, request ID, URL, header, body or timing list is retained.
 - Teardown on owner-tab close (port disconnect), source-tab close or navigation,
-  `pagehide` with back-forward-cache persistence, optional-permission removal,
+  `pagehide` with back-forward-cache persistence, **external** permission removal,
   extension reload or context loss, and worker/event-page restart.
 - A restored back-forward-cache document never resumes the old check. A restarted
   worker/event page makes the attempt `interrupted`; it never becomes an observed
   zero.
 - Results and pending actions are invalidated by Clear, Start over, teardown,
-  permission removal, reset of the receiving investigation, or a stale
-  generation.
+  external permission removal, reset of the receiving investigation, or a stale
+  generation. Expected operation-owned permission cleanup is not an external
+  removal and does not invalidate a sealed result or an attached copy.
 
 ## MUT-1: mutation notifications
 
@@ -188,15 +189,89 @@ The effective port is the explicit URL port, or 80 for HTTP and 443 for HTTPS.
 This prevents a scheme+host grant from collecting traffic on other ports. Opaque,
 missing or unparsable initiators are excluded.
 
-Permission ownership and cleanup:
+### Cleanup ownership, ordering and ledger
 
-- Before requesting, record whether `webRequest` and the exact host grant already
-  existed.
-- After finalization or abort, remove only permissions newly granted for this
-  check. Never remove a permission the user already held.
-- If cleanup fails, disclose that the grant remains and how to revoke it.
-- A denied optional permission leaves the check unavailable. There is no fallback
-  to a broader grant, a different tab or another origin.
+The check tab owns permission cleanup; the background collector does not. This
+keeps the ownership snapshot alive when the background worker/event page restarts.
+Before requesting any new permission, the check tab writes a small bounded
+**permission-cleanup ledger** record to extension-origin IndexedDB:
+
+```json
+{
+  "attemptId": "opaque-attempt-id",
+  "originPattern": "https://example.com/*",
+  "webRequestWasPreexisting": false,
+  "originWasPreexisting": false,
+  "state": "active"
+}
+```
+
+The ledger contains no request, page or result data and adds no permission. It is
+not a saved investigation or report. `state` is `active`, `sealed`, `cleaning`,
+`done` or `failed`. A `done` record is retained for the current extension session
+only to classify a late removal event; it is deleted on the next browser start.
+A `failed` record remains until the user resolves the retained grant. A missing or
+corrupt ledger record means cleanup ownership is unknown: the check fails closed
+without requesting a new permission and no automatic removal is attempted.
+
+Ordering:
+
+1. The check tab snapshots whether `webRequest` and the exact origin grant already
+   exist.
+2. It writes the ledger `active` record before calling `permissions.request`. If
+   that write fails, it does not request new permissions.
+3. It requests only the missing permission pieces and collects the observation.
+4. On finalization, the check tab validates and seals the summary, writes
+   `sealed`, and publishes the confirmed result as eligible for attachment. The
+   visible status is “temporary access cleanup pending.”
+5. It writes `cleaning`, then removes only the permissions recorded as newly
+   granted for this attempt. The ledger write must commit before
+   `permissions.remove`.
+6. On success it writes `done`; the result and any independent attached copy
+   remain. The UI reports that temporary access was removed.
+7. On failure it writes `failed`; the result remains, the UI reports that the
+   exact grant remains, and it offers retry and user-controlled revoke. A retry
+   returns to `cleaning`. Pre-existing grants are never removed.
+
+Expected operation-owned cleanup is identified by the ledger record for the
+attempt: the removal must be in state `cleaning` (or a same-session `done` record
+matching the attempt), match the exact origin/API permission set, and concern a
+permission recorded as newly granted. A pre-existing grant never matches expected
+cleanup. Every other removal is **external**. A `done` record is invalidated when
+a new check for the same origin starts or the same permission is granted again,
+so a later external revocation cannot reuse an old cleanup identity. This rule is
+checked from the ledger, not from message ordering, so a late
+`permissions.onRemoved` event cannot erase a sealed result or an attached copy by
+itself.
+
+If a ledger transition write fails, the check does not perform automatic removal.
+It keeps the confirmed result, reports cleanup as unverified, and leaves
+reconciliation to the next extension open. Only a verified `cleaning` record
+permits removal.
+
+A user revocation that races the exact cleanup call is indistinguishable from
+expected cleanup for that permission set. The small `cleaning` window is therefore
+treated as operation-owned; a sealed result or attached copy may survive that
+race. The UI never claims the grant remains after the permission is already gone.
+#17 must record this bounded race; it is not a general permission-revocation
+exemption.
+
+Abrupt loss is explicit:
+
+- a background worker/event-page restart interrupts collection; the check tab, if
+  alive, still owns cleanup from the ledger;
+- if the check tab is also lost, no result is published. On the next extension
+  open, the ledger is reconciled against `permissions.contains`: newly granted
+  pieces are removed, pre-existing pieces are preserved, and a failed removal is
+  reported as a retained grant;
+- if the ledger is absent or unreadable, the product does not guess. It leaves the
+  grant in place and points the user to the browser's extension permission
+  controls for user-controlled review; it does not remove an origin on an
+  unverified ownership record. This is a feasibility limitation, not a claim of
+  guaranteed cleanup after abrupt loss.
+
+A denied optional permission leaves the check unavailable. There is no fallback
+to a broader grant, a different tab or another origin.
 
 ### Observation
 
@@ -322,15 +397,18 @@ existing page-error attachment contract:
 - one attachment per side and observation kind;
 - Before must be attached before the After inventory capture begins; After
   requires its successful inventory;
-- a successful check can attach once; its standalone result remains until the
-  check resets or closes;
-- the investigation owns an independent bounded copy that survives donor reset
-  or close;
+- a successful check can attach once after sealing, including while
+  operation-owned cleanup is pending or has reported a retained grant; its
+  standalone result remains until the check resets or closes;
+- the investigation owns an independent bounded copy that survives donor reset,
+  donor close and expected operation-owned cleanup;
 - all timing, page-error, mutation and request attachments in one investigation
   share the numeric source-tab ID of the first attachment;
 - a matching tab ID does not prove the same page or document;
-- investigation Start over, either optional-permission revocation, or destination
-  close/reload discards the copy and invalidates pending transfers;
+- investigation Start over, **external** permission revocation, or destination
+  close/reload discards the copy and invalidates pending transfers. The
+  permission-cleanup ledger is consulted to distinguish expected operation-owned
+  cleanup from external revocation, including for a late `onRemoved` event;
 - stale, duplicate, wrong-side or wrong-generation transfers fail without
   changing existing observations.
 
@@ -404,7 +482,10 @@ or current page state.
 - MUT-1 adds no permission and retains no page content.
 - REQ-1 adds optional `webRequest` and a temporary exact-origin host grant. Install
   time gains no host access. The background context counts only during an active
-  check and retains fixed counters only.
+  check and retains fixed counters only. The small permission-cleanup ledger
+  stores only attempt IDs, the exact origin pattern, pre-existing/newly granted
+  flags and cleanup state. It stores no request, page or result data and is
+  deleted when its cleanup lifetime ends.
 - Neither check runs continuously, survives navigation or resumes from a saved
   record.
 - Neither check reads request details, DOM content, extension IDs, URLs, titles,
@@ -416,14 +497,33 @@ or current page state.
 
 ## Feasibility and qualification gates
 
-| Gate                     | Required proof                                                                                                                                                                                                                                                                                                                                             |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| #14 mutation feasibility | Controlled positive/negative fixtures on intended Firefox and Chrome versions; 0/1/100/2,000 notifications; setup/callback/finalization elapsed p95 and total; delayed timer; second check; owner close; source navigation; BFCache; permission removal; worker restart; exact source/browser/OS.                                                          |
-| #17 request feasibility  | Terminal-event visibility for 2xx/3xx/4xx/5xx, network failure and observable blocked cases; exact origin including port filter; third-party/cross-origin exclusion; initiator rule; temporary grant ownership and cleanup; 30-second window; heartbeat and worker restart; redirect double-count check; 0/1/100/500 observations; budgets; exact targets. |
-| #15 mutation product     | Implement only the qualified MUT-1 contract; deterministic and browser evidence separate.                                                                                                                                                                                                                                                                  |
-| #18 request product      | Implement only the qualified REQ-1 contract, permission disclosure and background lifetime.                                                                                                                                                                                                                                                                |
-| #16/#19 attachment       | Independent copies, source binding, one-use, stale/duplicate/reset/revocation/donor-close behavior, schema compatibility and privacy.                                                                                                                                                                                                                      |
-| #29/#30/#31/#34/#38      | Private/unknown guards, navigation/BFCache cleanup, download/print interaction where relevant, accessibility and security review.                                                                                                                                                                                                                          |
+| Gate                     | Required proof                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #14 mutation feasibility | Controlled positive/negative fixtures on intended Firefox and Chrome versions; 0/1/100/2,000 notifications; setup/callback/finalization elapsed p95 and total; delayed timer; second check; owner close; source navigation; BFCache; permission removal; worker restart; exact source/browser/OS.                                                       |
+| #17 request feasibility  | Terminal-event visibility for 2xx/3xx/4xx/5xx, network failure and observable blocked cases; exact origin including port filter; third-party/cross-origin exclusion; initiator rule; cleanup ledger and grant ownership; 30-second window; heartbeat and worker restart; redirect double-count check; 0/1/100/500 observations; budgets; exact targets. |
+| #15 mutation product     | Implement only the qualified MUT-1 contract; deterministic and browser evidence separate.                                                                                                                                                                                                                                                               |
+| #18 request product      | Implement only the qualified REQ-1 contract, permission disclosure and background lifetime.                                                                                                                                                                                                                                                             |
+| #16/#19 attachment       | Independent copies, source binding, one-use, stale/duplicate/reset/revocation/donor-close behavior, schema compatibility and privacy.                                                                                                                                                                                                                   |
+| #29/#30/#31/#34/#38      | Private/unknown guards, navigation/BFCache cleanup, download/print interaction where relevant, accessibility and security review.                                                                                                                                                                                                                       |
+
+Request cleanup and revocation proof must cover:
+
+- normal completion: seal, publish, ledger `cleaning`, remove only newly granted
+  permissions, ledger `done`, result remains and attachment succeeds;
+- late `permissions.onRemoved`: a matching event after `done` does not clear the
+  result or attached copy; a removal outside a matching ledger state does;
+- external revocation during `active`, `sealed`, `cleaning` for a different
+  permission, `failed` and after attachment: live results and pending transfers
+  clear, and an attached copy clears per the investigation rule;
+- pre-existing `webRequest` or origin grants: they are not removed, and an
+  external removal of them is treated as external;
+- cleanup failure and retry: result remains, retained grant is disclosed, and a
+  later external removal clears;
+- worker restart with the check tab alive: no result, cleanup still possible;
+- owner-tab loss before/after sealing: ledger reconciliation on next open removes
+  only newly granted permissions; a missing/corrupt ledger performs no automatic
+  removal and reports unverified cleanup;
+- ledger write failure before request: no new permission is requested.
 
 An essential failure in #14 or #17 returns to the user with a revised plan. It
 does not widen permission, lengthen retention or claim unsupported coverage.
@@ -432,8 +532,9 @@ does not widen permission, lengthen retention or claim unsupported coverage.
 
 The current runtime has no mutation or request-failure collector, no background
 service worker/event page for these observations, no `webRequest` permission, no
-optional host grant, and no schema version 2. Existing page-error, timing,
-inventory, saved-data and report behavior is unchanged.
+optional host grant, no permission-cleanup ledger and no schema version 2.
+Existing page-error, timing, inventory, saved-data and report behavior is
+unchanged.
 
 ## Issue map
 

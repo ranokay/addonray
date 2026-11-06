@@ -26,9 +26,21 @@ Consequences: third-party and cross-origin-frame requests are invisible, and
 blocked-request coverage is incomplete. The product must say so and must not
 attribute a failure to an extension, network or server. The check adds a
 background event page/service worker that counts only during an explicit check.
-Permission ownership is explicit: newly granted permissions are removed after
-the check, pre-existing grants are preserved, and cleanup failure is disclosed.
+
+Permission ownership is explicit and ordered. The check tab writes a small
+extension-origin cleanup ledger before requesting anything, seals and publishes
+the result, then removes only permissions recorded as newly granted. The ledger
+distinguishes expected operation-owned cleanup from external revocation, so a
+late removal event cannot erase a sealed result or an independent attached copy.
+Pre-existing grants are never removed; cleanup failure leaves the result and
+discloses the retained grant. If the background worker restarts, the check tab
+still owns cleanup; if the owner tab is lost, the ledger is reconciled on the
+next open and a missing or corrupt record causes no automatic removal, only a
+retained-grant notice. Cleanup after abrupt loss is therefore best-effort and
+explicitly not guaranteed.
+
 The 30-second Chrome service-worker lifetime, exact-origin port filtering,
-terminal-event double counting and the proposed elapsed-work limits require #17
-feasibility proof before product wiring. See the
+terminal-event double counting, cleanup-ledger availability, late-event
+classification and the proposed elapsed-work limits require #17 feasibility
+proof before product wiring. See the
 [collector contract](../plans/mutation-request-failure.md).

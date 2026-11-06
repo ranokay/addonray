@@ -2,7 +2,7 @@
 status: accepted
 ---
 
-# Choose a direct host connectivity check for the optional companion
+# Choose an OS-path host connectivity check for the optional companion
 
 On 2026-11-06 the user selected the optional companion's first read-only
 capability: a connectivity check for the selected page's actual host and port.
@@ -22,11 +22,17 @@ question: can this machine resolve and connect to the page's host outside the
 browser?
 
 Consequences: the hostname and port cross the native-messaging boundary, and the
-native process makes network connections. The direct path does not reproduce the
-browser's proxy, PAC, VPN, DNS-over-HTTPS, cache, cookies, authentication or TLS
-session, so it cannot identify a culprit extension or prove the browser path is
-healthy. The check stays optional and display-only. Native host identity,
-distribution channel, platform signing, installer layout and release
-authorization remain open with #4 and #25–#28. Per-OS DNS/TCP/TLS, cancellation,
-exact-port, malformed-input and cleanup behavior require #21–#23 proof before
+native process makes network connections through the OS resolver and OS routing.
+It may traverse an OS VPN, split tunnel, firewall or OS-level proxy, and DNS may
+use a VPN-provided or OS-configured resolver; there is no VPN-bypass or “direct
+internet” guarantee. It does not use the browser's proxy, PAC, DNS-over-HTTPS,
+cache, cookies, authentication or TLS session. OS resolver traffic is inherent.
+TLS validation must be offline in v1; online OCSP/CRL or other verifier traffic is
+declared and qualified or rejected. The companion process makes no HTTP request,
+follows no redirect and opens no unrelated destination. It cannot identify a culprit
+extension or prove the browser path is healthy. The check stays optional and
+display-only. Native host identity, distribution channel, platform signing,
+installer layout and release authorization remain open with #4 and #25–#28.
+Per-OS DNS/TCP/TLS, cancellation, exact-port, malformed-input, actual
+resolver/verifier traffic and cleanup behavior require #21–#23 proof before
 product delivery. See the [connectivity contract](../plans/companion-connectivity.md).
