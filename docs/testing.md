@@ -672,11 +672,13 @@ implementation and qualification tickets are authorized.
   `ADDONRAY_SCREENSHOT_DIR`, then read the host clipboard with `pbpaste` and save
   success/denial/unavailable screenshots. Headless and headful evidence are
   recorded separately.
-- At clean `8af95ae`, 708 behavior tests with 2,023,448 assertions pass. The
-  local product probes pass 116 checks on Firefox 140.0, 153.5.1esr and 158.0.1
-  and 106 on Chrome for Testing 156.0.8078.47. Firefox records a real
-  no-activation denial; Chrome records that its focused extension page permits
-  the write, then verifies injected denial. See
+- At clean `db615b3`, 708 behavior tests with 2,023,448 assertions and native
+  type checking of 106 files pass. The local product probes pass 116 checks on
+  Firefox 140.0, 153.5.1esr and 158.0.1 and 106 on Chrome for Testing
+  156.0.8078.47. Firefox records a real no-activation denial; Chrome records that
+  its focused extension page permits the write, then verifies injected denial.
+  Hosted Windows Chrome normalizes clipboard LF to CRLF; the probe accepts only
+  that transformation and records it, without claiming byte equality. See
   [the #11 evidence](evidence/2026-11-06-clipboard-report.md).
 
 ## Approved future collector checks

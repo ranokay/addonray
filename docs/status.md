@@ -327,8 +327,8 @@ claims the copy did not happen.
 
 Implementation and qualification evidence is recorded in
 [the #11 evidence](evidence/2026-11-06-clipboard-report.md). At clean
-`8af95aed24ff50fb5d02411ef6ac8363a107050e`, 708 behavior tests with 2,023,448
-assertions across 45 files and native type checking of 105 files pass. The shared
+`db615b37e5a4bf99a787004bdbc16dd4f148fd7e`, 708 behavior tests with 2,023,448
+assertions across 45 files and native type checking of 106 files pass. The shared
 product probes pass 116 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 pin
 and 106 on Chrome for Testing 156.0.8078.47. Headful runs on Firefox 158.0.1 and
 Chrome 156.0.8078.47 verified the live, saved and imported copied text against
@@ -336,8 +336,10 @@ the host system clipboard byte for byte, plus real Firefox denial, deterministic
 Chrome denial and injected unavailable outcomes. Saved copy also passes after
 actual management removal. A real platform write delayed across a deletion, a
 maximum-size product copy, Windows/Linux, retail installation and the hosted
-exact-OS matrix remain unqualified. Saved-archive Markdown download is still not
-added; the new Markdown format is copy-only. Clipboard content remains outside
+exact-OS matrix remain unqualified. Hosted Windows Chrome normalizes clipboard
+LF to CRLF; the probe records that transformation rather than claiming byte
+equality. Saved-archive Markdown download is still not added; the new Markdown
+format is copy-only. Clipboard content remains outside
 AddonRay's recall after copying. A later documentation-only head requires its own
 frozen gate and browser matrix receipt. The #6 storage and private-context gaps
 and the #7 release gaps are unchanged.
@@ -712,7 +714,7 @@ authorization. Q7/Q8 settle the host ID, artifact naming, GitHub Releases channe
 and detached-signature method as a plan; keys remain unverified and this planning
 work creates no signature or release. #10 is implemented and locally qualified
 from clean `6cb1634`; it is not merged or pushed. #11 is implemented and locally
-qualified from clean `8af95ae`; it is not merged or pushed. #31 remains
+qualified from clean `db615b3`; it is not merged or pushed. #31 remains
 readiness-labelled but still needs #10 and #11 merged and its own qualification;
 no #31 evidence is claimed here. This implementation task adds no other runtime
 claim. This implementation task authorizes no push or PR. #32 is

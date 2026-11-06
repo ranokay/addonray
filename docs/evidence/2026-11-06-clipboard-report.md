@@ -1,9 +1,10 @@
 # Clipboard report (#11)
 
 Status: bounded #11 implementation qualified from clean
-`8af95aed24ff50fb5d02411ef6ac8363a107050e` on macOS 27.2 arm64, including the
-F1 post-write eligibility correction. A later documentation-only head requires
-its own frozen gate and browser matrix receipt. The
+`db615b37e5a4bf99a787004bdbc16dd4f148fd7e` on macOS 27.2 arm64, including the
+F1 post-write eligibility correction and hosted-Windows line-ending handling. A
+later documentation-only head requires its own frozen gate and browser matrix
+receipt. The
 permission-free gate passed before product wiring. Deterministic checks, native
 type checking, one clean Chrome run and three clean Firefox product runs pass.
 Headful product runs on Firefox 158.0.1 and Chrome for Testing 156.0.8078.47
@@ -68,8 +69,8 @@ Raw reports (ignored `.scratch/`):
 
 ## Deterministic checks
 
-The full suite at clean `8af95ae` passes **708 tests / 2,023,448 assertions
-across 45 files** and native type checking of **105 files**. Focused coverage
+The full suite at clean `db615b3` passes **708 tests / 2,023,448 assertions
+across 45 files** and native type checking of **106 files**. Focused coverage
 includes:
 
 - adapter success only after resolution, exact 1 MiB acceptance, one-byte-over
@@ -113,6 +114,14 @@ extracts the validated ZIP.
 | Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 116    | `29268916c570fd79662e506c16e037b91ea0577fd0597157bfe5b8031b8ee685` |
 | Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 116    | `d3046eaff53cb3d1f9430b64aed95b667cd830849fab84792e8f81d05bbc16ae` |
 | Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 106    | `bbe7396342cb4e301ceac734fa935fc52783b2704b06e5dcf59360acd10e8292` |
+
+The first hosted Windows Chrome qualification on the prior implementation head
+read the clipboard back with CRLF line endings while the reviewed preview used
+LF. The product wrote the exact reviewed string; Windows clipboard handling
+normalized newlines. The probe now asserts LF-normalized equality, accepts only
+that CRLF transformation, and records `lineEndingNormalization: "CRLF"` in the
+report. Exact byte-for-byte CLI clipboard equality remains macOS evidence; the
+existing Markdown download bytes are unaffected and still exact.
 
 F1 rerun at `8af95ae`: Chrome for Testing 156.0.8078.47 passes 106 checks
 (report `b95ea032ecfcec7b72cf078cf0b888eeddc2a1192b96ab994a5c437760f37d05`) and
@@ -225,6 +234,10 @@ untrusted-provenance label and hostile names shown as literal code-span text.
 - A platform clipboard write that is already in flight is not cancellable.
   Stale success suppression is model-tested across reset, replacement and
   deletion; no browser probe delayed a real platform write across a deletion.
+- Hosted Windows Chrome normalized LF to CRLF in the system clipboard. The
+  probe accepts and records only that platform transformation; it does not claim
+  byte-for-byte equality on Windows. Native Windows/Linux clipboard equality is
+  otherwise unqualified.
 - The browser probes did not produce a maximum-size product report. The 1 MiB
   exact write is feasibility evidence; the adapter boundary and renderer refusal
   are model-tested. No truncation path exists.
