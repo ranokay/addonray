@@ -1,6 +1,9 @@
 import { beforeEach, expect, it, vi } from 'bun:test';
 import { createImportOutput } from '../lib/import-output';
-import type { ClipboardOutcome } from '../lib/report-clipboard';
+import {
+  CLIPBOARD_COMPLETED_STALE_MESSAGE,
+  type ClipboardOutcome,
+} from '../lib/report-clipboard';
 import type { ReportImportSnapshot } from '../lib/report-import';
 import type { SavedBrowser } from '../lib/saved-context';
 import { exampleReport } from './saved-report-fixture';
@@ -34,6 +37,11 @@ function fixture({
     state = { ...state, ...partial };
     for (const subscriber of subscribers) subscriber();
   };
+  // Simulates an authoritative source change that has not delivered its
+  // notification yet.
+  const mutate = (partial: Partial<ReportImportSnapshot>) => {
+    state = { ...state, ...partial };
+  };
   const context = { normal };
   const getCurrent = vi.fn<SavedBrowser['tabs']['getCurrent']>(async () =>
     context.normal ? { incognito: false } : { incognito: true },
@@ -58,6 +66,7 @@ function fixture({
     context,
     source,
     publish,
+    mutate,
     handoff,
     printHandoff,
     copyHandoff,
@@ -136,6 +145,37 @@ it('reports imported clipboard denial and suppresses success after replacement',
   await pending;
   expect(stale.output.getSnapshot().preview).toBeNull();
   expect(stale.output.getSnapshot().message).not.toContain('Copied');
+});
+
+it('revalidates normal context after a resolved imported write before success', async () => {
+  const { context, output, copyHandoff } = fixture();
+  const write = Promise.withResolvers<ClipboardOutcome>();
+  copyHandoff.mockImplementation(() => write.promise);
+  output.setFormat('markdown');
+  await output.prepare();
+  const pending = output.copy();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  context.normal = false;
+  write.resolve({ status: 'success', message: 'Copied the exact Markdown.' });
+  await pending;
+  expect(output.getSnapshot().preview).toBeNull();
+  expect(output.getSnapshot().message).toBe(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+  expect(output.getSnapshot().message).not.toContain('was not copied');
+});
+
+it('suppresses success when the imported report changes during a write without notification', async () => {
+  const { mutate, output, copyHandoff } = fixture();
+  const write = Promise.withResolvers<ClipboardOutcome>();
+  copyHandoff.mockImplementation(() => write.promise);
+  output.setFormat('markdown');
+  await output.prepare();
+  const pending = output.copy();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  mutate({ report: null, importedAt: null, saveable: false });
+  write.resolve({ status: 'success', message: 'Copied the exact Markdown.' });
+  await pending;
+  expect(output.getSnapshot().preview).toBeNull();
+  expect(output.getSnapshot().message).toBe(CLIPBOARD_COMPLETED_STALE_MESSAGE);
 });
 
 it('does not copy the imported printable HTML preview', async () => {

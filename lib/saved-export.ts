@@ -11,6 +11,7 @@ import {
 } from './saved-record';
 import { createPrintableHtml } from './report-html';
 import {
+  CLIPBOARD_COMPLETED_STALE_MESSAGE,
   CLIPBOARD_ERROR_MESSAGE,
   type ClipboardOutcome,
 } from './report-clipboard';
@@ -170,6 +171,40 @@ export function createSavedExport(
     return inspection.record;
   };
 
+  const locallyCurrent = (ticket: number, candidate: ExportPermit) =>
+    live && ticket === operation && permit === candidate;
+
+  // The platform write can resolve after another view deletes, replaces or
+  // expires the record without a delivered notification. Re-read authoritative
+  // storage and normal context after the write, with the operation check after
+  // every await, before publishing success or restoring the review.
+  async function postWriteEligible(
+    ticket: number,
+    candidate: ExportPermit,
+    text: string,
+  ): Promise<'valid' | 'stale' | 'cancelled'> {
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (!current(ticket, candidate)) return 'stale';
+    const normal = await normalContext(api);
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (!current(ticket, candidate) || !normal) return 'stale';
+    await store.get(candidate.key);
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (!current(ticket, candidate)) return 'stale';
+    const finalContext = await normalContext(api);
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (!current(ticket, candidate) || !finalContext) return 'stale';
+    const raw = await store.get(candidate.key);
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (source.getSnapshot().busy) return 'stale';
+    const checked = validate(raw, candidate);
+    if (typeof checked === 'string') return 'stale';
+    const fresh = createSavedOutput(checked, candidate.format);
+    if (fresh.status !== 'success' || fresh.value !== text) return 'stale';
+    if (!current(ticket, candidate)) return 'stale';
+    return 'valid';
+  }
+
   async function deliver(kind: 'download' | 'print' | 'copy') {
     const candidate = permit;
     if (!live || state.busy || candidate === null || candidate.text === null)
@@ -245,9 +280,39 @@ export function createSavedExport(
             });
           return;
         }
-        // A platform write can be irrevocable. Never restore content or report
-        // success if deletion, replacement or context loss won the race.
-        if (!current(ticket, candidate)) return;
+        if (!locallyCurrent(ticket, candidate)) return;
+        if (outcome.status !== 'success') {
+          if (!current(ticket, candidate)) {
+            discard(outcome.message);
+            return;
+          }
+          publish({
+            ...state,
+            preview: text,
+            busy: false,
+            message: outcome.message,
+          });
+          return;
+        }
+        // A resolved platform write may be irrevocable. Never restore content
+        // or report success if authoritative storage or context is now stale.
+        if (!current(ticket, candidate)) {
+          discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+          return;
+        }
+        let eligibility: 'valid' | 'stale' | 'cancelled';
+        try {
+          eligibility = await postWriteEligible(ticket, candidate, text);
+        } catch {
+          if (locallyCurrent(ticket, candidate))
+            discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+          return;
+        }
+        if (eligibility === 'cancelled') return;
+        if (eligibility === 'stale') {
+          discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+          return;
+        }
         publish({
           ...state,
           preview: text,

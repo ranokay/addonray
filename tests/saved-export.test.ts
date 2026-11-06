@@ -2,7 +2,10 @@ import { beforeEach, expect, it, vi } from 'bun:test';
 import type { SavedBrowser } from '../lib/saved-context';
 import type { SavedExportSource } from '../lib/saved-export';
 import { createSavedExport } from '../lib/saved-export';
-import type { ClipboardOutcome } from '../lib/report-clipboard';
+import {
+  CLIPBOARD_COMPLETED_STALE_MESSAGE,
+  type ClipboardOutcome,
+} from '../lib/report-clipboard';
 import { pageErrorLimits } from '../lib/page-error-check';
 import {
   serializeExchange,
@@ -237,6 +240,48 @@ it('reports saved Markdown denial and suppresses a success that lost the deletio
   expect(stale.exporter.getSnapshot().preview).toBeNull();
   expect(stale.exporter.getSnapshot().message).not.toContain('Copied');
 });
+
+it.each([
+  [
+    'expiry',
+    (store: MemoryStore) =>
+      store.entries.set(key, record({ expiresAt: Date.now() - 1 })),
+  ],
+  ['deletion', (store: MemoryStore) => store.entries.delete(key)],
+  [
+    'replacement',
+    (store: MemoryStore) => {
+      const value = record();
+      value.report = { ...value.report, assessment: 'better' };
+      store.entries.set(key, value);
+    },
+  ],
+] as const)(
+  'revalidates saved storage after a resolved write without a notification: %s',
+  async (_case, mutate) => {
+    const { store, exporter, copyHandoff } = fixture();
+    const write = Promise.withResolvers<ClipboardOutcome>();
+    copyHandoff.mockImplementation(() => write.promise);
+    exporter.setFormat('markdown');
+    await exporter.prepare();
+    const reviewed = exporter.getSnapshot().preview;
+    if (reviewed === null) throw new Error('Missing Markdown preview');
+    const pending = exporter.copy();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    mutate(store);
+    write.resolve({
+      status: 'success',
+      message: 'Copied the exact Markdown report.',
+    });
+    await pending;
+    expect(exporter.getSnapshot().preview).toBeNull();
+    expect(exporter.getSnapshot().message).toBe(
+      CLIPBOARD_COMPLETED_STALE_MESSAGE,
+    );
+    expect(exporter.getSnapshot().message).not.toContain('was not copied');
+    expect(copyHandoff.mock.calls.at(-1)).toEqual([reviewed]);
+  },
+);
 
 it('prepares the exact stored JSON and hands it off only after a fresh read', async () => {
   const { store, api, handoff, exporter } = fixture();

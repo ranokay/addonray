@@ -4,6 +4,7 @@ import { createInvestigationReport } from './investigation-report';
 import { createPrintableHtml } from './report-html';
 import type { ReportFormat } from './report-download';
 import {
+  CLIPBOARD_COMPLETED_STALE_MESSAGE,
   CLIPBOARD_ERROR_MESSAGE,
   type ClipboardOutcome,
 } from './report-clipboard';
@@ -94,6 +95,21 @@ export function createReportExport(
     permit.snapshot === investigation.getSnapshot() &&
     permit.generation === investigation.getGeneration();
 
+  function requiredPermissions(
+    permit: ReportPermit,
+  ): Parameters<ReportBrowser['permissions']['contains']>[0] {
+    // An inventory-only report does not require a never-granted page permission.
+    const hasPageData = !!(
+      permit.snapshot?.timingBefore ||
+      permit.snapshot?.timingAfter ||
+      permit.snapshot?.errorBefore ||
+      permit.snapshot?.errorAfter
+    );
+    return {
+      permissions: hasPageData ? ['management', 'scripting'] : ['management'],
+    };
+  }
+
   async function verify(ticket: number, permit: ReportPermit) {
     if (!current(ticket, permit)) return false;
     const tab = await api.tabs.getCurrent();
@@ -102,16 +118,7 @@ export function createReportExport(
       discard('Report export is available only in verified normal windows.');
       return false;
     }
-    // An inventory-only report does not require a never-granted page permission.
-    const hasPageData = !!(
-      permit.snapshot?.timingBefore ||
-      permit.snapshot?.timingAfter ||
-      permit.snapshot?.errorBefore ||
-      permit.snapshot?.errorAfter
-    );
-    const granted = await api.permissions.contains({
-      permissions: hasPageData ? ['management', 'scripting'] : ['management'],
-    });
+    const granted = await api.permissions.contains(requiredPermissions(permit));
     if (!current(ticket, permit)) return false;
     if (!granted) {
       investigation.startOver();
@@ -121,6 +128,33 @@ export function createReportExport(
       return false;
     }
     return true;
+  }
+
+  const locallyCurrent = (ticket: number, permit: ReportPermit) =>
+    live && ticket === operation && source === permit;
+
+  // A resolved platform write is not proof that the live view is still eligible.
+  // Recheck authoritative context and permission state before success, with the
+  // operation check after every await. Local generation alone cannot observe a
+  // permission removal that arrives without a notification.
+  async function postWriteEligible(
+    ticket: number,
+    permit: ReportPermit,
+  ): Promise<'valid' | 'stale' | 'cancelled'> {
+    if (!locallyCurrent(ticket, permit)) return 'cancelled';
+    if (!current(ticket, permit)) return 'stale';
+    const tab = await api.tabs.getCurrent();
+    if (!locallyCurrent(ticket, permit)) return 'cancelled';
+    if (!current(ticket, permit)) return 'stale';
+    if (tab?.incognito !== false) return 'stale';
+    const granted = await api.permissions.contains(requiredPermissions(permit));
+    if (!locallyCurrent(ticket, permit)) return 'cancelled';
+    if (!current(ticket, permit)) return 'stale';
+    if (!granted) {
+      investigation.startOver();
+      return 'stale';
+    }
+    return 'valid';
   }
 
   // Download, print and clipboard copy share the same permit, lease and
@@ -154,9 +188,40 @@ export function createReportExport(
         if (kind === 'copy') {
           const text = permit.text;
           const outcome = await handoffs.copy(text);
-          // The platform write may be irrevocable. If the permit went stale
-          // while it was pending, suppress both success and content restoration.
-          if (!current(ticket, permit)) return;
+          if (!locallyCurrent(ticket, permit)) return;
+          if (outcome.status !== 'success') {
+            if (!current(ticket, permit)) {
+              discard(outcome.message);
+              return;
+            }
+            publish({
+              ...state,
+              preview: text,
+              busy: false,
+              message: outcome.message,
+            });
+            return;
+          }
+          // The platform write may be irrevocable. If the live view is stale,
+          // suppress success and content restoration, but do not claim the
+          // completed write did not happen.
+          if (!current(ticket, permit)) {
+            discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+            return;
+          }
+          let eligibility: 'valid' | 'stale' | 'cancelled';
+          try {
+            eligibility = await postWriteEligible(ticket, permit);
+          } catch {
+            if (locallyCurrent(ticket, permit))
+              discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+            return;
+          }
+          if (eligibility === 'cancelled') return;
+          if (eligibility === 'stale') {
+            discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+            return;
+          }
           publish({
             ...state,
             preview: text,

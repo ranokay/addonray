@@ -14,6 +14,10 @@ export const CLIPBOARD_ERROR_MESSAGE =
   'The report could not be copied. Try again from this review.';
 export const CLIPBOARD_OVERSIZE_MESSAGE =
   'The Markdown report exceeds the 1 MiB clipboard limit. It was not copied.';
+// A resolved platform write can be irrevocable even when eligibility changed
+// while it was pending. This wording must not claim the copy did not happen.
+export const CLIPBOARD_COMPLETED_STALE_MESSAGE =
+  'The clipboard write completed before this report stopped being eligible. Copied text may remain on the system clipboard, and AddonRay cannot recall it.';
 
 export const CLIPBOARD_DISCLOSURE =
   'Copying places the exact Markdown above on your system clipboard. Other applications and people can read it. AddonRay cannot recall or erase copied content after the write.';

@@ -1,5 +1,6 @@
 import { createPrintableHtml } from './report-html';
 import {
+  CLIPBOARD_COMPLETED_STALE_MESSAGE,
   CLIPBOARD_ERROR_MESSAGE,
   type ClipboardOutcome,
 } from './report-clipboard';
@@ -76,8 +77,24 @@ export function createImportOutput(
       snapshot.importedAt === candidate.importedAt
     );
   };
+  const locallyCurrent = (ticket: number, candidate: ImportedPermit) =>
+    live && ticket === operation && permit === candidate;
   const current = (ticket: number, candidate: ImportedPermit) =>
-    live && ticket === operation && permit === candidate && matches(candidate);
+    locallyCurrent(ticket, candidate) && matches(candidate);
+  // A resolved platform write may outlive this view's eligibility. Recheck the
+  // authoritative normal-window state and held report identity before success.
+  async function postWriteEligible(
+    ticket: number,
+    candidate: ImportedPermit,
+  ): Promise<'valid' | 'stale' | 'cancelled'> {
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (!current(ticket, candidate)) return 'stale';
+    const normal = await normalContext(api);
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (!current(ticket, candidate) || !normal) return 'stale';
+    if (source.getSnapshot().busy) return 'stale';
+    return 'valid';
+  }
   const unsubscribe = source.subscribe(() => {
     if (live && permit && !matches(permit))
       discard('The imported report changed. Prepare its report again.');
@@ -158,9 +175,40 @@ export function createImportOutput(
             });
           return;
         }
+        if (!locallyCurrent(ticket, candidate)) return;
+        if (outcome.status !== 'success') {
+          if (!current(ticket, candidate)) {
+            discard(outcome.message);
+            return;
+          }
+          publish({
+            ...state,
+            preview: text,
+            busy: false,
+            message: outcome.message,
+          });
+          return;
+        }
         // The write may be irrevocable. A replacement, clear, suspension or
-        // context loss during it suppresses success and content restoration.
-        if (!current(ticket, candidate)) return;
+        // context loss during it suppresses success and content restoration,
+        // but never claims the completed write did not happen.
+        if (!current(ticket, candidate)) {
+          discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+          return;
+        }
+        let eligibility: 'valid' | 'stale' | 'cancelled';
+        try {
+          eligibility = await postWriteEligible(ticket, candidate);
+        } catch {
+          if (locallyCurrent(ticket, candidate))
+            discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+          return;
+        }
+        if (eligibility === 'cancelled') return;
+        if (eligibility === 'stale') {
+          discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+          return;
+        }
         publish({
           ...state,
           preview: text,

@@ -5,6 +5,7 @@ import { firefoxContext } from '../lib/browser-target';
 import { createInvestigation } from '../lib/investigation';
 import { createReportExport, type ReportBrowser } from '../lib/report-export';
 import {
+  CLIPBOARD_COMPLETED_STALE_MESSAGE,
   CLIPBOARD_ERROR_MESSAGE,
   type ClipboardOutcome,
 } from '../lib/report-clipboard';
@@ -294,6 +295,39 @@ it('does not copy a JSON preview and reports a thrown write as failure', async (
     busy: false,
     message: CLIPBOARD_ERROR_MESSAGE,
   });
+});
+
+it('revalidates normal context after a resolved write before success', async () => {
+  const { api, exporter, copyHandoff } = await fixture();
+  const write = Promise.withResolvers<ClipboardOutcome>();
+  copyHandoff.mockImplementation(() => write.promise);
+  await exporter.prepare();
+  const pending = exporter.copy();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  api.tabs.getCurrent.mockResolvedValue({ incognito: true });
+  write.resolve({ status: 'success', message: 'Copied the exact Markdown.' });
+  await pending;
+  expect(exporter.getSnapshot().preview).toBeNull();
+  expect(exporter.getSnapshot().message).toBe(
+    CLIPBOARD_COMPLETED_STALE_MESSAGE,
+  );
+  expect(exporter.getSnapshot().message).not.toContain('was not copied');
+});
+
+it('revalidates current permissions after a resolved write before success', async () => {
+  const { api, exporter, copyHandoff } = await fixture();
+  const write = Promise.withResolvers<ClipboardOutcome>();
+  copyHandoff.mockImplementation(() => write.promise);
+  await exporter.prepare();
+  const pending = exporter.copy();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  api.permissions.contains.mockResolvedValue(false);
+  write.resolve({ status: 'success', message: 'Copied the exact Markdown.' });
+  await pending;
+  expect(exporter.getSnapshot().preview).toBeNull();
+  expect(exporter.getSnapshot().message).toBe(
+    CLIPBOARD_COMPLETED_STALE_MESSAGE,
+  );
 });
 
 it('suppresses success and preview restoration when the investigation resets during a write', async () => {
