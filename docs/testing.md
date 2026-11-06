@@ -603,7 +603,11 @@ implementation and qualification tickets are authorized.
   print handoffs, format changes, over-limit refusal, stale print/download after
   deferred context or permission checks, reset/assessment/attachment/permission
   invalidation, saved deletion/expiry/replacement/busy rejection and imported
-  replacement/clear/suspension/disposal invalidation.
+  replacement/clear/suspension/disposal invalidation. Six saved-export
+  regressions hold the final context check after the first storage read, mutate
+  storage without a notification, then release it: HTML prepare/download/print
+  and JSON prepare/download cannot publish or hand off, including delete-all and
+  store replacement.
 - `tests/report-print.test.ts` covers the frame guard: missing, mismatched,
   unloaded and cross-frame documents are refused; only a matching loaded tree is
   printed. `tests/report-export-view.test.tsx`,
@@ -617,7 +621,7 @@ implementation and qualification tickets are authorized.
   exact UTF-8 `.html` download completes, and the instrumented print call targets
   the exact loaded frame. This is packaged-product evidence, not the native
   print dialog.
-- At clean `6ea41d26454cabdc35f049ad3ea9bfee901c1207`, the local product probes
+- At clean `6cb16346e153eae4fc1691f2579e9299fb96576a`, the local product probes
   pass 110 checks on Firefox 140.0, 153.5.1esr and 158.0.1 and 101 on Chrome for
   Testing 156.0.8078.47. Firefox prepares, downloads and prints saved HTML after
   actual management removal; the imported flow verifies replacement invalidation

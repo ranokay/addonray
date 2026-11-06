@@ -1,9 +1,8 @@
 # Printable HTML report
 
 Status: bounded #10 implementation qualified from clean
-`6ea41d26454cabdc35f049ad3ea9bfee901c1207`. The product code is the same as
-`ab4c26c7f695410b77e60ad85b2182a9a4de8e0d`; the later clean head adds only this
-documentation. Deterministic checks, native type
+`6cb16346e153eae4fc1691f2579e9299fb96576a`. A later documentation-only
+commit records this evidence without changing product bytes. Deterministic checks, native type
 checking, one clean Chrome and three clean Firefox product runs pass, and a
 native Chrome print/Save-as-PDF observation completed. This record adds no
 permission, dependency, browser target, support claim, clipboard action or PDF
@@ -16,23 +15,23 @@ and its Formats, SRD-19 and SRD-20 rules.
 
 ## Implemented boundary
 
-| Area         | Behavior                                                                                                                                                                                                                                                                                                      |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Format       | Self-contained printable HTML as a third live format, a saved-archive format and the imported report's printable output. Inline `<style>` only; no scripts, images, fonts, links or remote resources. No PDF library or `downloads` permission.                                                               |
-| Content      | Only the approved report fields: provenance, assessment, both inventories, the stored precomputed ID-based changes, assessment, optional timing and page-error summaries, observation limits and fixed limit text. No record IDs, timestamps, permission or host metadata, URL, title, browser or OS context. |
-| States       | Empty inventories, absent assessment, unattached diagnostics and measured, unrecorded and unavailable milestones stay explicit. Changes are rendered from the stored list and are never recomputed from names. Duplicate names and versions stay indistinguishable and the limit is stated.                   |
-| Provenance   | A live report says it was captured by AddonRay. An imported report says it is untrusted file content AddonRay did not observe, and an unsaved import also names the file's unauthenticated provenance claim. Saved imports retain imported provenance without re-asserting a discarded claim.                 |
-| Escaping     | Every report string is escaped for HTML. Control, format, surrogate and bidirectional characters are shown as `\u{X}` notation. Hostile names and markup remain text in the parsed document.                                                                                                                  |
-| Preview      | The exact document string is rendered in an inert iframe. The print helper verifies the `srcdoc` attribute, the loaded document tree and the frame identity before calling that frame's print method, so an unloaded or stale frame cannot print.                                                             |
-| Bounds       | The complete UTF-8 document including CSS and markup is checked against 1 MiB before publication. Over-limit output is refused without truncation; JSON and Markdown keep their own independent bounds.                                                                                                       |
-| Layout       | Light print palette, `@page` margins, fixed-layout wrapping tables, `overflow-wrap: anywhere`, repeated table headers and heading break-avoidance. A single entry taller than a page splits and continues; sections are not blanket-unbreakable.                                                              |
-| Invalidation | Live reset, assessment, attachment, permission and context changes; saved deletion, expiry, replacement, unsupported/unreadable rows, selection changes and context loss; import replacement, clear, suspension, disposal and context loss all discard pending or visible output.                             |
-| Outcomes     | Download and print are requests. The interface reports "Download requested" or "Print dialog requested"; it never claims browser acceptance, a completed print, a saved PDF or final disk completion.                                                                                                         |
+| Area         | Behavior                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Format       | Self-contained printable HTML as a third live format, a saved-archive format and the imported report's printable output. Inline `<style>` only; no scripts, images, fonts, links or remote resources. No PDF library or `downloads` permission.                                                                                                                                                  |
+| Content      | Only the approved report fields: provenance, assessment, both inventories, the stored precomputed ID-based changes, assessment, optional timing and page-error summaries, observation limits and fixed limit text. No record IDs, timestamps, permission or host metadata, URL, title, browser or OS context.                                                                                    |
+| States       | Empty inventories, absent assessment, unattached diagnostics and measured, unrecorded and unavailable milestones stay explicit. Changes are rendered from the stored list and are never recomputed from names. Duplicate names and versions stay indistinguishable and the limit is stated.                                                                                                      |
+| Provenance   | A live report says it was captured by AddonRay. An imported report says it is untrusted file content AddonRay did not observe, and an unsaved import also names the file's unauthenticated provenance claim. Saved imports retain imported provenance without re-asserting a discarded claim.                                                                                                    |
+| Escaping     | Every report string is escaped for HTML. Control, format, surrogate and bidirectional characters are shown as `\u{X}` notation. Hostile names and markup remain text in the parsed document.                                                                                                                                                                                                     |
+| Preview      | The exact document string is rendered in an inert iframe. The print helper verifies the `srcdoc` attribute, the loaded document tree and the frame identity before calling that frame's print method, so an unloaded or stale frame cannot print.                                                                                                                                                |
+| Bounds       | The complete UTF-8 document including CSS and markup is checked against 1 MiB before publication. Over-limit output is refused without truncation; JSON and Markdown keep their own independent bounds.                                                                                                                                                                                          |
+| Layout       | Light print palette, `@page` margins, fixed-layout wrapping tables, `overflow-wrap: anywhere`, repeated table headers and heading break-avoidance. A single entry taller than a page splits and continues; sections are not blanket-unbreakable.                                                                                                                                                 |
+| Invalidation | Live reset, assessment, attachment, permission and context changes; saved deletion, expiry, replacement, unsupported/unreadable rows, selection changes and context loss; import replacement, clear, suspension, disposal and context loss all discard pending or visible output. Saved prepare and delivery re-read the store after the final context check before regenerating or handing off. |
+| Outcomes     | Download and print are requests. The interface reports "Download requested" or "Print dialog requested"; it never claims browser acceptance, a completed print, a saved PDF or final disk completion.                                                                                                                                                                                            |
 
 ## Deterministic checks
 
-The full suite at clean `6ea41d26454cabdc35f049ad3ea9bfee901c1207` passes
-**666 tests / 2,023,258 assertions across 43 files** and native type checking
+The full suite at clean `6cb16346e153eae4fc1691f2579e9299fb96576a` passes
+**672 tests / 2,023,284 assertions across 43 files** and native type checking
 passes **101 files**. Focused coverage includes:
 
 - complete document shape, inline style only, absent script/link/image/iframe/
@@ -61,19 +60,19 @@ Model and server-rendered UI checks are not browser print or PDF evidence.
 ## Clean browser qualification
 
 All runs used disposable profiles through the repository runners, sequentially,
-from clean `6ea41d26454cabdc35f049ad3ea9bfee901c1207` (`sourceDirty: false`).
+from clean `6cb16346e153eae4fc1691f2579e9299fb96576a` (`sourceDirty: false`).
 Firefox runs install the unmodified development build in a temporary directory.
 The Chrome run extracts the validated ZIP. macOS is `darwin arm64`, macOS 27.2.
 
 | Target                                | Driver                     | Result                         | Checks | Report SHA-256                                                     |
 | ------------------------------------- | -------------------------- | ------------------------------ | ------ | ------------------------------------------------------------------ |
-| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 110    | `32d07b36862ebb84e99be5626ffde5b73fef7cd8f9e0627d66f2df0d7ab4feae` |
-| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 110    | `5c867a101c053805073e2b4451e185ba632ee91694b5632998e6420aafabd902` |
-| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 110    | `8eed36e3c95fccee5936b068d174a1d5321d4292b8618d355db88ab79aec02ef` |
-| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 101    | `250a42be0a49c2bf9a0c542ab2643408b2fd13d2924059f22d718b878f8c09ee` |
+| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 110    | `eff9d7268af7de7e27eccf021e846e755be0255211adf11ee0c53a58560c2c65` |
+| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 110    | `acf1d69fc55ddf80cb78868ba37eb3fa942039a6fc864bf950c34bfeb18391f3` |
+| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 110    | `3d5dee9d548ae3ef96cf12f1939d8c2c7bf46f3668fcf5c6ff535de891a0685d` |
+| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 101    | `7a812c4ada48614dd78693c9dd3eed803baf7989a87ad8c162a09b27190741e2` |
 
 The Chrome ZIP SHA-256 is
-`d2b4a42e18176eee17d2734812800bf0342f1adf265600e37d182114cc33d44d`. Raw
+`3c1fed8fcba9ae8779775ec2f4bca4a097e0186cfa1b4cb9e031ebe4b2d925e8`. Raw
 reports remain in ignored `.scratch/`: `firefox-evidence-140.0.json`,
 `firefox-evidence-153.5.1esr.json`, `firefox-evidence-158.0.1.json` and
 `chrome-evidence.json`.
@@ -96,32 +95,32 @@ the import discards the previous printable preview.
 ## Native print and PDF observation
 
 A disposable Chrome for Testing `156.0.8078.47` profile loaded the production
-build at clean `6ea41d26454cabdc35f049ad3ea9bfee901c1207`, imported a report with
+build at clean `6cb16346e153eae4fc1691f2579e9299fb96576a`, imported a report with
 a 4,016-code-point name, hostile markup, 90 inventory rows, an empty After
 inventory and missing diagnostics, saved it, opened it and prepared the printable
-HTML. The exact loaded preview was 28,092 bytes with SHA-256
+HTML. The exact loaded preview was 28,089 bytes with SHA-256
 `25ffe24b3b5286f6878b7f264366903202fe80820eaa95914ea80c6b8c401577`.
 
 The product's **Print / Save as PDF** opened Chrome's print preview for that frame
 only, showing **8 pages**, the imported/untrusted label, the long name wrapping
 and the empty inventory section. The preview and destination are captured in
-`.scratch/native-product3-print-preview.png`. Cancelling the dialog created no
+`.scratch/native-product4-print-preview.png`. Cancelling the dialog created no
 PDF and left the status at the request-only text. A second request, **Save as
-PDF**, produced `Saved investigations · AddonRay.pdf` (334,427 bytes, SHA-256
-`8b914fb9a565f8a888beeddb76f67e5b1276b4381031344e396e3b2e3ace1175`) with
+PDF**, produced `Saved investigations · AddonRay.pdf` (334,600 bytes, SHA-256
+`b498a21277e3dae15bffbc80c6eeac31b49484fc4268920a1756b247f40570bb`) with
 `%PDF-1.4` and `/Count 8`. Rendered page 1 contains the report header, imported
 provenance and long name; page 2 continues the same entry and shows the hostile
 markup as text. PDFKit reports 8 pages and extracted text for each page. The
 saved-status wording is
 `Print dialog requested. AddonRay cannot observe whether it was printed, cancelled or saved as a PDF.`
 
-Firefox 158.0.1 opened its in-tab print preview from the same product flow,
-showing **8 sheets of paper**, the exact report, Save to PDF, and Cancel/Save.
-Cancel closed the preview, created no PDF, and the product then showed the same
-request-only status. The Firefox native save dialog was opened in an earlier
-attempt but not completed; a Firefox-produced PDF was not observed. The evidence
-is in `.scratch/native-firefox2-print-preview.png` and
-`.scratch/native-firefox2-after-cancel.png`.
+Firefox 158.0.1 at `6cb1634` opened its in-tab print preview from the same
+product flow, showing **8 sheets of paper**, the exact report, Save to PDF, and
+Cancel/Save. Cancel closed the preview, created no PDF, and the product then
+showed the same request-only status. The Firefox native save dialog was opened
+in an earlier attempt but not completed; a Firefox-produced PDF was not observed.
+The evidence is in `.scratch/native-firefox3-print-preview.png` and
+`.scratch/native-firefox3-after-cancel.png`.
 
 ## Review corrections
 
@@ -140,6 +139,19 @@ is in `.scratch/native-firefox2-print-preview.png` and
 - The report serializer and controllers were checked against the approved
   minimized fields and the stored-change rule; no name-based recomputation or
   local envelope field was added.
+- Saved delivery originally validated the record fetched before the final
+  asynchronous normal-context check. Another view could delete, delete-all or
+  replace the row while that check was pending without a delivered notification,
+  and the old object could still publish or hand off. Both prepare and
+  download/print now re-read the store after the final context check and validate
+  that authoritative snapshot, regenerating and comparing the output with the
+  reviewed text. Selection, operation, busy and context checks remain after
+  every earlier await. Six deterministic regressions hold the final context
+  check after the first read, mutate storage without a hint, release context and
+  prove HTML prepare/download/print and JSON prepare/download cannot publish or
+  hand off stale content. They fail on the pre-fix head and pass after the fix.
+  The code does not trust BroadcastChannel delivery, mutable object identity or an
+  expiry-only recheck.
 
 ## Retained failures
 

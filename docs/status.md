@@ -270,15 +270,17 @@ than a page continues onto the next page.
 
 Live output shares the existing idle-pair, snapshot, generation, activity,
 normal-window and current-permission checks. Saved output re-reads IndexedDB
-before each action and rejects deleted, expired, unsupported, unreadable or
-changed records without requesting collection permission. Imported output
+before each action and again after the final asynchronous context check, so a
+deletion, delete-all or replacement during that wait cannot publish or hand off
+stale content; it rejects deleted, expired, unsupported, unreadable or changed
+records without requesting collection permission. Imported output
 discards its preview on replacement, clear, suspension, disposal or context loss.
 Download and print are reported as requests only; a print dialog's cancellation
 or outcome and any disk completion are not observable by AddonRay.
 
 Implementation and qualification evidence is recorded in
 [the #10 evidence](evidence/2026-11-06-printable-report.md). At clean
-`6ea41d26454cabdc35f049ad3ea9bfee901c1207`, 666 behavior tests with 2,023,258
+`6cb16346e153eae4fc1691f2579e9299fb96576a`, 672 behavior tests with 2,023,284
 assertions across 43 files and native type checking of 101 files pass. The shared
 product probes pass 110 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 pin
 and 101 on Chrome for Testing 156.0.8078.47. A disposable Chrome product run
@@ -658,7 +660,7 @@ ownership, candidate signing/limited-test routes and concrete release
 authorization. Q7/Q8 settle the host ID, artifact naming, GitHub Releases channel
 and detached-signature method as a plan; keys remain unverified and this planning
 work creates no signature or release. #10 is implemented and locally qualified
-from clean `6ea41d2`; it is not merged or pushed. #11 remains readiness-labelled
+from clean `6cb1634`; it is not merged or pushed. #11 remains readiness-labelled
 from already-merged decisions and may start under its approved contract. #31
 remains readiness-labelled but still needs #10 merged and its own qualification;
 no #31 evidence is claimed here. This implementation task adds no other runtime
