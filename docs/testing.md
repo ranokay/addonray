@@ -640,9 +640,10 @@ Request failure (#17–#19):
   marker is live, and is cleared by external revocation;
 - measured setup, event and finalization elapsed work with the same protocol and
   total caveat;
-- product tests for no ambient collection before Start, no result after owner
-  close/navigation/external revocation, no request details retained and no
-  attribution wording.
+- product tests for no ambient collection before Start, no standalone result or
+  pending attempt after owner close/navigation/external revocation, attached-copy
+  survival across donor close as a separate case, no request details retained and
+  no attribution wording.
 
 Schema version 2 tests must prove version 1 remains byte-valid and importable,
 version 2 is strict, version 1 reports never gain new fields, version 2 is used
@@ -653,9 +654,10 @@ product rejects v2 without downgrading or dropping fields.
 
 The [guided-trial contract](plans/v1-guided-trials.md) was approved on 2026-11-06.
 Future tests cover the five-step guide, one live pair, explicit Save, unsaved
-Start-over warning with Save/Discard/Cancel, failed Save preserving the trial,
-denied access recovery, popup independence and no automatic settings change or
-causal claim. Browser and native evidence remain separate.
+Start-over warning with Save/Discard/Cancel, an ordinary save failure preserving
+the trial, reset or permission removal clearing the live trial and cancelling the
+save, denied access recovery, popup independence and no automatic settings change
+or causal claim. Browser and native evidence remain separate.
 
 ## Approved future companion checks
 

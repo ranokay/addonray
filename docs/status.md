@@ -585,9 +585,10 @@ simulated lifecycle path pass, and the local frozen gate passed, while the final
 release matrix and independent review remain. The #13, #12 and #20 contracts were
 approved on 2026-11-06 and recorded in this documentation commit; dependent labels
 wait for merge. #4 remains open for final Chrome ID, verified accounts, companion
-identity/channel/platform signing and candidate signing/limited-test routes. #10,
-#11 and #31 are readiness-labelled from already-merged decisions and may start
-under their approved contracts; no implementation is claimed.
+identity/channel/platform signing and candidate signing/limited-test routes. #10
+and #11 are readiness-labelled from already-merged decisions and may start under
+their approved contracts. #31 is readiness-labelled but remains blocked by #10;
+its qualification starts only after #10 lands. No implementation is claimed.
 This implementation task authorizes no push or PR. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
 current main includes the change at `a708fb5`. #33's bounded collector-budget

@@ -42,9 +42,12 @@ occurred under controlled conditions.
   an existing archive.
 - If Start over is pressed while a completed trial is unsaved, show a warning with
   three choices: **Save**, **Discard and start over**, **Cancel**.
-- **Save** uses the existing save eligibility and failure behavior. If the save
-  fails, the live trial remains and Start over does not proceed automatically.
-  If the save succeeds, the archive remains and the live trial may be cleared.
+- **Save** uses the existing save eligibility and failure behavior. If an
+  ordinary storage, quota or size failure prevents the save, the live trial
+  remains and Start over does not proceed automatically. Reset or permission
+  removal keeps its existing behavior: the live investigation clears and the
+  pending save is cancelled. If the save succeeds, the archive remains and the
+  live trial may be cleared.
 - **Discard and start over** clears the live trial without creating an archive.
 - **Cancel** leaves the live trial unchanged.
 - An incomplete trial keeps the existing Start over behavior; the new warning is
@@ -69,18 +72,18 @@ occurred under controlled conditions.
 
 ## Acceptance criteria
 
-| ID    | Requirement                                                                                                                          |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| GT-01 | Guide baseline capture, a manual one-setting change, reproduction, After capture and explicit assessment in that order.              |
-| GT-02 | Keep one live Before/After pair; Start over discards the live pair.                                                                  |
-| GT-03 | Preserve a completed trial only through an explicit Save. No autosave or automatic history.                                          |
-| GT-04 | Warn before Start over discards an unsaved completed trial and offer Save, Discard and Cancel.                                       |
-| GT-05 | A failed Save preserves the live trial and does not proceed to discard.                                                              |
-| GT-06 | Make no automatic extension-state change, page reload, settings detection or causal verdict.                                         |
-| GT-07 | Show missing observations, source/condition limits and the distinction between a tab match and the same page.                        |
-| GT-08 | Use the existing normal-window, permission, save, retention and deletion rules without a new permission or storage owner.            |
-| GT-09 | Keep the popup and other investigations independent; no result transfer between views except the existing explicit attachment paths. |
-| GT-10 | Verify the complete journey, denied access, save failure, unsaved warning and preserved archive before claiming implementation.      |
+| ID    | Requirement                                                                                                                                                |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GT-01 | Guide baseline capture, a manual one-setting change, reproduction, After capture and explicit assessment in that order.                                    |
+| GT-02 | Keep one live Before/After pair; Start over discards the live pair.                                                                                        |
+| GT-03 | Preserve a completed trial only through an explicit Save. No autosave or automatic history.                                                                |
+| GT-04 | Warn before Start over discards an unsaved completed trial and offer Save, Discard and Cancel.                                                             |
+| GT-05 | An ordinary save failure preserves the live trial and does not proceed to discard; reset or permission removal clears the live trial and cancels the save. |
+| GT-06 | Make no automatic extension-state change, page reload, settings detection or causal verdict.                                                               |
+| GT-07 | Show missing observations, source/condition limits and the distinction between a tab match and the same page.                                              |
+| GT-08 | Use the existing normal-window, permission, save, retention and deletion rules without a new permission or storage owner.                                  |
+| GT-09 | Keep the popup and other investigations independent; no result transfer between views except the existing explicit attachment paths.                       |
+| GT-10 | Verify the complete journey, denied access, save failure, unsaved warning and preserved archive before claiming implementation.                            |
 
 ## Issue map
 

@@ -330,8 +330,7 @@ mechanism.
     "media": 0,
     "font": 0,
     "script": 0,
-    "xhr": 0,
-    "fetch": 0,
+    "xhrFetch": 0,
     "websocket": 0,
     "other": 0
   },
@@ -352,6 +351,9 @@ Rules:
 - `httpErrors + networkFailures` is at most `observed`.
 - Each `byType` value counts terminal failures of that resource type, and their
   sum equals `httpErrors + networkFailures`.
+- `byType.xhrFetch` combines XHR and fetch requests because Firefox reports both
+  as `xmlhttprequest` and Chrome exposes no separate fetch resource type. The UI
+  label is “XHR or fetch.”
 - `finish` is `stop`, `timeout` or `limit`.
 - `observedMs` is finite, from 0 through 30,000.
 - `finish: "limit"` requires `observed = 500`.
@@ -506,10 +508,12 @@ Request cleanup and revocation proof must cover:
 - user activation: Start stays disabled until the live grant snapshot is ready;
   the click handler calls `permissions.request` directly and the browser grants
   without losing activation; a failed activation leaves the check unavailable;
-- normal completion: stop counting, seal, publish with cleanup pending, send the
-  in-memory expected-cleanup marker, remove only newly granted permissions,
-  observe the matching `onRemoved` or a bounded timeout, and keep the result
-  eligible for attachment throughout;
+- normal completion: stop counting, seal, show the result with cleanup pending
+  and attachment disabled, send the in-memory expected-cleanup marker, wait for
+  acknowledgement, remove only newly granted permissions, and observe the
+  matching `onRemoved` or a bounded timeout. The result becomes attachment-eligible
+  after acknowledgement, subject to the other attachment rules; a view that does
+  not acknowledge remains ineligible until cleanup completes;
 - late `permissions.onRemoved`: a matching event while the marker and owner
   channel are live does not clear the result or attached copy; a removal outside
   a matching marker, or after the owner channel disconnects, is external;

@@ -39,8 +39,10 @@ current runtime:
   an explicit Start. The user grant may cover all ports on that host, but the
   runtime filter includes the selected port. Grant ownership and expected
   cleanup remain in the live check owner's and participating views' memory; no
-  origin pattern or cleanup record is persisted. Newly granted permissions are
-  removed after the check; pre-existing grants are preserved. The background
+  origin pattern or cleanup record is persisted. Cleanup is attempted after the
+  check and may fail or remain unverified if ownership is lost, so a newly
+  granted permission may remain; retained grants are reviewed and revoked through
+  browser permission controls. Pre-existing grants are preserved. The background
   event page/service worker counts only during an active check;
 - the optional companion may declare optional `nativeMessaging` and request it
   only on first use. No native host or permission exists in the current package.

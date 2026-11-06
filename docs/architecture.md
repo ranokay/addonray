@@ -28,7 +28,7 @@ Require only `activeTab` in the initial manifest. Declare `management` and `scri
 
 Do not declare broad host permissions, `tabs`, `webRequest`, `storage`, or `nativeMessaging` in Phase 0. A missing browser API is an unavailable outcome, not an excuse to request broader access.
 
-The current runtime keeps that budget. The 2026-11-06 contracts approve two future optional paths: `webRequest` plus a temporary exact-origin host grant for the request-failure check, and `nativeMessaging` for the optional companion. Neither is a current permission or install-time host grant. Their implementation must request access only at the explicit user action, inside a demonstrated supported activation path, and fail closed without broader fallback. The request check preserves pre-existing grants and removes only the access it newly acquired; grant ownership and expected cleanup stay in the live check owner's and participating views' memory, with no persistent origin record. The companion permission remains a user-managed optional grant.
+The current runtime keeps that budget. The 2026-11-06 contracts approve two future optional paths: `webRequest` plus a temporary scheme+host grant for the request-failure check, and `nativeMessaging` for the optional companion. The host grant may cover all ports on that host; only the runtime origin filter limits collection to the selected origin, including its effective port. Neither path is a current permission or install-time host grant. Their implementation must request access only at the explicit user action, inside a demonstrated supported activation path, and fail closed without broader fallback. The request check preserves pre-existing grants and removes only the access it newly acquired; grant ownership and expected cleanup stay in the live check owner's and participating views' memory, with no persistent origin record. The companion permission remains a user-managed optional grant.
 
 ## Data and trust boundaries
 
@@ -261,7 +261,7 @@ remote resource, automatic sharing or collector is introduced.
 
 ## Expanded v1 target
 
-The finite target is [the v1 contract](v1-contract.md). The sections below describe implemented slices and the boundaries future work must change deliberately. Saved investigations and report exchange (#5 to #11), guided trials (#12), mutation and request-failure checks (#13 to #19) and the optional companion (#20 to #28) have approved contracts; each still needs its feasibility proof, implementation and qualification before it alters permission, storage, lifetime or native boundaries. The extension-only inspection path remains useful without the companion.
+The finite target is [the v1 contract](v1-contract.md). The sections below describe implemented slices and the boundaries future work must change deliberately. Saved investigations and report exchange slices #6–#9 are implemented and locally qualified with explicit gaps. #10/#11, guided trials (#12), mutation and request-failure checks (#13–#19) and the optional companion (#20–#28) have approved contracts or scope; each remaining slice still needs its feasibility proof, implementation and qualification before it alters permission, storage, lifetime or native boundaries. The extension-only inspection path remains useful without the companion.
 
 ## Approved bounded collectors (not implemented)
 
@@ -286,12 +286,14 @@ The [collector contract](plans/mutation-request-failure.md) was approved on
   origin record survives, no unknown grant is silently removed, and retained
   grants are reviewed through browser permission controls.
 
-The check tab owns the visible attempt and source binding. Event listeners cannot
-outlive the attempt or resume after navigation, BFCache restore or close. The
-timer is advisory; elapsed-time and cap checks are authoritative. Page errors,
-timing, mutation notifications and request outcomes are separate observations,
-not causal evidence. Other extensions' private worlds and internal consoles remain
-outside ordinary visibility.
+The check tab owns the visible attempt and source binding. The mutation observer
+disconnects when the attempt ends. Request listeners remain registered at extension
+load, ignore events outside the active attempt and stop counting when it ends.
+Neither observation resumes after navigation, BFCache restore or close. The timer
+is advisory; elapsed-time and cap checks are authoritative. Page errors, timing,
+mutation notifications and request outcomes are separate observations, not causal
+evidence. Other extensions' private worlds and internal consoles remain outside
+ordinary visibility.
 
 The current build has no mutation observer, request listener or collector
 background context. Event pages can be suspended, so #17 must prove the request
