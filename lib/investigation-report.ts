@@ -1,62 +1,25 @@
 import { compareInventories, type SnapshotEntry } from './comparison';
-import type { Result, TimingMeasurement } from './inspector';
+import type { Result } from './inspector';
 import type { Investigation } from './investigation';
 import type { PageErrorSummary } from './page-error-check';
+import {
+  assessmentLabels,
+  changeLabels,
+  completionLabels,
+  difference,
+  measurement,
+  milliseconds,
+  milestones,
+  reportLimits,
+  writeMarkdownLiteral,
+} from './report-content';
 
 export const REPORT_MAX_BYTES = 1_048_576;
 export const REPORT_FILENAME = 'addonray-investigation.md';
 
 type InvestigationState = ReturnType<Investigation['getSnapshot']>;
 
-const numberFormat = new Intl.NumberFormat('en', { maximumFractionDigits: 2 });
-const completionLabels: Record<PageErrorSummary['finish'], string> = {
-  stop: 'Stopped by you',
-  timeout: '30-second window ended',
-  limit: '200-event limit reached',
-};
-const assessmentLabels = {
-  better: 'Better',
-  unchanged: 'Unchanged',
-  worse: 'Worse',
-  uncertain: 'Uncertain',
-};
-const changeLabels = {
-  added: 'Added',
-  removed: 'Removed',
-  enabled: 'Enabled',
-  disabled: 'Disabled',
-};
-const milestones = [
-  ['domContentLoaded', 'DOM content loaded'],
-  ['loadEvent', 'Load event completed'],
-  ['firstContentfulPaint', 'First content displayed'],
-] as const;
 const tooLarge = Symbol('report size limit');
-const literalControls = /[\p{Cc}\p{Cf}\p{Cs}\u2028\u2029]/u;
-
-function measurement(value: TimingMeasurement | undefined) {
-  if (!value) return 'Not attached';
-  if (value.status === 'unavailable') return 'Unavailable at capture';
-  if (value.status === 'unrecorded') return 'Not recorded at capture';
-  return milliseconds(value.milliseconds);
-}
-
-function milliseconds(value: number) {
-  return value > 0 && value < 0.01
-    ? '<0.01 ms'
-    : `${numberFormat.format(value)} ms`;
-}
-
-function difference(
-  before: TimingMeasurement | undefined,
-  after: TimingMeasurement | undefined,
-) {
-  if (before?.status !== 'measured' || after?.status !== 'measured')
-    return 'Needs two measured values';
-  const delta = after.milliseconds - before.milliseconds;
-  if (delta === 0) return '0 ms';
-  return `${delta > 0 ? '+' : '−'}${milliseconds(Math.abs(delta))}`;
-}
 
 function errorObservation(
   summary: PageErrorSummary | null,
@@ -90,30 +53,7 @@ export function createInvestigationReport(
     if (bytes > REPORT_MAX_BYTES) throw tooLarge;
     parts.push(text);
   };
-  const literal = (value: string) => {
-    write('`"');
-    let chunk = '';
-    for (const character of value) {
-      const code = character.codePointAt(0)!;
-      // Code spans prevent Markdown/HTML interpretation; escape their delimiter,
-      // ambiguous literal escapes, and invisible controls without dropping data.
-      chunk +=
-        character === '`' ||
-        character === '\\' ||
-        character === '"' ||
-        literalControls.test(character)
-          ? code <= 0xffff
-            ? `\\u${code.toString(16).toUpperCase().padStart(4, '0')}`
-            : `\\u{${code.toString(16).toUpperCase()}}`
-          : character;
-      if (chunk.length >= 4096) {
-        write(chunk);
-        chunk = '';
-      }
-    }
-    write(chunk);
-    write('"`');
-  };
+  const literal = (value: string) => writeMarkdownLiteral(write, value);
   const entry = (value: SnapshotEntry, prefix = '') => {
     write(`- ${prefix}Name: `);
     literal(value.name);
@@ -185,18 +125,7 @@ export function createInvestigationReport(
 
     write('\n## Observation limits\n\n');
     for (const limit of [
-      'Inventories contain only extensions reported by the browser. Enabled state does not show whether an extension ran on the tested page.',
-      'Inventory, timing and page-error captures are separate observations. Attachment order does not prove when the page was tested or settings changed. Conditions may differ.',
-      'Timing and error attachments share one source browser tab, but a tab can navigate. A match does not verify the page, document, reload, cache state or test conditions. No page URL or title fields are collected.',
-      'DOM content loaded is when DOMContentLoaded handlers finished. Load event completed is when load handlers finished; later work can continue. First content displayed is the first qualifying text or image paint, when reported.',
-      'Positive timing differences mean a later milestone; negative differences mean an earlier one. Missing values have no assumed cause. Clock precision can reduce numeric detail. These timings can describe an original load after a page changes its view or is restored. They do not measure scrolling or typing.',
-      'Page-error checks count future top-frame uncaught JavaScript error and unhandled promise-rejection notifications in the current document. They are event counts, not unique defects or a console history.',
-      'Each error observation ends at 30 seconds of eligible observation, 200 events, or an explicit Stop. Stop can retain partial counts; the event limit excludes later events. Durations and reproduced interactions can differ, even for two full windows.',
-      'Only confirmed Stop, timeout or event-limit summaries attach. Missing or interrupted observations are not zero-error results. Zero observed events does not mean the page is error-free. No error differences or rates are calculated.',
-      'Firefox observes page errors in an isolated execution world. On Chrome, the observer runs with the page, which can interfere with its operation or counts. Timing collectors use an isolated execution world.',
-      'Attachments are limited to verified normal windows. Private and unclassifiable contexts are excluded. Timings and errors do not identify a responsible extension; the manual page assessment remains separate.',
-      'AddonRay does not change other extensions or reload the tested page. These observations do not establish what caused a page result.',
-      'Extension names and versions can be sensitive. Review this report before sharing. Quoted code values show literal text; Unicode escape notation represents backticks, backslashes, quotes or invisible controls.',
+      ...reportLimits.slice(0, 12),
       'Start over, permission revocation or closing, reloading or unloading the investigation clears its in-memory results. An already saved file is outside that lifetime and is not erased by those actions.',
     ])
       write(`- ${limit}\n`);

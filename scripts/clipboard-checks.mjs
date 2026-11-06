@@ -363,7 +363,7 @@ async function captureScreenshot(driver, label, sectionSelector) {
 function systemClipboard(expected) {
   if (process.env.ADDONRAY_NATIVE_CLIPBOARD !== '1' || platform() !== 'darwin')
     return null;
-  const text = execFileSync('pbpaste', { encoding: 'utf8' });
+  const text = execFileSync('/usr/bin/pbpaste', { encoding: 'utf8' });
   assert.equal(text, expected, 'The host system clipboard must match exactly');
   return {
     verified: true,

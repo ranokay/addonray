@@ -20,6 +20,8 @@ process.env.SE_SKIP_DRIVER_IN_PATH = 'true';
 process.env.SE_SKIP_BROWSER_IN_PATH = 'true';
 
 const mib = 1024 * 1024;
+// Local probe commands resolve through a fixed, non-user-writable PATH.
+const commandEnv = { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' };
 const writerId = 'clipboard-feasibility-writer@addonray.test';
 const readerId = 'clipboard-feasibility-reader@addonray.test';
 const expectedMib = 'x'.repeat(mib);
@@ -239,9 +241,13 @@ const report = {
   os: `${platform()} ${arch()}`,
   sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], {
     encoding: 'utf8',
+    env: commandEnv,
   }).trim(),
   sourceDirty: Boolean(
-    execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim(),
+    execFileSync('git', ['status', '--porcelain'], {
+      encoding: 'utf8',
+      env: commandEnv,
+    }).trim(),
   ),
   requestedVersion: requestedVersion ?? null,
   writer: { id: writerId, manifestPermissions: [], clipboardPermission: false },
@@ -520,9 +526,15 @@ try {
 }
 const failures = report.checks.filter((check) => check.status === 'failed');
 report.result = failures.length === 0 ? 'passed' : 'failed';
-const reportPath = resolve(
-  `.scratch/clipboard-feasibility-${target}${requestedVersion ? `-${requestedVersion}` : ''}.json`,
-);
+let reportName = 'clipboard-feasibility-firefox.json';
+if (target === 'chrome') reportName = 'clipboard-feasibility-chrome.json';
+else if (requestedVersion === '140.0')
+  reportName = 'clipboard-feasibility-firefox-140.0.json';
+else if (requestedVersion === '153.5.1esr')
+  reportName = 'clipboard-feasibility-firefox-153.5.1esr.json';
+else if (requestedVersion === '158.0.1')
+  reportName = 'clipboard-feasibility-firefox-158.0.1.json';
+const reportPath = resolve('.scratch', reportName);
 await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`);
 console.log(`Report: ${reportPath}`);
 if (failures.length) process.exitCode = 1;
