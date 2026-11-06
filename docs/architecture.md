@@ -28,7 +28,7 @@ Require only `activeTab` in the initial manifest. Declare `management` and `scri
 
 Do not declare broad host permissions, `tabs`, `webRequest`, `storage`, or `nativeMessaging` in Phase 0. A missing browser API is an unavailable outcome, not an excuse to request broader access.
 
-The current runtime keeps that budget. The 2026-11-06 contracts approve two future optional paths: `webRequest` plus a temporary exact-origin host grant for the request-failure check, and `nativeMessaging` for the optional companion. Neither is a current permission or install-time host grant. Their implementation must request access only at the explicit user action and fail closed without broader fallback. The request check preserves pre-existing grants and removes only the host access it newly acquired; a small extension-origin cleanup ledger owns that decision and distinguishes expected cleanup from external revocation. The companion permission remains a user-managed optional grant.
+The current runtime keeps that budget. The 2026-11-06 contracts approve two future optional paths: `webRequest` plus a temporary exact-origin host grant for the request-failure check, and `nativeMessaging` for the optional companion. Neither is a current permission or install-time host grant. Their implementation must request access only at the explicit user action, inside a demonstrated supported activation path, and fail closed without broader fallback. The request check preserves pre-existing grants and removes only the access it newly acquired; grant ownership and expected cleanup stay in the live check owner's and participating views' memory, with no persistent origin record. The companion permission remains a user-managed optional grant.
 
 ## Data and trust boundaries
 
@@ -277,12 +277,14 @@ The [collector contract](plans/mutation-request-failure.md) was approved on
   active-check generation. A background event page (Firefox) or service worker
   (Chrome) registers `webRequest.onCompleted` and `onErrorOccurred` at top level
   but ignores events unless the active check matches. It retains fixed counters
-  only. The check tab owns a small extension-origin cleanup ledger: it snapshots
-  pre-existing grants, seals the result, removes only newly granted permissions,
-  and classifies a later removal as expected cleanup or external revocation.
-  Pre-existing grants are preserved. A worker restart marks the attempt
-  interrupted rather than producing a zero; owner loss leaves the ledger for
-  reconciliation on the next open rather than promising in-memory cleanup.
+  only. The live check tab holds the grant snapshot, seals the result, publishes
+  it with cleanup pending, and sends the expected-cleanup marker to participating
+  receiver views in memory. It removes only newly granted permissions and waits
+  for the matching removal event or a bounded timeout. Pre-existing grants are
+  preserved. A worker restart marks the attempt interrupted rather than producing
+  a zero. If the check owner is also lost, cleanup is unverified: no persistent
+  origin record survives, no unknown grant is silently removed, and retained
+  grants are reviewed through browser permission controls.
 
 The check tab owns the visible attempt and source binding. Event listeners cannot
 outlive the attempt or resume after navigation, BFCache restore or close. The

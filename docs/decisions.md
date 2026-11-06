@@ -359,17 +359,22 @@ page-error, saved-data and report behavior described elsewhere in this record.
 bypass or a claim about the browser's proxy path. The OS may carry the target
 connection or DNS through a VPN, split tunnel or OS proxy; the companion makes no
 network-isolation guarantee beyond the permitted target/resolver traffic. Online
-TLS-verifier traffic is not part of v1 unless declared and qualified.
+TLS-verifier traffic is not part of v1 and requires an explicit user-approved
+contract revision.
 
 The approved collector contract is [the mutation and request-failure
 plan](plans/mutation-request-failure.md). It separates mutation notifications
 from DOM operations, defines terminal request observations, preserves pre-existing
 permissions while cleaning temporary grants, and freezes schema version 1 while
-adding an explicit version 2 path. The request contract uses a small
-extension-origin cleanup ledger to distinguish expected operation-owned cleanup
-from external revocation and to reconcile a lost owner tab. Cleanup after abrupt
-loss is explicitly best-effort: a missing or corrupt ledger causes no automatic
-removal and reports a retained grant. The approved guided flow is [the guided-trial
+adding an explicit version 2 path. The request contract keeps grant ownership and
+expected cleanup in the live check owner's and participating views' memory; it
+adds no persistent origin metadata. Expected operation-owned cleanup is
+distinguished from external revocation while those views are live. If the owner
+is lost, cleanup is explicitly unverified: no unknown grant is silently removed,
+and retained grants are reviewed through browser permission controls. #17 must
+prove the temporary-access and cleanup behavior, and a reliable solution needing
+durable origin metadata or a changed revocation policy returns for a user-approved
+contract revision. The approved guided flow is [the guided-trial
 plan](plans/v1-guided-trials.md). The approved companion capability is [the
 connectivity plan](plans/companion-connectivity.md); it remains display-only and
 optional. [ADR 0006](adr/0006-request-failure-observation.md) and

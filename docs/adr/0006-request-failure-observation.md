@@ -27,20 +27,22 @@ blocked-request coverage is incomplete. The product must say so and must not
 attribute a failure to an extension, network or server. The check adds a
 background event page/service worker that counts only during an explicit check.
 
-Permission ownership is explicit and ordered. The check tab writes a small
-extension-origin cleanup ledger before requesting anything, seals and publishes
-the result, then removes only permissions recorded as newly granted. The ledger
-distinguishes expected operation-owned cleanup from external revocation, so a
-late removal event cannot erase a sealed result or an independent attached copy.
-Pre-existing grants are never removed; cleanup failure leaves the result and
-discloses the retained grant. If the background worker restarts, the check tab
-still owns cleanup; if the owner tab is lost, the ledger is reconciled on the
-next open and a missing or corrupt record causes no automatic removal, only a
-retained-grant notice. Cleanup after abrupt loss is therefore best-effort and
-explicitly not guaranteed.
+Permission ownership is explicit and live. The check owner keeps the grant
+snapshot in memory, calls `permissions.request` directly inside a demonstrated
+activation path, seals and publishes the result, then removes only permissions
+recorded as newly granted. Participating receiver views hold the expected-cleanup
+marker in memory so a late removal event does not erase a sealed result or an
+independent attached copy. Pre-existing grants are never removed; cleanup failure
+leaves the result and discloses the retained grant. If the background worker
+restarts, the live check owner still owns cleanup. If the owner is also lost, no
+memory snapshot is claimed to survive: cleanup is unverified, no unknown grant is
+silently removed, and retained grants are reviewed through browser permission
+controls. Durable origin metadata is not approved.
 
 The 30-second Chrome service-worker lifetime, exact-origin port filtering,
-terminal-event double counting, cleanup-ledger availability, late-event
-classification and the proposed elapsed-work limits require #17 feasibility
-proof before product wiring. See the
+terminal-event double counting, user-activation path, in-memory cleanup
+ownership, abrupt-loss behavior and the proposed elapsed-work limits require #17
+feasibility proof before product wiring. If reliable cleanup needs durable origin
+metadata or a changed revocation policy, #17 returns for a user-approved contract
+revision. See the
 [collector contract](../plans/mutation-request-failure.md).

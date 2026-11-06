@@ -142,8 +142,9 @@ The only permitted application-level destinations are:
   hostname validation.
 
 The v1 verifier must not perform online OCSP, CRL, certificate-transparency or
-other network fetches. If a platform verifier makes such requests, that traffic
-must be declared and qualified, or the verifier is rejected. The companion makes
+other network fetches. If a platform verifier makes such requests, the verifier
+is rejected; supporting them requires an explicit user-approved contract
+revision. The companion makes
 no HTTP request, no redirect, no telemetry or update check, and opens no other
 host or port. “No unrelated destination” means this bounded set, not “no resolver
 or VPN traffic.”
@@ -173,9 +174,9 @@ should use the platform trust store where the Rust TLS stack exposes it; otherwi
 it uses a pinned root set and records the difference as a limitation. Enterprise
 or user-installed roots may not be visible to a pinned set. The verifier must not
 perform online OCSP, CRL, certificate-transparency or other network fetches in
-v1; if a platform verifier does, that traffic is declared and qualified or the
-verifier is rejected. #21–#23 must prove the chosen verifier, document which trust
-source was used and capture the actual resolver/verifier traffic. A certificate
+v1; if a platform verifier does, the verifier is rejected unless the user
+approves a contract revision. #21–#23 must prove the chosen verifier, document
+which trust source was used and capture the actual resolver/verifier traffic. A certificate
 warning does not identify an extension or a browser policy cause.
 
 ## Feasibility pass/fail
@@ -194,8 +195,9 @@ warning does not identify an extension or a browser policy cause.
 - no profile mutation or unrelated file access;
 - with controlled network observation, the only application-level destination is
   the selected host and actual port; OS resolver queries are the only other
-  permitted traffic; any declared TLS-verifier traffic is bounded and recorded;
-  there is no HTTP request, redirect, telemetry, update check or arbitrary
+  permitted traffic; no online TLS-verifier traffic is observed. Online verifier
+  traffic fails feasibility and returns for a user-approved contract revision.
+  There is no HTTP request, redirect, telemetry, update check or arbitrary
   host/port;
 - record whether an OS VPN, DNS policy or OS proxy was active, and prove the
   result describes OS routing rather than a VPN bypass;

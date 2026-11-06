@@ -28,8 +28,9 @@ use a VPN-provided or OS-configured resolver; there is no VPN-bypass or “direc
 internet” guarantee. It does not use the browser's proxy, PAC, DNS-over-HTTPS,
 cache, cookies, authentication or TLS session. OS resolver traffic is inherent.
 TLS validation must be offline in v1; online OCSP/CRL or other verifier traffic is
-declared and qualified or rejected. The companion process makes no HTTP request,
-follows no redirect and opens no unrelated destination. It cannot identify a culprit
+not permitted and requires an explicit user-approved contract revision, otherwise
+the verifier is rejected. The companion process makes no HTTP request, follows no
+redirect and opens no unrelated destination. It cannot identify a culprit
 extension or prove the browser path is healthy. The check stays optional and
 display-only. Native host identity, distribution channel, platform signing,
 installer layout and release authorization remain open with #4 and #25–#28.

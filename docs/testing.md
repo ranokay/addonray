@@ -614,22 +614,30 @@ Request failure (#17–#19):
 - model tests for exact-origin matching including scheme, host and effective
   port; selected-tab filtering; terminal-event classification; 4xx/5xx versus
   network failure; observed total; resource-type sums; 500-observation cap; 1 KiB
-  serialization; stale generation; cleanup-ledger states and validation;
+  serialization; stale generation; live grant snapshot and expected-cleanup
+  marker behavior;
 - browser feasibility for 2xx/3xx/4xx/5xx, DNS/connection/TLS failure, an
   observable blocked request, third-party and cross-origin-frame exclusion,
   redirect double-count check, permission denial, pre-existing versus newly
   granted permissions, cleanup failure, 30-second window, heartbeat, service
   worker termination and Firefox event-page unloading;
-- cleanup lifecycle tests for normal sealing/publication/cleanup, late
-  `permissions.onRemoved`, expected cleanup versus external revocation during
-  `active`/`sealed`/`cleaning`/`failed`/attached states, retained pre-existing
-  grants, pre-existing grants never matching expected cleanup, invalidation of a
-  `done` record after re-grant or a new check, cleanup retry, worker restart,
-  owner-tab loss before and after sealing, ledger write failure before request
-  and during a transition, and missing/corrupt ledger with no automatic removal;
+- user-activation proof that Start remains disabled until the live grant snapshot
+  is ready and that the click handler calls `permissions.request` directly, with
+  no asynchronous preparation before it. If activation is lost, the check is
+  unavailable and the contract returns for a revised permission UX;
+- cleanup lifecycle tests for stop-counting/seal/publication with cleanup
+  pending, expected-cleanup marker delivery and acknowledgement before a view is
+  attachment-eligible, matching and non-matching late `permissions.onRemoved`,
+  external revocation during active, sealed, cleanup-pending, cleanup-failed and
+  attached states, retained pre-existing grants, cleanup retry, removal-event
+  timeout clearing the marker as unverified, worker restart with the live owner,
+  owner-channel disconnect clearing the marker, and owner loss leaving cleanup
+  unverified with no silent removal;
+- tests proving no origin pattern or cleanup record is written to IndexedDB or
+  other persistent storage;
 - attachment tests proving a sealed result attaches during cleanup pending or a
-  retained grant, survives expected cleanup including a late event, and is
-  cleared by external revocation;
+  retained grant, survives expected cleanup including a late event while the
+  marker is live, and is cleared by external revocation;
 - measured setup, event and finalization elapsed work with the same protocol and
   total caveat;
 - product tests for no ambient collection before Start, no result after owner
@@ -658,12 +666,13 @@ and hostname failure; the actual non-default port; cancellation at each stage;
 malformed/oversized/unknown messages; absent host, protocol mismatch and process
 crash; and no profile mutation or unrelated file access. Controlled network
 observation must show the selected host and port as the only application-level
-destination, with OS resolver traffic as the only other permitted traffic and any
-declared TLS-verifier traffic bounded and recorded. Record whether an OS VPN, DNS
-policy or OS proxy was active; prove the result describes OS routing rather than
-a VPN bypass. Verify no HTTP request, redirect, telemetry, update check or
-arbitrary host/port. Verify process/socket cleanup. The result is display-only and
-must never enter saved data or a report.
+destination, with OS resolver traffic as the only other permitted traffic and no
+online TLS-verifier traffic. Online verifier traffic fails feasibility and returns
+for a user-approved contract revision. Record whether an OS VPN, DNS policy or OS
+proxy was active; prove the result describes OS routing rather than a VPN bypass.
+Verify no HTTP request, redirect, telemetry, update check or arbitrary host/port.
+Verify process/socket cleanup. The result is display-only and must never enter
+saved data or a report.
 
 ## Minimum and candidate-current OS evidence
 

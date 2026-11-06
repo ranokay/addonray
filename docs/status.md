@@ -29,8 +29,8 @@ These decisions approve future boundaries. They implement no runtime feature and
 change no current permission. In particular:
 
 - the current build still has no mutation or request-failure collector, no
-  background request observer, no permission-cleanup ledger, no schema version 2
-  and no native host;
+  background request observer, no live request cleanup ownership, no schema
+  version 2 and no native host;
 - the request check's optional `webRequest` and exact-origin host grant are future
   permissions, not current ones;
 - the companion remains display-only and optional; its host identity, distribution
