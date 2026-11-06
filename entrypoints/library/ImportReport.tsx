@@ -1,9 +1,87 @@
 import { useSyncExternalStore } from 'react';
+import type { ImportOutput } from '../../lib/import-output';
 import type { ReportImport } from '../../lib/report-import';
 import type { SavedRetentionDays } from '../../lib/saved-record';
 import { ReportDetails } from './ArchiveView';
 
-function ImportedReportView({ importer }: { importer: ReportImport }) {
+function ImportedOutputSection({ output }: { output: ImportOutput }) {
+  const state = useSyncExternalStore(
+    output.subscribe,
+    output.getSnapshot,
+    output.getSnapshot,
+  );
+  return (
+    <section aria-labelledby="imported-html-heading" aria-busy={state.busy}>
+      <h3 id="imported-html-heading">Printable report</h3>
+      <p id="imported-html-disclosure">
+        Review a self-contained printable HTML page for this imported report. It
+        keeps the imported provenance and untrusted-content label. It uses
+        inline styling only and loads no scripts, images, fonts or remote
+        resources. Printing uses your browser&rsquo;s dialog; AddonRay cannot
+        observe whether you print, cancel or save a PDF.
+      </p>
+      <div className="library-actions">
+        <button
+          id="imported-html-prepare"
+          disabled={state.busy}
+          onClick={() => void output.prepare()}
+        >
+          {state.busy
+            ? 'Preparing printable report…'
+            : 'Prepare printable report'}
+        </button>
+        {(state.preview !== null || state.busy) && (
+          <button
+            id="imported-html-cancel"
+            className="quiet"
+            onClick={output.cancel}
+          >
+            Cancel
+          </button>
+        )}
+      </div>
+      {state.preview !== null && (
+        <div className="report-preview">
+          <p className="metadata">
+            Exact printable preview. This is the same document the download
+            button saves.
+          </p>
+          <iframe
+            id="imported-html-preview"
+            title="Imported printable report preview"
+            srcDoc={state.preview}
+            aria-describedby="imported-html-disclosure"
+          />
+          <div className="library-actions">
+            <button
+              id="imported-html-download"
+              disabled={state.busy}
+              onClick={() => void output.download()}
+            >
+              Download HTML report
+            </button>
+            <button
+              id="imported-html-print"
+              disabled={state.busy}
+              onClick={() => void output.print()}
+            >
+              Print / Save as PDF
+            </button>
+          </div>
+        </div>
+      )}
+      <p role="status">{state.message ?? ''}</p>
+    </section>
+  );
+}
+
+function ImportedReportView({
+  importer,
+  output,
+}: {
+  importer: ReportImport;
+  output: ImportOutput;
+}) {
   const state = useSyncExternalStore(
     importer.subscribe,
     importer.getSnapshot,
@@ -34,6 +112,8 @@ function ImportedReportView({ importer }: { importer: ReportImport }) {
       </p>
 
       {report && <ReportDetails report={report} idPrefix="imported" />}
+
+      <ImportedOutputSection output={output} />
 
       <section aria-labelledby="save-imported-heading">
         <h3 id="save-imported-heading">Save imported report</h3>
@@ -90,7 +170,13 @@ function ImportedReportView({ importer }: { importer: ReportImport }) {
   );
 }
 
-export function ImportReportSection({ importer }: { importer: ReportImport }) {
+export function ImportReportSection({
+  importer,
+  output,
+}: {
+  importer: ReportImport;
+  output: ImportOutput;
+}) {
   const state = useSyncExternalStore(
     importer.subscribe,
     importer.getSnapshot,
@@ -130,7 +216,11 @@ export function ImportReportSection({ importer }: { importer: ReportImport }) {
           : (state.message ?? '')}
       </p>
       {state.report && (
-        <ImportedReportView importer={importer} key={state.importedAt} />
+        <ImportedReportView
+          importer={importer}
+          output={output}
+          key={state.importedAt}
+        />
       )}
     </section>
   );

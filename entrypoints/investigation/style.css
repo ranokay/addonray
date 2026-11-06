@@ -345,6 +345,20 @@ input[type='radio'] {
   outline: 3px solid #c4e1ff;
   outline-offset: 4px;
 }
+.report-preview iframe {
+  display: block;
+  width: 100%;
+  height: min(70vh, 900px);
+  min-height: 480px;
+  margin-bottom: 16px;
+  background: #fff;
+  border: 1px solid #707070;
+  border-radius: 7px;
+}
+.report-preview iframe:focus-visible {
+  outline: 3px solid #c4e1ff;
+  outline-offset: 4px;
+}
 @media (max-width: 900px) {
   main {
     padding: 24px 16px 40px;
@@ -375,6 +389,9 @@ input[type='radio'] {
   fieldset,
   input,
   .report-preview textarea {
+    border: 1px solid ButtonText;
+  }
+  .report-preview iframe {
     border: 1px solid ButtonText;
   }
 }

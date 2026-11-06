@@ -1,12 +1,16 @@
 import { REPORT_FILENAME } from './investigation-report';
 
-export type ReportFormat = 'markdown' | 'json';
+export type ReportFormat = 'markdown' | 'json' | 'html';
 
 const formats: Record<ReportFormat, { filename: string; type: string }> = {
   markdown: { filename: REPORT_FILENAME, type: 'text/markdown;charset=utf-8' },
   json: {
     filename: 'addonray-investigation.json',
     type: 'application/json;charset=utf-8',
+  },
+  html: {
+    filename: 'addonray-investigation.html',
+    type: 'text/html;charset=utf-8',
   },
 };
 

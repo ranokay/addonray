@@ -13,10 +13,11 @@ function view({
   preview?: string | null;
   busy?: boolean;
   message?: string | null;
-  format?: 'markdown' | 'json';
+  format?: 'markdown' | 'json' | 'html';
 } = {}) {
   const onPrepare = vi.fn(async () => {});
   const onDownload = vi.fn(async () => {});
+  const onPrint = vi.fn(async () => {});
   const onFormat = vi.fn();
   const markup = renderToStaticMarkup(
     <ReportExportView
@@ -24,15 +25,16 @@ function view({
       eligible={eligible}
       onPrepare={onPrepare}
       onDownload={onDownload}
+      onPrint={onPrint}
       onCancel={vi.fn()}
       onFormat={onFormat}
     />,
   );
-  return { markup, onPrepare, onDownload, onFormat };
+  return { markup, onPrepare, onDownload, onPrint, onFormat };
 }
 
 it('explains disclosure, missing-data eligibility and the accepted download lifetime before preparation', () => {
-  const { markup, onPrepare, onDownload } = view({ eligible: false });
+  const { markup, onPrepare, onDownload, onPrint } = view({ eligible: false });
   expect(markup).toContain('Extension names');
   expect(markup).toContain('versions are included');
   expect(markup).toContain('Keep this investigation open');
@@ -41,8 +43,10 @@ it('explains disclosure, missing-data eligibility and the accepted download life
   expect(markup).toContain('verified normal windows');
   expect(markup).toMatch(/id="report-prepare"[^>]*disabled/);
   expect(markup).not.toContain('id="report-download"');
+  expect(markup).not.toContain('id="report-print"');
   expect(onPrepare).not.toHaveBeenCalled();
   expect(onDownload).not.toHaveBeenCalled();
+  expect(onPrint).not.toHaveBeenCalled();
 });
 
 it('renders the exact text as a labelled read-only value instead of interpreting Markdown or HTML', () => {
@@ -68,6 +72,7 @@ it('offers an explicit JSON format and describes its minimized schema', () => {
   });
   expect(markup).toContain('id="report-format-markdown"');
   expect(markup).toContain('id="report-format-json"');
+  expect(markup).toContain('id="report-format-html"');
   expect(markup).toMatch(/id="report-format-json"[^>]*checked/);
   expect(markup).toContain('Exact JSON preview');
   expect(markup).toContain('schema version 1');
@@ -75,6 +80,29 @@ it('offers an explicit JSON format and describes its minimized schema', () => {
   expect(markup).toContain('&quot;schemaVersion&quot;');
   expect(markup).not.toContain('<script>bad()');
   expect(markup).toMatch(/id="report-download"[^>]*/);
+  expect(markup).not.toContain('id="report-print"');
+});
+
+it('renders the exact printable document in an inert iframe preview with download and print', () => {
+  const reviewed =
+    '<!doctype html>\n<html lang="en"><body><p>&lt;script&gt;bad()&lt;/script&gt;</p></body></html>\n';
+  const { markup, onPrint } = view({
+    format: 'html',
+    preview: reviewed,
+  });
+  expect(markup).toMatch(/id="report-format-html"[^>]*checked/);
+  expect(markup).toContain('id="report-html-preview"');
+  expect(markup).toMatch(/<iframe[^>]*srcDoc|srcdoc/);
+  expect(markup).toContain('Exact printable preview');
+  expect(markup).toContain('&lt;!doctype html&gt;');
+  expect(markup).toContain('&amp;lt;script&amp;gt;');
+  expect(markup).not.toContain('<script>bad()');
+  expect(markup).toContain('id="report-download"');
+  expect(markup).toContain('Download HTML report');
+  expect(markup).toContain('id="report-print"');
+  expect(markup).toContain('Print / Save as PDF');
+  expect(markup).toContain('cannot observe whether you print, cancel or save');
+  expect(onPrint).not.toHaveBeenCalled();
 });
 
 it('marks the Markdown format as the preserved default', () => {
@@ -92,6 +120,16 @@ it('disables duplicate actions during checks while keeping Cancel available', ()
   expect(markup).toContain('aria-busy="true"');
 });
 
+it('disables print during checks while keeping Cancel available', () => {
+  const { markup } = view({
+    format: 'html',
+    preview: '<!doctype html>',
+    busy: true,
+  });
+  expect(markup).toMatch(/id="report-print"[^>]*disabled/);
+  expect(markup).not.toMatch(/id="report-cancel"[^>]*disabled/);
+});
+
 it('announces bounded outcomes without a completed-save claim', () => {
   const { markup } = view({
     message:
@@ -100,4 +138,15 @@ it('announces bounded outcomes without a completed-save claim', () => {
   expect(markup).toContain('role="status"');
   expect(markup).toContain('Download requested');
   expect(markup).not.toContain('saved successfully');
+});
+
+it('announces a print request without a completed-print claim', () => {
+  const { markup } = view({
+    format: 'html',
+    message:
+      'Print dialog requested. AddonRay cannot observe whether it was printed, cancelled or saved as a PDF.',
+  });
+  expect(markup).toContain('Print dialog requested');
+  expect(markup).not.toContain('printed successfully');
+  expect(markup).not.toContain('PDF saved');
 });

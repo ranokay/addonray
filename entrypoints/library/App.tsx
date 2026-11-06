@@ -7,6 +7,7 @@ import {
 import { recordLabel } from '../../lib/saved-record';
 import type { SavedExport } from '../../lib/saved-export';
 import type { ReportImport } from '../../lib/report-import';
+import type { ImportOutput } from '../../lib/import-output';
 import { ArchiveView, unsupportedLabel } from './ArchiveView';
 import { ImportReportSection } from './ImportReport';
 import { SavedExportSection } from './SavedExport';
@@ -283,9 +284,10 @@ function Disclosures() {
         clearing is browser-controlled and can have documented exceptions.
       </p>
       <p>
-        This build can export an open saved report as JSON and import a JSON
-        report for read-only review. It does not print or copy saved reports.
-        Exported files remain outside AddonRay's control, and import alone
+        This build can export an open saved report as JSON or printable HTML,
+        and can import a JSON report for read-only review with its own printable
+        output. It cannot copy saved reports to the clipboard. Exported files
+        and prints remain outside AddonRay&rsquo;s control, and import alone
         stores nothing.
       </p>
     </aside>
@@ -296,10 +298,12 @@ export function App({
   library,
   exporter,
   importer,
+  output,
 }: {
   library: SavedLibrary;
   exporter: SavedExport;
   importer: ReportImport;
+  output: ImportOutput;
 }) {
   const state = useSyncExternalStore(
     library.subscribe,
@@ -339,7 +343,9 @@ export function App({
 
       <Disclosures />
 
-      {state.phase !== 'denied' && <ImportReportSection importer={importer} />}
+      {state.phase !== 'denied' && (
+        <ImportReportSection importer={importer} output={output} />
+      )}
 
       {state.phase === 'checking' && (
         <p role="status">

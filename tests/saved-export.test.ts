@@ -132,12 +132,17 @@ function fixture({ normal = true }: { normal?: boolean } = {}) {
       ),
     },
   };
-  const handoff = vi.fn<(json: string) => void>();
-  const exporter = createSavedExport(api, store, source, handoff);
+  const handoff = vi.fn<(text: string, format: 'json' | 'html') => void>();
+  const printHandoff = vi.fn<(text: string, format: 'json' | 'html') => void>();
+  const exporter = createSavedExport(api, store, source, {
+    download: handoff,
+    print: printHandoff,
+  });
   return {
     store,
     api,
     handoff,
+    printHandoff,
     exporter,
     context,
     publish,
@@ -154,6 +159,7 @@ it('prepares the exact stored JSON and hands it off only after a fresh read', as
   await exporter.prepare();
   const expected = serializeExchange(record());
   expect(exporter.getSnapshot()).toEqual({
+    format: 'json',
     preview: expected,
     busy: false,
     message: null,
@@ -169,7 +175,7 @@ it('prepares the exact stored JSON and hands it off only after a fresh read', as
   expect(expected).not.toContain('expiresAt');
   expect(handoff).not.toHaveBeenCalled();
   await exporter.download();
-  expect(handoff.mock.calls).toEqual([[expected]]);
+  expect(handoff.mock.calls).toEqual([[expected, 'json']]);
   expect(store.getCalls).toBe(2);
   expect(api.tabs.getCurrent).toHaveBeenCalledTimes(4);
   expect(exporter.getSnapshot().message).toContain('Download requested');
@@ -465,4 +471,133 @@ it('refuses download when no preview was prepared', async () => {
   await exporter.download();
   expect(handoff).not.toHaveBeenCalled();
   expect(store.getCalls).toBe(0);
+});
+
+it('prepares, downloads and prints the exact stored printable HTML', async () => {
+  const { store, api, handoff, printHandoff, exporter } = fixture();
+  exporter.setFormat('html');
+  await exporter.prepare();
+  const reviewed = exporter.getSnapshot().preview;
+  if (reviewed === null) throw new Error('Missing printable HTML preview');
+  expect(exporter.getSnapshot().format).toBe('html');
+  expect(reviewed.startsWith('<!doctype html>')).toBe(true);
+  expect(reviewed).toContain('Captured report.');
+  expect(reviewed).not.toContain('<script');
+  expect(reviewed).not.toContain('recordId');
+  expect(handoff).not.toHaveBeenCalled();
+  expect(printHandoff).not.toHaveBeenCalled();
+  await exporter.download();
+  expect(handoff.mock.calls).toEqual([[reviewed, 'html']]);
+  expect(store.getCalls).toBe(2);
+  await exporter.print();
+  expect(printHandoff.mock.calls).toEqual([[reviewed, 'html']]);
+  expect(exporter.getSnapshot().preview).toBe(reviewed);
+  expect(exporter.getSnapshot().message).toContain('Print dialog requested');
+  expect(exporter.getSnapshot().message).not.toContain('printed successfully');
+  expect(api.tabs.getCurrent).toHaveBeenCalledTimes(6);
+});
+
+it('keeps imported provenance in a saved printable report', async () => {
+  const { store, exporter } = fixture();
+  store.entries.set(
+    key,
+    record({ origin: 'imported', importedAt: now, report: record().report }),
+  );
+  exporter.setFormat('html');
+  await exporter.prepare();
+  const reviewed = exporter.getSnapshot().preview;
+  if (reviewed === null) throw new Error('Missing imported printable preview');
+  expect(reviewed).toContain('Imported report');
+  expect(reviewed).toContain('did not observe this content');
+  expect(reviewed).not.toContain('Captured report.');
+  expect(reviewed).not.toContain('importedAt');
+});
+
+it('refuses printable HTML above 1 MiB while the same saved JSON stays available', async () => {
+  const { store, exporter } = fixture();
+  const extensions = Array.from({ length: 1000 }, () => ({
+    name: '&'.repeat(400),
+    version: '1',
+    enabled: true,
+  }));
+  store.entries.set(
+    key,
+    record({
+      report: {
+        ...record().report,
+        before: { extensions },
+        after: { extensions },
+        changes: [],
+      },
+    }),
+  );
+  exporter.setFormat('html');
+  await exporter.prepare();
+  expect(exporter.getSnapshot().preview).toBeNull();
+  expect(exporter.getSnapshot().message).toContain('1 MiB');
+  exporter.setFormat('json');
+  await exporter.prepare();
+  expect(exporter.getSnapshot().preview).not.toBeNull();
+});
+
+it('rejects deletion, expiry and replacement between HTML preview and print', async () => {
+  for (const change of ['delete', 'expire', 'replace'] as const) {
+    const { store, exporter, printHandoff } = fixture();
+    exporter.setFormat('html');
+    await exporter.prepare();
+    expect(exporter.getSnapshot().preview).not.toBeNull();
+    if (change === 'delete') store.entries.clear();
+    if (change === 'expire')
+      store.entries.set(
+        key,
+        record({ savedAt: Date.now() - 2000, expiresAt: Date.now() - 1 }),
+      );
+    if (change === 'replace')
+      store.entries.set(
+        key,
+        record({
+          report: { ...record().report, assessment: 'better' },
+        }),
+      );
+    await exporter.print();
+    expect(printHandoff).not.toHaveBeenCalled();
+    expect(exporter.getSnapshot().preview).toBeNull();
+    expect(exporter.getSnapshot().busy).toBe(false);
+    expect(exporter.getSnapshot().message).toMatch(
+      /no longer available|expired|changed|prepare/i,
+    );
+  }
+});
+
+it('does not print HTML after context is lost during the deferred read', async () => {
+  const { store, exporter, printHandoff, context } = fixture();
+  exporter.setFormat('html');
+  await exporter.prepare();
+  const held = Promise.withResolvers<void>();
+  store.getWait = held.promise;
+  store.getStarted = Promise.withResolvers<void>();
+  const pending = exporter.print();
+  await store.getStarted.promise;
+  context.normal = false;
+  held.resolve();
+  await pending;
+  expect(printHandoff).not.toHaveBeenCalled();
+  expect(exporter.getSnapshot().preview).toBeNull();
+  expect(exporter.getSnapshot().message).toContain('normal windows');
+});
+
+it('discards an HTML preview when the format changes and never prints JSON', async () => {
+  const { exporter, printHandoff } = fixture();
+  exporter.setFormat('html');
+  await exporter.prepare();
+  expect(exporter.getSnapshot().preview).not.toBeNull();
+  exporter.setFormat('json');
+  expect(exporter.getSnapshot()).toMatchObject({
+    format: 'json',
+    preview: null,
+    busy: false,
+    message: null,
+  });
+  await exporter.print();
+  expect(printHandoff).not.toHaveBeenCalled();
 });

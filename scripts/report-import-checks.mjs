@@ -9,6 +9,13 @@ import {
   snapshotJsonDownloads,
 } from './json-export-checks.mjs';
 import {
+  assertHtmlPreview,
+  assertPrintableLayout,
+  observeExactHtmlDownload,
+  requestAndAssertPrint,
+  snapshotHtmlDownloads,
+} from './html-export-checks.mjs';
+import {
   deleteShownRecord,
   dispatchPageTransition,
   storedRecords,
@@ -146,6 +153,12 @@ async function waitForImportedReport(driver) {
     until.elementLocated(By.id('imported-report-heading')),
     10000,
   );
+}
+
+async function htmlSectionText(driver) {
+  return await driver
+    .findElement(By.css('section[aria-labelledby="imported-html-heading"]'))
+    .getText();
 }
 
 export async function checkReportImport({
@@ -395,6 +408,127 @@ export async function checkReportImport({
   await driver.findElement(By.id('saved-json-cancel')).click();
   await deleteShownRecord(driver);
 
+  await driver.findElement(By.id('imported-html-prepare')).click();
+  const importedFrame = await driver.wait(
+    until.elementLocated(By.id('imported-html-preview')),
+    10000,
+  );
+  assert.equal(await importedFrame.getTagName(), 'iframe');
+  const importedPreview = await assertHtmlPreview(driver, {
+    frameId: 'imported-html-preview',
+    imported: true,
+    claimedProvenance: 'captured',
+  });
+  const importedLayout = await assertPrintableLayout(
+    driver,
+    'imported-html-preview',
+  );
+  assert(
+    importedLayout.horizontalOverflow <= importedLayout.viewportWidth + 1,
+    `Imported printable HTML must not overflow horizontally: ${JSON.stringify(importedLayout)}`,
+  );
+  assert.deepEqual(importedLayout.overflowing, []);
+  assert.equal(importedLayout.headerGroup, 'table-header-group');
+  assert.equal(importedLayout.headingBreak, 'avoid');
+  const reviewedImportedHtml = importedPreview.reviewedHtml;
+  const importedHtmlBytes = Buffer.from(reviewedImportedHtml, 'utf8');
+  const importedHtmlBefore = await snapshotHtmlDownloads(reportDirectory);
+  await driver.findElement(By.id('imported-html-download')).click();
+  const downloadedImportedHtml = await observeExactHtmlDownload({
+    driver,
+    directory: reportDirectory,
+    expected: reviewedImportedHtml,
+    before: importedHtmlBefore,
+  });
+  assert.deepEqual(
+    await readFile(downloadedImportedHtml.path),
+    importedHtmlBytes,
+  );
+  const importedHtmlEvidence = {
+    ...importedPreview,
+    claimedProvenance: 'captured',
+    layout: importedLayout,
+    filename: downloadedImportedHtml.filename,
+    downloadedPath: downloadedImportedHtml.path,
+    downloadedBytes: downloadedImportedHtml.bytes,
+    downloadedSha256: createHash('sha256')
+      .update(await readFile(downloadedImportedHtml.path))
+      .digest('hex'),
+    exactUtf8Match: true,
+    importedProvenanceRetained: true,
+    claimNotAuthenticated: true,
+    requestOnlyWording: true,
+  };
+  delete importedHtmlEvidence.preview;
+  delete importedHtmlEvidence.reviewedHtml;
+  const importedPrintEvidence = await requestAndAssertPrint(driver, {
+    buttonId: 'imported-html-print',
+    frameId: 'imported-html-preview',
+    sectionSelector: 'section[aria-labelledby="imported-html-heading"]',
+    reviewedHtml: reviewedImportedHtml,
+  });
+  passed(
+    `${authority}: an unsaved import prepares, downloads and prints the exact loaded HTML while retaining untrusted imported provenance`,
+    {
+      reportImport: {
+        html: importedHtmlEvidence,
+        print: importedPrintEvidence,
+      },
+    },
+  );
+
+  await driver.findElement(By.id('imported-html-cancel')).click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.id('imported-html-preview'))).length === 0,
+    10000,
+  );
+  await driver.findElement(By.id('imported-html-prepare')).click();
+  await driver.wait(
+    until.elementLocated(By.id('imported-html-preview')),
+    10000,
+  );
+  assert.equal(
+    (await storedRecords(driver)).records.length,
+    0,
+    'Printable HTML must not persist the imported content',
+  );
+  await chooseFile(driver, validPath);
+  await driver.wait(
+    () =>
+      driver.executeScript(
+        () =>
+          document
+            .querySelector('.imported-report')
+            ?.textContent?.includes('Worse') ?? false,
+      ),
+    10000,
+    'The replacement report was not rendered after invalidating printable HTML',
+  );
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.id('imported-html-preview'))).length === 0,
+    10000,
+    'Importing a replacement must discard the previous printable preview',
+  );
+  assert.equal(
+    (await driver.findElements(By.id('imported-html-download'))).length,
+    0,
+  );
+  assert.equal(
+    (await driver.findElements(By.id('imported-html-print'))).length,
+    0,
+  );
+  passed(
+    `${authority}: importing a replacement discards the previous printable preview without persisting or handing off`,
+    {
+      reportImport: {
+        htmlInvalidation: 'replacement discarded preview',
+        storedRecords: 0,
+      },
+    },
+  );
+
   await chooseFile(driver, boundaryPath);
   await waitForImportedReport(driver);
   const viewOnly = await driver.wait(
@@ -407,6 +541,33 @@ export async function checkReportImport({
     false,
   );
   assert.equal((await storedRecords(driver)).records.length, 0);
+  await driver.findElement(By.id('imported-html-prepare')).click();
+  await driver.wait(
+    async () =>
+      (await htmlSectionText(driver)).includes(
+        'printable HTML report exceeds the 1 MiB limit',
+      ),
+    10000,
+    'A near-limit import whose printable HTML exceeds 1 MiB must be refused with a bounded message',
+  );
+  assert.equal(
+    (await driver.findElements(By.id('imported-html-preview'))).length,
+    0,
+  );
+  assert.equal(
+    (await driver.findElements(By.id('imported-html-download'))).length,
+    0,
+  );
+  passed(
+    `${authority}: a near-limit imported report whose printable HTML would exceed 1 MiB shows a bounded refusal without truncation or handoff`,
+    {
+      reportImport: {
+        stage: 'printable-html-over-limit',
+        importBytes: boundary.bytes,
+        preview: false,
+      },
+    },
+  );
   await driver.findElement(By.id('clear-imported-report')).click();
   await driver.wait(
     async () =>

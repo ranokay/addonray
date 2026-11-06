@@ -6,27 +6,33 @@ function view({
   preview = null,
   busy = false,
   message = null,
+  format = 'json' as const,
 }: {
   preview?: string | null;
   busy?: boolean;
   message?: string | null;
+  format?: 'json' | 'html';
 } = {}) {
   const onPrepare = vi.fn(async () => {});
   const onDownload = vi.fn(async () => {});
+  const onPrint = vi.fn(async () => {});
   const onCancel = vi.fn();
+  const onFormat = vi.fn();
   const markup = renderToStaticMarkup(
     <SavedExportView
-      state={{ preview, busy, message }}
+      state={{ format, preview, busy, message }}
       onPrepare={onPrepare}
       onDownload={onDownload}
+      onPrint={onPrint}
       onCancel={onCancel}
+      onFormat={onFormat}
     />,
   );
-  return { markup, onPrepare, onDownload, onCancel };
+  return { markup, onPrepare, onDownload, onPrint, onCancel, onFormat };
 }
 
 it('discloses the archive JSON boundary and request lifetime before preparation', () => {
-  const { markup, onPrepare, onDownload } = view();
+  const { markup, onPrepare, onDownload, onPrint } = view();
   for (const phrase of [
     'schema version 1 JSON document',
     'omits extension IDs, record IDs, save times',
@@ -39,8 +45,10 @@ it('discloses the archive JSON boundary and request lifetime before preparation'
     expect(markup).toContain(phrase);
   expect(markup).toContain('id="saved-json-prepare"');
   expect(markup).not.toContain('id="saved-json-download"');
+  expect(markup).not.toContain('id="saved-print"');
   expect(onPrepare).not.toHaveBeenCalled();
   expect(onDownload).not.toHaveBeenCalled();
+  expect(onPrint).not.toHaveBeenCalled();
 });
 
 it('renders the exact JSON as a labelled read-only value without interpreting it', () => {
@@ -55,6 +63,26 @@ it('renders the exact JSON as a labelled read-only value without interpreting it
   expect(markup).not.toContain('<script>bad()');
   expect(markup).toContain('id="saved-json-download"');
   expect(markup).toContain('id="saved-json-cancel"');
+});
+
+it('offers printable HTML, its exact inert preview and print/PDF controls', () => {
+  const reviewed =
+    '<!doctype html>\n<html lang="en"><body><p>&lt;img src=x&gt;</p></body></html>\n';
+  const { markup, onPrint } = view({ format: 'html', preview: reviewed });
+  expect(markup).toMatch(/id="saved-format-html"[^>]*checked/);
+  expect(markup).toContain('self-contained printable HTML page');
+  expect(markup).toContain(
+    'loads no scripts, images, fonts or remote resources',
+  );
+  expect(markup).toContain('id="saved-html-preview"');
+  expect(markup).toContain('Exact printable preview');
+  expect(markup).toContain('&lt;!doctype html&gt;');
+  expect(markup).not.toContain('<img src=x');
+  expect(markup).toContain('Download HTML report');
+  expect(markup).toContain('id="saved-print"');
+  expect(markup).toContain('Print / Save as PDF');
+  expect(markup).toContain('cannot observe whether you print, cancel or save');
+  expect(onPrint).not.toHaveBeenCalled();
 });
 
 it('keeps Cancel available and duplicate actions disabled while busy', () => {
@@ -74,4 +102,15 @@ it('announces only a download request, never completed saving', () => {
     'Download requested. Check your browser downloads for its outcome.',
   );
   expect(markup).not.toContain('downloaded successfully');
+});
+
+it('announces only a print request, never a completed print or PDF', () => {
+  const { markup } = view({
+    format: 'html',
+    message:
+      'Print dialog requested. AddonRay cannot observe whether it was printed, cancelled or saved as a PDF.',
+  });
+  expect(markup).toContain('Print dialog requested');
+  expect(markup).not.toContain('printed successfully');
+  expect(markup).not.toContain('PDF saved');
 });

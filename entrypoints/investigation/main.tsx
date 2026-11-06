@@ -5,6 +5,7 @@ import { getBrowserContext } from '../../lib/browser-target';
 import { createInvestigation } from '../../lib/investigation';
 import { createReportExport } from '../../lib/report-export';
 import { requestReportDownload } from '../../lib/report-download';
+import { printReportPreview } from '../../lib/report-print';
 import { createSavedSave } from '../../lib/saved-save';
 import { createSavedChangeHint } from '../../lib/saved-notifier';
 import { createIndexedDbSavedStore } from '../../lib/saved-store';
@@ -17,11 +18,10 @@ const root = document.getElementById('root');
 if (!root) throw new Error('Missing investigation root');
 const context = getBrowserContext(import.meta.env.BROWSER);
 const investigation = createInvestigation(browser, context);
-const exporter = createReportExport(
-  browser,
-  investigation,
-  requestReportDownload,
-);
+const exporter = createReportExport(browser, investigation, {
+  download: requestReportDownload,
+  print: (text) => printReportPreview('report-html-preview', text),
+});
 const savedHint = createSavedChangeHint();
 const savedSaver = createSavedSave(
   browser,
