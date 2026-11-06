@@ -603,7 +603,8 @@ recorded in this documentation commit; dependent labels wait for merge. #4 remai
 open for final Chrome ID, verified accounts, companion public-key/credential
 ownership, candidate signing/limited-test routes and concrete release
 authorization. Q7/Q8 settle the host ID, artifact naming, GitHub Releases channel
-and detached-signature method as a plan; no key, signature or release exists. #10
+and detached-signature method as a plan; keys remain unverified and this planning
+work creates no signature or release. #10
 and #11 are readiness-labelled from already-merged decisions and may start under
 their approved contracts. #31 is readiness-labelled but remains blocked by #10;
 its qualification starts only after #10 lands. No implementation is claimed.
