@@ -8,12 +8,13 @@ confirmed delete-all. The #8 slice adds schema version 1 JSON preview and
 download for the live investigation and the saved archive. The #9 slice adds
 explicit strict import, read-only review and a separate imported save. The #10
 slice adds self-contained printable HTML for live, saved and unsaved imported
-reports with the browser Print/Save-as-PDF path. Clipboard remains future #11
-work. See the
+reports with the browser Print/Save-as-PDF path. The #11 slice adds explicit
+clipboard copy of exact reviewed Markdown without a clipboard permission. See the
 [Stage 1 feasibility record](../evidence/2026-10-30-saved-storage-feasibility.md),
 [Stage 2 product evidence](../evidence/2026-10-30-saved-investigations.md),
-[the #8 evidence](../evidence/2026-11-01-json-report-export.md) and
-[the #10 evidence](../evidence/2026-11-06-printable-report.md).
+[the #8 evidence](../evidence/2026-11-01-json-report-export.md),
+[the #10 evidence](../evidence/2026-11-06-printable-report.md) and
+[the #11 evidence](../evidence/2026-11-06-clipboard-report.md).
 The existing live Markdown report, the JSON output and the printable HTML output
 are the implemented report formats. See
 [the interview record](../decisions.md#saved-investigation-and-report-exchange-interview).
@@ -497,7 +498,10 @@ evidence:
   and locally qualified in
   [the #10 evidence](../evidence/2026-11-06-printable-report.md).
 - #11: explicit clipboard copy, exact reviewed text, success after write, denial
-  and unavailable results.
+  and unavailable results. Implemented and locally qualified in
+  [the #11 evidence](../evidence/2026-11-06-clipboard-report.md); a real platform
+  write delayed across a deletion, a maximum-size product copy, the hosted
+  exact-OS matrix and release review remain open.
 - #29: private and unknown context qualification for saving, import, export,
   download, print and clipboard.
 
@@ -536,9 +540,12 @@ untrusted read-only imported view and a separate imported save; import alone
 persists nothing and needs no collection permission or storage availability. #10
 adds self-contained printable HTML for the live view, saved archives and unsaved
 imports, rendered in an inert preview and printed through the browser's
-Print/Save-as-PDF dialog. There is no clipboard action. Natural eviction, an actual
-Chrome engine quota error and a reachable Chrome private main-frame library route
-remain unqualified; see
+Print/Save-as-PDF dialog. #11 adds explicit clipboard copy of exact reviewed
+Markdown for the same three entrypoints, with its own review, 1 MiB UTF-8 bound,
+system-clipboard disclosure and success only after the platform write resolves.
+It uses transient user activation and no clipboard permission. Natural eviction,
+an actual Chrome engine quota error and a reachable Chrome private main-frame
+library route remain unqualified; see
 [product evidence](../evidence/2026-10-30-saved-investigations.md) and
 [#7 evidence](../evidence/2026-10-31-history-retention-bulk-deletion.md).
 
