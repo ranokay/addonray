@@ -27,18 +27,26 @@ export async function waitForHtmlPreview(driver, frameId, timeout = 10000) {
         const frame = document.getElementById(id);
         if (!(frame instanceof HTMLIFrameElement)) return null;
         const loaded = frame.contentDocument;
+        const expected = new DOMParser().parseFromString(
+          frame.srcdoc,
+          'text/html',
+        ).documentElement;
         return {
           hasSrcdoc:
             typeof frame.srcdoc === 'string' && frame.srcdoc.length > 0,
           readyState: loaded?.readyState ?? null,
           hasRoot: Boolean(loaded?.documentElement),
           frameElement: loaded?.defaultView?.frameElement === frame,
+          matchesSrcdoc:
+            Boolean(loaded?.documentElement) &&
+            loaded.documentElement.outerHTML === expected?.outerHTML,
         };
       }, frameId);
       return state?.hasSrcdoc &&
         state.readyState === 'complete' &&
         state.hasRoot &&
-        state.frameElement
+        state.frameElement &&
+        state.matchesSrcdoc
         ? state
         : false;
     },
