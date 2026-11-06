@@ -1,7 +1,9 @@
 # Printable HTML report
 
 Status: bounded #10 implementation qualified from clean
-`3f18892dda2e2ceac52bc45455b5aeb58582136d`. Deterministic checks, native type
+`6ea41d26454cabdc35f049ad3ea9bfee901c1207`. The product code is the same as
+`ab4c26c7f695410b77e60ad85b2182a9a4de8e0d`; the later clean head adds only this
+documentation. Deterministic checks, native type
 checking, one clean Chrome and three clean Firefox product runs pass, and a
 native Chrome print/Save-as-PDF observation completed. This record adds no
 permission, dependency, browser target, support claim, clipboard action or PDF
@@ -29,7 +31,7 @@ and its Formats, SRD-19 and SRD-20 rules.
 
 ## Deterministic checks
 
-The full suite at clean `3f18892dda2e2ceac52bc45455b5aeb58582136d` passes
+The full suite at clean `6ea41d26454cabdc35f049ad3ea9bfee901c1207` passes
 **666 tests / 2,023,258 assertions across 43 files** and native type checking
 passes **101 files**. Focused coverage includes:
 
@@ -59,19 +61,19 @@ Model and server-rendered UI checks are not browser print or PDF evidence.
 ## Clean browser qualification
 
 All runs used disposable profiles through the repository runners, sequentially,
-from clean `3f18892dda2e2ceac52bc45455b5aeb58582136d` (`sourceDirty: false`).
+from clean `6ea41d26454cabdc35f049ad3ea9bfee901c1207` (`sourceDirty: false`).
 Firefox runs install the unmodified development build in a temporary directory.
 The Chrome run extracts the validated ZIP. macOS is `darwin arm64`, macOS 27.2.
 
 | Target                                | Driver                     | Result                         | Checks | Report SHA-256                                                     |
 | ------------------------------------- | -------------------------- | ------------------------------ | ------ | ------------------------------------------------------------------ |
-| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 110    | `cd7dc3889b95e06488e9311a3de5bba7cee35b346e71a9989f84e50647919020` |
-| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 110    | `10df2c284cb5813c8d612a8ce3f84f1b7841ff63bf9510a93c038077ddd0702d` |
-| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 110    | `5de2022a4f46df018e05ae81cae81a6f4abe80194e98ad87be5d851013607f00` |
-| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 101    | `5fe573b52444502aec246fe2e95a8d59565d288b1ee5e60c56a875bf81e98365` |
+| Firefox 140.0                         | geckodriver 0.37.1         | passed-with-qualification-gaps | 110    | `32d07b36862ebb84e99be5626ffde5b73fef7cd8f9e0627d66f2df0d7ab4feae` |
+| Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 110    | `5c867a101c053805073e2b4451e185ba632ee91694b5632998e6420aafabd902` |
+| Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 110    | `8eed36e3c95fccee5936b068d174a1d5321d4292b8618d355db88ab79aec02ef` |
+| Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 101    | `250a42be0a49c2bf9a0c542ab2643408b2fd13d2924059f22d718b878f8c09ee` |
 
 The Chrome ZIP SHA-256 is
-`1ed8da748262b57167e57ed7fb3b3d9a70ce74416f29f1448731f8f6eb1905e1`. Raw
+`d2b4a42e18176eee17d2734812800bf0342f1adf265600e37d182114cc33d44d`. Raw
 reports remain in ignored `.scratch/`: `firefox-evidence-140.0.json`,
 `firefox-evidence-153.5.1esr.json`, `firefox-evidence-158.0.1.json` and
 `chrome-evidence.json`.
@@ -94,19 +96,19 @@ the import discards the previous printable preview.
 ## Native print and PDF observation
 
 A disposable Chrome for Testing `156.0.8078.47` profile loaded the production
-build at clean `3f18892dda2e2ceac52bc45455b5aeb58582136d`, imported a report with
+build at clean `6ea41d26454cabdc35f049ad3ea9bfee901c1207`, imported a report with
 a 4,016-code-point name, hostile markup, 90 inventory rows, an empty After
 inventory and missing diagnostics, saved it, opened it and prepared the printable
 HTML. The exact loaded preview was 28,092 bytes with SHA-256
-`5001a9e2f22366cb4685105a204cf7628d8846ffa12714d7ce89e02374b1ef45`.
+`25ffe24b3b5286f6878b7f264366903202fe80820eaa95914ea80c6b8c401577`.
 
 The product's **Print / Save as PDF** opened Chrome's print preview for that frame
 only, showing **8 pages**, the imported/untrusted label, the long name wrapping
 and the empty inventory section. The preview and destination are captured in
-`.scratch/native-product2-print-preview.png`. Cancelling the dialog created no
+`.scratch/native-product3-print-preview.png`. Cancelling the dialog created no
 PDF and left the status at the request-only text. A second request, **Save as
-PDF**, produced `Saved investigations · AddonRay.pdf` (334,709 bytes, SHA-256
-`f942fbe8973e479b2fb45fcd0914440ac33cb7d747249b057d593228ac70de22`) with
+PDF**, produced `Saved investigations · AddonRay.pdf` (334,427 bytes, SHA-256
+`8b914fb9a565f8a888beeddb76f67e5b1276b4381031344e396e3b2e3ace1175`) with
 `%PDF-1.4` and `/Count 8`. Rendered page 1 contains the report header, imported
 provenance and long name; page 2 continues the same entry and shows the hostile
 markup as text. PDFKit reports 8 pages and extracted text for each page. The
@@ -115,11 +117,11 @@ saved-status wording is
 
 Firefox 158.0.1 opened its in-tab print preview from the same product flow,
 showing **8 sheets of paper**, the exact report, Save to PDF, and Cancel/Save.
-Cancel closed the preview and created no PDF. The Firefox native save dialog was
-opened but not completed; a Firefox PDF file and the post-dialog request status
-were not observed. The evidence is in
-`.scratch/native-firefox-print-preview2.png` and
-`.scratch/native-firefox-after-cancel2.png`.
+Cancel closed the preview, created no PDF, and the product then showed the same
+request-only status. The Firefox native save dialog was opened in an earlier
+attempt but not completed; a Firefox-produced PDF was not observed. The evidence
+is in `.scratch/native-firefox2-print-preview.png` and
+`.scratch/native-firefox2-after-cancel.png`.
 
 ## Review corrections
 
@@ -160,11 +162,11 @@ establish their causes.
   Chrome optional-management consent is claimed. The saved and imported HTML
   paths request no collection permission and were exercised after Firefox
   management removal.
-- Firefox Save-to-PDF completion, a Firefox-produced PDF and the Firefox request
-  status after the dialog are unobserved. Chrome produced the only observed PDF.
-  One Firefox native save-dialog automation attempt was abandoned when focus
-  landed outside the dialog in the disposable profile; that profile was
-  discarded and no product defect is established.
+- Firefox Save-to-PDF completion and a Firefox-produced PDF are unobserved.
+  Chrome produced the only observed PDF. One Firefox native save-dialog
+  automation attempt was abandoned when focus landed outside the dialog in the
+  disposable profile; that profile was discarded and no product defect is
+  established.
 - Print-dialog cancellation and disk completion cannot be observed by the
   product. The native cancellation observation is external evidence; the
   interface deliberately reports only a request.

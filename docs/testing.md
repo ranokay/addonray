@@ -617,7 +617,7 @@ implementation and qualification tickets are authorized.
   exact UTF-8 `.html` download completes, and the instrumented print call targets
   the exact loaded frame. This is packaged-product evidence, not the native
   print dialog.
-- At clean `3f18892dda2e2ceac52bc45455b5aeb58582136d`, the local product probes
+- At clean `6ea41d26454cabdc35f049ad3ea9bfee901c1207`, the local product probes
   pass 110 checks on Firefox 140.0, 153.5.1esr and 158.0.1 and 101 on Chrome for
   Testing 156.0.8078.47. Firefox prepares, downloads and prints saved HTML after
   actual management removal; the imported flow verifies replacement invalidation
