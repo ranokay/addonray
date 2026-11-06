@@ -219,7 +219,8 @@ SmartScreen warning, allow and cancel flows, plus install, update and removal, a
 qualified from actual downloaded artifacts with quarantine or Mark-of-the-Web
 intact. Local developer builds, removed quarantine and browser or harness results
 are not native distribution evidence. A warning-free installation is not promised.
-Missing minimum macOS, Windows and Linux environments remain explicit blockers.
+Missing minimum macOS 14 and suitable Windows/Linux environments remain explicit
+blockers; candidate-current versions remain separate.
 
 ## Trust and TLS validation
 

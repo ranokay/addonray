@@ -410,8 +410,8 @@ do not create or verify any key, account or artifact.
   plus install, update and removal, are qualified from actual downloaded
   artifacts with quarantine or Mark-of-the-Web intact. Local developer builds,
   removed quarantine and browser/harness results are not native distribution
-  evidence. Missing minimum macOS, Windows and Linux environments remain explicit
-  blockers.
+  evidence. Missing minimum macOS 14 and suitable Windows/Linux environments
+  remain explicit blockers; candidate-current versions remain separate.
 - **Not authorized.** No key generation, key access, signature, account access,
   upload, purchase, OS/VM installation or release publication is authorized by
   this plan. The exact public key value and fingerprint, private signing
