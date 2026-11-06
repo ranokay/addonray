@@ -227,7 +227,9 @@ export async function assertHtmlPreview(
     assert(text.includes('Captured report.'));
     assert(!text.includes('Imported report'));
   }
-  assert(text.includes('This list was computed before saving'));
+  assert(
+    text.includes('This list was computed from the extension-ID comparison'),
+  );
   assert(text.includes('Extension names and versions can duplicate'));
   assert(text.includes('never recomputed from names'));
   assert(text.includes('Not attached'));

@@ -43,7 +43,12 @@ function createLivePrintableHtml(
 ) {
   const report = createSavedReport(snapshot);
   if (report.status !== 'success') return report;
-  return createPrintableHtml(report.value, { provenance: 'captured' });
+  const html = createPrintableHtml(report.value, { provenance: 'captured' });
+  if (html.status === 'success') return html;
+  return {
+    ...html,
+    reason: `${html.reason} JSON and Markdown remain available if they fit their own limits.`,
+  };
 }
 
 // The document owns this controller. It never sends report data to another view.

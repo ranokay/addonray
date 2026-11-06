@@ -200,7 +200,9 @@ it('refuses a printable representation above 1 MiB without dropping the import',
   await output.prepare();
   expect(output.getSnapshot().preview).toBeNull();
   expect(output.getSnapshot().message).toContain('1 MiB');
-  expect(output.getSnapshot().message).toContain('JSON');
+  expect(output.getSnapshot().message).toContain(
+    'remains available for inspection or saving',
+  );
 });
 
 it('refuses preparation while the import is busy or empty', async () => {

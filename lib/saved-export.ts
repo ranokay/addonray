@@ -63,8 +63,16 @@ function createSavedOutput(
   record: SavedRecord,
   format: SavedExportFormat,
 ): Result<string> {
-  if (format === 'html')
-    return createPrintableHtml(record.report, { provenance: record.origin });
+  if (format === 'html') {
+    const html = createPrintableHtml(record.report, {
+      provenance: record.origin,
+    });
+    if (html.status === 'success') return html;
+    return {
+      ...html,
+      reason: `${html.reason} JSON remains available if it fits its own limit.`,
+    };
+  }
   const text = serializeExchange(record);
   if (byteLength(text) > SAVED_LIMITS.jsonBytes)
     return {

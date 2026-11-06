@@ -535,6 +535,7 @@ it('refuses printable HTML above 1 MiB while the same saved JSON stays available
   await exporter.prepare();
   expect(exporter.getSnapshot().preview).toBeNull();
   expect(exporter.getSnapshot().message).toContain('1 MiB');
+  expect(exporter.getSnapshot().message).toContain('JSON remains available');
   exporter.setFormat('json');
   await exporter.prepare();
   expect(exporter.getSnapshot().preview).not.toBeNull();

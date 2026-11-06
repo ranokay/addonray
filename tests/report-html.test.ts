@@ -241,8 +241,6 @@ it('refuses a printable document above 1 MiB without truncating or affecting JSO
   expect(result.status).toBe('error');
   if (result.status !== 'error') throw new Error('Expected a refusal');
   expect(result.reason).toContain('1 MiB');
-  expect(result.reason).toContain('JSON');
-  expect(result.reason).toContain('Markdown');
   expect(result.reason).not.toContain('truncat');
 });
 

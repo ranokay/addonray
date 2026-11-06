@@ -75,12 +75,17 @@ export function createImportOutput(
   });
 
   function output(candidate: ImportedPermit) {
-    return createPrintableHtml(candidate.report, {
+    const html = createPrintableHtml(candidate.report, {
       provenance: 'imported',
       ...(candidate.claimedProvenance
         ? { claimedProvenance: candidate.claimedProvenance }
         : {}),
     });
+    if (html.status === 'success') return html;
+    return {
+      ...html,
+      reason: `${html.reason} The imported report remains available for inspection or saving.`,
+    };
   }
 
   async function deliver(kind: 'download' | 'print') {

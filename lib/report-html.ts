@@ -245,7 +245,7 @@ export function createPrintableHtml(
       write('</ul>\n');
     }
     write(
-      '<p class="metadata">This list was computed before saving from the live extension-ID comparison and is retained as captured. It is never recomputed from names. Extension names and versions can duplicate, so rows may be indistinguishable. Name or version changes alone are not classified as inventory changes. Permissions and page activity are not compared.</p>\n</section>\n',
+      '<p class="metadata">This list was computed from the extension-ID comparison for this report and is retained as captured. It is never recomputed from names. Extension names and versions can duplicate, so rows may be indistinguishable. Name or version changes alone are not classified as inventory changes. Permissions and page activity are not compared.</p>\n</section>\n',
     );
 
     write('<section>\n<h2>Optional loading timings</h2>\n');
@@ -284,7 +284,7 @@ export function createPrintableHtml(
       status: 'error',
       reason:
         error === tooLarge
-          ? 'The printable HTML report exceeds the 1 MiB limit. It cannot be previewed or printed. JSON and Markdown remain available if they fit their own limits.'
+          ? 'The printable HTML report exceeds the 1 MiB limit. It cannot be previewed, downloaded or printed.'
           : 'The printable HTML report could not be prepared. Try again.',
     };
   }

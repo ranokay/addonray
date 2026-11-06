@@ -519,6 +519,7 @@ it('refuses printable HTML above 1 MiB while the same JSON report stays availabl
   await exporter.prepare();
   expect(exporter.getSnapshot().preview).toBeNull();
   expect(exporter.getSnapshot().message).toContain('1 MiB');
+  expect(exporter.getSnapshot().message).toContain('JSON and Markdown');
   await exporter.download();
   await exporter.print();
   expect(handoff).not.toHaveBeenCalled();
