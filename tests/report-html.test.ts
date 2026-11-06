@@ -72,6 +72,38 @@ it('shows controls, bidi formatting and lone surrogates as visible escapes', () 
   expect(html).not.toContain('\u200F');
 });
 
+it('distinguishes a literal Unicode escape from a real control character', () => {
+  const literal = success(
+    createPrintableHtml(
+      exampleReport({
+        before: {
+          extensions: [
+            { name: 'literal \\u{202E} text', version: '1', enabled: true },
+          ],
+        },
+      }),
+      { provenance: 'captured' },
+    ),
+  );
+  const actual = success(
+    createPrintableHtml(
+      exampleReport({
+        before: {
+          extensions: [
+            { name: 'actual \u202E text', version: '1', enabled: true },
+          ],
+        },
+      }),
+      { provenance: 'captured' },
+    ),
+  );
+  expect(literal).toContain('literal \\u{5C}u{202E} text');
+  expect(actual).toContain('actual \\u{202E} text');
+  expect(literal).not.toContain('\\u{202E} ');
+  expect(literal).not.toBe(actual);
+  expect(literal).toContain('Backslashes, invisible control');
+});
+
 it('labels empty inventories, absent assessment and unattached diagnostics explicitly', () => {
   const html = success(
     createPrintableHtml(

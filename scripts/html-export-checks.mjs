@@ -136,7 +136,8 @@ export async function assertHtmlPreview(
           .replaceAll('&', '&amp;')
           .replaceAll('<', '&lt;')
           .replaceAll('>', '&gt;')
-          .replaceAll('"', '&quot;'),
+          .replaceAll('"', '&quot;')
+          .replaceAll('\\', '\\u{5C}'),
       ),
       'Printable HTML must include the escaped fixture name',
     );

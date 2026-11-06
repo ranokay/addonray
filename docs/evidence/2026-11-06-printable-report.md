@@ -21,7 +21,7 @@ and its Formats, SRD-19 and SRD-20 rules.
 | Content      | Only the approved report fields: provenance, assessment, both inventories, the stored precomputed ID-based changes, assessment, optional timing and page-error summaries, observation limits and fixed limit text. No record IDs, timestamps, permission or host metadata, URL, title, browser or OS context.                                                                                    |
 | States       | Empty inventories, absent assessment, unattached diagnostics and measured, unrecorded and unavailable milestones stay explicit. Changes are rendered from the stored list and are never recomputed from names. Duplicate names and versions stay indistinguishable and the limit is stated.                                                                                                      |
 | Provenance   | A live report says it was captured by AddonRay. An imported report says it is untrusted file content AddonRay did not observe, and an unsaved import also names the file's unauthenticated provenance claim. Saved imports retain imported provenance without re-asserting a discarded claim.                                                                                                    |
-| Escaping     | Every report string is escaped for HTML. Control, format, surrogate and bidirectional characters are shown as `\u{X}` notation. Hostile names and markup remain text in the parsed document.                                                                                                                                                                                                     |
+| Escaping     | Every report string is escaped for HTML. Backslashes, control, format, surrogate and bidirectional characters are shown as `\u{X}` notation, so a literal escape-looking string remains distinguishable from the character it names. Hostile names and markup remain text in the parsed document.                                                                                                |
 | Preview      | The exact document string is rendered in an inert iframe. The print helper verifies the `srcdoc` attribute, the loaded document tree and the frame identity before calling that frame's print method, so an unloaded or stale frame cannot print.                                                                                                                                                |
 | Bounds       | The complete UTF-8 document including CSS and markup is checked against 1 MiB before publication. Over-limit output is refused without truncation; JSON and Markdown keep their own independent bounds.                                                                                                                                                                                          |
 | Layout       | Light print palette, `@page` margins, fixed-layout wrapping tables, `overflow-wrap: anywhere`, repeated table headers and heading break-avoidance. A single entry taller than a page splits and continues; sections are not blanket-unbreakable.                                                                                                                                                 |
@@ -36,7 +36,9 @@ passes **101 files**. Focused coverage includes:
 
 - complete document shape, inline style only, absent script/link/image/iframe/
   object/embed elements and absent resource attributes;
-- escape of markup, quotes, controls, bidi formatting and lone surrogates;
+- escape of markup, quotes, backslashes, controls, bidi formatting and lone
+  surrogates, including a literal escape-looking sequence beside the actual
+  control character;
 - empty inventories, absent assessment, unattached diagnostics and preserved
   measured, unrecorded and unavailable states;
 - stored changes used verbatim, duplicate-name limitation, full 4,096-code-point

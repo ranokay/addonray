@@ -259,7 +259,7 @@ names and the stored-change limitation are stated. Captured and imported
 provenance are labelled honestly, including an unauthenticated file claim on an
 unsaved import. No record IDs, timestamps, permission or host metadata, URLs,
 titles or browser context are included. Hostile and control text is escaped, and
-invisible controls are shown as Unicode escape notation.
+invisible controls and backslashes are shown as Unicode escape notation.
 
 The complete UTF-8 document, including CSS and markup, is checked against 1 MiB
 before publication. An oversized printable representation is refused without

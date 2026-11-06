@@ -594,8 +594,10 @@ implementation and qualification tickets are authorized.
 
 - `tests/report-html.test.ts` covers the complete document, inline style only,
   absent scripts/resource elements/attributes, escaping of markup, quotes,
-  controls, bidi formatting and lone surrogates, empty and missing states,
-  stored changes, duplicate-name limitation, 4,096-code-point names, all 1,000
+  backslashes, controls, bidi formatting and lone surrogates (including a
+  literal escape-looking sequence beside the actual control character), empty
+  and missing states, stored changes, duplicate-name limitation,
+  4,096-code-point names, all 1,000
   rows and 2,000 changes, the exact 1 MiB refusal without truncation, captured/
   imported/claim provenance and absent local metadata.
 - `tests/report-export.test.ts`, `tests/saved-export.test.ts` and

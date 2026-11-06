@@ -108,7 +108,7 @@ function errorObservation(
 function escapeHtml(value: string) {
   let output = '';
   for (const character of value) {
-    if (literalControls.test(character)) {
+    if (literalControls.test(character) || character === '\\') {
       output += `\\u{${character.codePointAt(0)!.toString(16).toUpperCase()}}`;
     } else if (character === '&') output += '&amp;';
     else if (character === '<') output += '&lt;';
@@ -179,7 +179,7 @@ export function createPrintableHtml(
     'Firefox observes page errors in an isolated execution world. On Chrome, the observer runs with the page, which can interfere with its operation or counts. Timing collectors use an isolated execution world.',
     'Attachments are limited to verified normal windows. Private and unclassifiable contexts are excluded. Timings and errors do not identify a responsible extension; the manual page assessment remains separate.',
     'AddonRay does not change other extensions or reload the tested page. These observations do not establish what caused a page result.',
-    'Extension names and versions can be sensitive. Review this report before sharing. Invisible control and bidirectional formatting characters are shown as Unicode escape notation.',
+    'Extension names and versions can be sensitive. Review this report before sharing. Backslashes, invisible control and bidirectional formatting characters are shown as Unicode escape notation.',
     'Start over, permission revocation or closing, reloading or unloading the investigation clears its in-memory results. An already saved file, print or copy is outside that lifetime and is not erased by those actions.',
   ];
   const observationLimits = (values: SavedObservationLimits) => {
