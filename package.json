@@ -38,7 +38,9 @@
     "test:saved-restart:firefox": "bun run build && bun scripts/saved-restart-checks.mjs firefox",
     "test:saved-restart:chrome": "bun run package:chrome && bun scripts/saved-restart-checks.mjs chrome",
     "test:saved-store:firefox": "bun scripts/saved-store-checks.mjs firefox",
-    "test:saved-store:chrome": "bun scripts/saved-store-checks.mjs chrome"
+    "test:saved-store:chrome": "bun scripts/saved-store-checks.mjs chrome",
+    "test:clipboard-feasibility:firefox": "bun scripts/clipboard-feasibility.mjs firefox",
+    "test:clipboard-feasibility:chrome": "bun scripts/clipboard-feasibility.mjs chrome"
   },
   "dependencies": {
     "react": "19.3.1",
