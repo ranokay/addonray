@@ -20,7 +20,7 @@ export function ReportExportView({
   onDownload: () => Promise<void>;
   onPrint: () => Promise<void>;
   onCancel: () => void;
-  onFormat: (format: ReportFormat) => void;
+  onFormat: (_format: ReportFormat) => void;
   previewRef?: Ref<HTMLTextAreaElement>;
 }) {
   const json = state.format === 'json';
@@ -65,7 +65,9 @@ export function ReportExportView({
             name="report-format"
             value="html"
             checked={html}
-            onChange={() => onFormat('html')}
+            onChange={() => {
+              onFormat('html');
+            }}
           />
           Printable HTML
         </label>
@@ -113,6 +115,7 @@ export function ReportExportView({
               <iframe
                 id="report-html-preview"
                 title="Printable report preview"
+                sandbox="allow-same-origin allow-modals"
                 srcDoc={state.preview}
                 aria-describedby="report-disclosure report-print-help"
               />
@@ -185,7 +188,7 @@ export function ReportExportSection({
       eligible={eligible}
       onPrepare={exporter.prepare}
       onDownload={exporter.download}
-      onPrint={exporter.print}
+      onPrint={() => exporter.print()}
       onCancel={exporter.cancel}
       onFormat={exporter.setFormat}
       previewRef={previewRef}

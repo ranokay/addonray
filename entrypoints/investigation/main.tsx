@@ -20,7 +20,9 @@ const context = getBrowserContext(import.meta.env.BROWSER);
 const investigation = createInvestigation(browser, context);
 const exporter = createReportExport(browser, investigation, {
   download: requestReportDownload,
-  print: (text) => printReportPreview('report-html-preview', text),
+  print: (text) => {
+    printReportPreview('report-html-preview', text);
+  },
 });
 const savedHint = createSavedChangeHint();
 const savedSaver = createSavedSave(

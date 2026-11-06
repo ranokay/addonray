@@ -217,7 +217,9 @@ export function createSavedExport(
       if (!current(ticket, candidate)) return;
       try {
         // No await separates the final validity check from browser handoff.
-        handoffs[kind](fresh.value, candidate.format);
+        const handoff =
+          kind === 'download' ? handoffs.download : handoffs.print;
+        handoff(fresh.value, candidate.format);
       } catch {
         if (current(ticket, candidate))
           publish({

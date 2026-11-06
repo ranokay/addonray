@@ -49,6 +49,7 @@ function ImportedOutputSection({ output }: { output: ImportOutput }) {
           <iframe
             id="imported-html-preview"
             title="Imported printable report preview"
+            sandbox="allow-same-origin allow-modals"
             srcDoc={state.preview}
             aria-describedby="imported-html-disclosure"
           />

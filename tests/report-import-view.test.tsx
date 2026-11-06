@@ -68,6 +68,8 @@ it('renders the exact imported printable document in an inert preview with downl
   );
   expect(markup).toContain('id="imported-html-preview"');
   expect(markup).toContain('Exact printable preview');
+  expect(markup).toContain('sandbox="allow-same-origin allow-modals"');
+  expect(markup).not.toContain('allow-scripts');
   expect(markup).toContain('&lt;!doctype html&gt;');
   expect(markup).toContain('&amp;lt;script&amp;gt;alert(9)');
   expect(markup).not.toContain('<script>alert(9)');

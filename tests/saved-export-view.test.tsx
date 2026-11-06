@@ -76,6 +76,8 @@ it('offers printable HTML, its exact inert preview and print/PDF controls', () =
   );
   expect(markup).toContain('id="saved-html-preview"');
   expect(markup).toContain('Exact printable preview');
+  expect(markup).toContain('sandbox="allow-same-origin allow-modals"');
+  expect(markup).not.toContain('allow-scripts');
   expect(markup).toContain('&lt;!doctype html&gt;');
   expect(markup).not.toContain('<img src=x');
   expect(markup).toContain('Download HTML report');

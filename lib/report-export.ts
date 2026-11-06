@@ -143,7 +143,9 @@ export function createReportExport(
         if (!current(ticket, permit) || permit.text === null) return;
         if (kind === 'print' && permit.format !== 'html') return;
         // No await separates the final validity check from browser handoff.
-        handoffs[kind](permit.text, permit.format);
+        const handoff =
+          kind === 'download' ? handoffs.download : handoffs.print;
+        handoff(permit.text, permit.format);
         if (!current(ticket, permit)) return;
         publish({
           ...state,

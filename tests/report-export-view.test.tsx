@@ -94,6 +94,8 @@ it('renders the exact printable document in an inert iframe preview with downloa
   expect(markup).toContain('id="report-html-preview"');
   expect(markup).toMatch(/<iframe[^>]*srcDoc|srcdoc/);
   expect(markup).toContain('Exact printable preview');
+  expect(markup).toContain('sandbox="allow-same-origin allow-modals"');
+  expect(markup).not.toContain('allow-scripts');
   expect(markup).toContain('&lt;!doctype html&gt;');
   expect(markup).toContain('&amp;lt;script&amp;gt;');
   expect(markup).not.toContain('<script>bad()');

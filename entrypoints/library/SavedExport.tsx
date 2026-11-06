@@ -97,6 +97,7 @@ export function SavedExportView({
               <iframe
                 id="saved-html-preview"
                 title="Saved printable report preview"
+                sandbox="allow-same-origin allow-modals"
                 srcDoc={state.preview}
                 aria-describedby="saved-json-disclosure saved-print-help"
               />

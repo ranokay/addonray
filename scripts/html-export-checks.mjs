@@ -1,92 +1,23 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readdir, readFile, stat } from 'node:fs/promises';
-import { join } from 'node:path';
 import { By } from 'selenium-webdriver';
+import {
+  observeExactDownload,
+  snapshotDownloads,
+} from './download-observation.mjs';
 
 const htmlNamePattern = /^addonray-investigation(?: ?\(\d+\))?\.html$/;
 const limitBytes = 1024 * 1024;
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
-async function entries(directory) {
-  return (await readdir(directory, { withFileTypes: true }))
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
-    .sort();
-}
+export const snapshotHtmlDownloads = snapshotDownloads;
 
-async function fileTimes(directory) {
-  const snapshot = new Map();
-  for (const name of await entries(directory)) {
-    const details = await stat(join(directory, name), { bigint: true });
-    snapshot.set(name, details.mtimeNs);
-  }
-  return snapshot;
-}
-
-export async function snapshotHtmlDownloads(directory) {
-  return fileTimes(directory);
-}
-
-// Snapshot before dispatch: a fast completion must not look pre-existing.
-export async function observeExactHtmlDownload({
-  driver,
-  directory,
-  expected,
-  before,
-  timeout = 15000,
-}) {
-  const bytes = Buffer.from(expected, 'utf8');
-  const observed = [];
-  let changedNames = [];
-  try {
-    return await driver.wait(
-      async () => {
-        observed.splice(0, observed.length, ...(await entries(directory)));
-        const changed = [];
-        for (const name of observed) {
-          if (!htmlNamePattern.test(name)) continue;
-          const path = join(directory, name);
-          let details;
-          try {
-            details = await stat(path, { bigint: true });
-          } catch (error) {
-            if (error.code === 'ENOENT') continue;
-            throw error;
-          }
-          const previous = before.get(name);
-          if (previous !== undefined && details.mtimeNs <= previous) continue;
-          changed.push({ name, path, details, previous });
-        }
-        changedNames = changed.map((entry) => entry.name);
-        if (changed.length !== 1) return false;
-        const [candidate] = changed;
-        let content;
-        try {
-          content = await readFile(candidate.path);
-        } catch (error) {
-          if (error.code === 'ENOENT') return false;
-          throw error;
-        }
-        if (!content.equals(bytes)) return false;
-        return {
-          filename: candidate.name,
-          path: candidate.path,
-          bytes: content.length,
-          observedEntries: observed.slice(),
-          changedEntries: changedNames.slice(),
-          newlyObserved: candidate.previous === undefined,
-          modifiedAtNs: candidate.details.mtimeNs.toString(),
-          previousModifiedAtNs: candidate.previous?.toString() ?? null,
-        };
-      },
-      timeout,
-      'The browser did not create exactly one complete generic HTML file with the reviewed UTF-8 bytes',
-    );
-  } catch (error) {
-    error.message += ` Observed entries: ${JSON.stringify(observed)}; changed HTML files: ${JSON.stringify(changedNames)}`;
-    throw error;
-  }
+export function observeExactHtmlDownload(options) {
+  return observeExactDownload({
+    ...options,
+    pattern: htmlNamePattern,
+    description: 'generic HTML',
+  });
 }
 
 export async function waitForHtmlPreview(driver, frameId, timeout = 10000) {
@@ -143,6 +74,8 @@ export async function readHtmlPreview(driver, frameId) {
         '[src], [href], [action], [style]',
       ).length,
       inlineStyleCount: loaded.querySelectorAll('style').length,
+      sandbox: [...frame.sandbox].sort(),
+      allowScripts: frame.sandbox.contains('allow-scripts'),
       printMedia: {
         headerGroup:
           getComputedStyle(loaded.querySelector('thead')).display ?? null,
@@ -185,6 +118,8 @@ export async function assertHtmlPreview(
     'Printable document must not load or reference resources',
   );
   assert.equal(preview.inlineStyleCount, 1);
+  assert.deepEqual(preview.sandbox, ['allow-modals', 'allow-same-origin']);
+  assert.equal(preview.allowScripts, false);
   assert(
     Buffer.byteLength(preview.srcdoc, 'utf8') <= limitBytes,
     'Printable HTML must stay within 1 MiB',

@@ -129,7 +129,9 @@ export function createImportOutput(
       if (!current(ticket, candidate)) return;
       try {
         // No await separates the final validity check from browser handoff.
-        handoffs[kind](fresh.value, 'html');
+        const handoff =
+          kind === 'download' ? handoffs.download : handoffs.print;
+        handoff(fresh.value, 'html');
       } catch {
         if (current(ticket, candidate))
           publish({
