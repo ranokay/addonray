@@ -336,3 +336,57 @@ On 2026-11-05 the owner confirmed the repository is public, superseding the
 earlier sentence that repository visibility remains private until a separately
 authorized change. Changing repository visibility needs explicit user
 authorization.
+
+## v1 backlog readiness decisions (2026-11-06)
+
+The user answered the six first-round readiness questions. These answers record
+approved future contracts and target plans. They do not implement a collector or
+companion, change the current manifest, qualify a browser or OS, verify a release
+route, or authorize signing, an upload, a purchase, an OS/VM installation or
+publication. The current runtime remains the inventory, comparison, timing,
+page-error, saved-data and report behavior described elsewhere in this record.
+
+| Question | Approved answer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q1       | Count top-document mutation notifications by type for up to 30 seconds or 2,000 notifications, with a 1 KiB summary and no DOM content or new permission. Proposed collector-work limits are setup 10 ms, callback 5 ms and aggregation/finalization 5 ms p95, with 100 ms total measured collector work. Cleanup, timing and bounds must pass feasibility before product implementation.                                                                                                                                                                                                                                                                                                |
+| Q2       | Use optional `webRequest` plus temporary access to the selected page's exact scheme and host. Collection is restricted to the selected tab and exact origin, including the effective port in a runtime filter. Count terminal observations only: observed requests, HTTP 4xx/5xx and network failures, for up to 30 seconds or 500 terminal observations, with a 1 KiB summary. Retain no request details. Exclude third parties; blocked-request coverage is incomplete. Proposed collector-work limits are setup 10 ms, event 2 ms and aggregation/finalization 5 ms p95, with 100 ms total measured collector work. Permission cleanup and background lifetime must pass feasibility. |
+| Q3       | Add optional native-messaging connectivity check for the selected page's actual host and port: explicit DNS resolution, TCP connection and HTTPS TLS validation. The result is a 5-second, 1 KiB, display-only record. The hostname enters the native host and the host makes connections, but sends no HTTP request, cookies or URL path, and saves nothing. Compare the machine's direct network path with browser failures without identifying a culprit extension or reproducing browser proxy behavior. Native permission and installation are required.                                                                                                                            |
+| Q4       | Use one live Before/After pair and five steps: baseline, manual setting change, reproduce, capture After, assess. Preserve only by explicit Save. Warn and offer Save before Start over discards an unsaved completed trial. No autosave, automatic extension change or causal verdict.                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Q5       | Retain Firefox `addonray@ranokay.dev`; use AMO unlisted signing for test candidates. The Chrome Web Store assigns the Chrome ID under the user publisher account with private/trusted-tester distribution. #4 stays open until identities, accounts and route availability are verified. No upload, signing or publication is authorized.                                                                                                                                                                                                                                                                                                                                                |
+| Q6       | Retain macOS arm64, Windows x64 and Linux x64 intent with floors macOS 14, Windows 11 24H2 and Ubuntu 24.04 GNOME Wayland. Qualify the minimum and candidate-current versions separately. Missing environments stay explicit blockers; no purchases or OS/VM installation are authorized. No future “latest” version is hardcoded and macOS-only support is not narrowed.                                                                                                                                                                                                                                                                                                                |
+
+The approved collector contract is [the mutation and request-failure
+plan](plans/mutation-request-failure.md). It separates mutation notifications
+from DOM operations, defines terminal request observations, preserves pre-existing
+permissions while cleaning temporary grants, and freezes schema version 1 while
+adding an explicit version 2 path. The approved guided flow is [the guided-trial
+plan](plans/v1-guided-trials.md). The approved companion capability is [the
+connectivity plan](plans/companion-connectivity.md); it remains display-only and
+optional. [ADR 0006](adr/0006-request-failure-observation.md) and
+[ADR 0007](adr/0007-optional-companion-connectivity.md) record the two durable
+trade-offs.
+
+Proposed overhead limits are elapsed collector-instrumentation work, not proven
+CPU measurements. #14 and #17 must reconcile the totals with worst-case event and
+callback loads, browser timer resolution and event-loop delay. A failed budget or
+lifetime gate returns for a revised plan; it does not widen permission.
+
+The following items remain open and are not granted by these answers:
+
+- #4 final Chrome extension ID, verified AMO and Chrome Web Store account access,
+  candidate signing and limited-test routes, companion host identity and artifact
+  name, companion distribution channel, native platform signing and credential
+  ownership.
+- Native macOS 14 arm64, Windows 11 24H2+ x64 and Ubuntu 24.04 LTS x64 GNOME
+  Wayland environments for minimum-version qualification. No purchase,
+  installation or acquisition is authorized. The available environment inventory
+  in this session is local macOS only; other environments are unverified rather
+  than assumed absent.
+- Exact candidate-current macOS, Windows and Linux versions, named at the #39
+  candidate freeze.
+- All signing, upload, publication, external-participant and release
+  authorization gates already recorded for #39 and #42–#46.
+
+These answers settle the #12, #13 and #20 decision contracts. They do not mark
+their implementation or qualification complete, and they do not authorize #4 to
+close.

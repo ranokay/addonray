@@ -588,3 +588,80 @@ Browser and native evidence:
 A passing model or fixture check does not qualify storage, output, native
 usability or support. Run future exchange checks only when the corresponding
 implementation and qualification tickets are authorized.
+
+## Approved future collector checks
+
+The [collector contract](plans/mutation-request-failure.md) was approved on
+2026-11-06. These checks are future seams, not current tests or evidence.
+
+Mutation (#14–#16):
+
+- model tests for exact summary validation, counts by type, cap and duration
+  combinations, 1 KiB serialization, generation and stale-action rejection;
+- browser feasibility for 0/1/100/2,000 notifications, a large single callback,
+  delayed timer, second concurrent check, owner close, source navigation,
+  BFCache entry/restore, optional-permission removal and worker restart;
+- measured setup, callback and finalization elapsed work with 30 samples per
+  stage, nearest-rank p95, raw arrays, two-clock-step guard and preserved
+  failures. The total is elapsed collector-instrumentation work, not a CPU
+  profile. Reconcile it with worst-case callback load, timer resolution and
+  event-loop delay;
+- product tests for explicit Start/Stop, unavailable/interrupted/zero
+  distinction, no DOM content retention and no stale result after teardown.
+
+Request failure (#17–#19):
+
+- model tests for exact-origin matching including scheme, host and effective
+  port; selected-tab filtering; terminal-event classification; 4xx/5xx versus
+  network failure; observed total; resource-type sums; 500-observation cap; 1 KiB
+  serialization; stale generation; permission ownership and cleanup;
+- browser feasibility for 2xx/3xx/4xx/5xx, DNS/connection/TLS failure, an
+  observable blocked request, third-party and cross-origin-frame exclusion,
+  redirect double-count check, permission denial, pre-existing versus newly
+  granted permissions, cleanup failure, 30-second window, heartbeat, service
+  worker termination and Firefox event-page unloading;
+- measured setup, event and finalization elapsed work with the same protocol and
+  total caveat;
+- product tests for no ambient collection before Start, no result after owner
+  close/navigation/revocation, no request details retained and no attribution
+  wording.
+
+Schema version 2 tests must prove version 1 remains byte-valid and importable,
+version 2 is strict, version 1 reports never gain new fields, version 2 is used
+only when a new block is present, v2 saved records round-trip, and an older
+product rejects v2 without downgrading or dropping fields.
+
+## Approved future guided-trial checks
+
+The [guided-trial contract](plans/v1-guided-trials.md) was approved on 2026-11-06.
+Future tests cover the five-step guide, one live pair, explicit Save, unsaved
+Start-over warning with Save/Discard/Cancel, failed Save preserving the trial,
+denied access recovery, popup independence and no automatic settings change or
+causal claim. Browser and native evidence remain separate.
+
+## Approved future companion checks
+
+The [connectivity contract](plans/companion-connectivity.md) was approved on
+2026-11-06. #21–#23 must prove on each intended OS and architecture: DNS success,
+NXDOMAIN and timeout; TCP success, refusal and timeout; TLS success, certificate
+and hostname failure; the actual non-default port; cancellation at each stage;
+malformed/oversized/unknown messages; absent host, protocol mismatch and process
+crash; no profile mutation, unrelated file access or extra destination; and
+process/socket cleanup. The result is display-only and must never enter saved
+data or a report.
+
+## Minimum and candidate-current OS evidence
+
+The user approved minimum floors on 2026-11-06: macOS 14 arm64, Windows 11 24H2
+x64 and Ubuntu 24.04 LTS x64 with GNOME Wayland. Candidate-current versions are
+named at the #39 freeze. Minimum and candidate-current evidence are separate:
+
+- full native journey on the candidate-current version for each OS;
+- retail/minimum smoke journey on the minimum version, including install, launch,
+  consent/denial, one core observation, saved/report access and removal;
+- exact browser, OS, architecture, source, artifact and accessibility identities;
+- missing environments remain explicit blockers and are not replaced by hosted
+  runner or container evidence.
+
+Latest-version evidence does not qualify the minimum. A build, fixture, headless
+run or hosted runner does not establish native desktop qualification.

@@ -2,7 +2,7 @@
 
 Approved on 2026-10-22: no telemetry, no cloud service, session-only diagnostics, and explicit consent before inventory or selected-page inspection.
 
-The boundaries below describe the implemented runtime. The expanded v1 target may replace specific limits only through [the v1 contract](v1-contract.md) and the named data contract. #5 (saved and exchanged data) was approved and recorded on 2026-10-30. #13 (mutation and request-failure collectors) and #20 (companion) remain open decisions. Until each approved contract's feasibility gates pass and its implementation is qualified, the current session-only, permission and export limits stay effective.
+The boundaries below describe the implemented runtime. The expanded v1 target may replace specific limits only through [the v1 contract](v1-contract.md) and the named data contracts. #5 (saved and exchanged data) was approved and recorded on 2026-10-30. #13 (mutation and request-failure collectors), #12 (guided trials) and #20 (companion) were approved on 2026-11-06. Until each approved contract's feasibility gates pass and its implementation is qualified, the current session-only, permission and export limits stay effective.
 
 ## Phase 0 and first Phase 1 slice data lifecycle
 
@@ -28,6 +28,25 @@ The first inventory slice keeps search text, state filters, and expanded details
 - Declare Firefox data collection permission `none` for the local-only initial scope. Reassess that declaration before any export, native transmission, or new integration.
 
 The current runtime retains this budget. v1 changes require the explicit contract named in the [supersession map](v1-contract.md#supersession-map). No backlog item widens permissions by itself.
+
+### Approved future permissions (not current)
+
+The 2026-11-06 contracts approve two future permission paths without changing the
+current runtime:
+
+- the request-failure check may declare optional `webRequest` and a runtime
+  host template, then request only the selected page's exact scheme and host at
+  an explicit Start. The user grant may cover all ports on that host, but the
+  runtime filter includes the selected port. Newly granted permissions are
+  removed after the check; pre-existing grants are preserved. The background
+  event page/service worker counts only during an active check;
+- the optional companion may declare optional `nativeMessaging` and request it
+  only on first use. No native host or permission exists in the current package.
+
+Neither path adds install-time broad host access, persistent storage, sync,
+telemetry or continuous monitoring. The Firefox data-collection declaration must
+be reassessed before the companion transmits a hostname to a native process or
+before any new permission is published.
 
 ## Chrome permission disclosure
 
@@ -388,9 +407,53 @@ documented interpretation, not store approval, implementation qualification or
 publication. Reassess the Firefox declaration and Chrome Web Store privacy
 disclosure before publication.
 
+## Approved future collector boundaries (not implemented)
+
+The [mutation and request-failure contract](plans/mutation-request-failure.md) was
+approved on 2026-11-06. It is a future data lifecycle, not current behavior.
+
+- **Mutation check:** one source tab's top document, explicit Start/Stop, at most
+  30 seconds or 2,000 mutation notifications, 1 KiB summary. It retains only
+  total and per-type notification counts, duration and completion reason. No DOM
+  target, attribute name/value, text, HTML, URL, title or page content enters the
+  result. It adds no permission and does not resume after navigation, BFCache
+  restore, revocation or close.
+- **Request-failure check:** one source tab and exact origin, including the
+  selected port in a runtime filter. It retains only observed terminal count,
+  HTTP 4xx/5xx count, network-failure count, failure counts by fixed resource
+  type, duration and completion reason. No URL, request ID, header, body, status
+  text, error string, IP or derived request detail is retained. Third-party and
+  cross-origin-frame requests are excluded. Blocked-request coverage is
+  incomplete. The check may use an event page/service worker, but only while an
+  explicit check is active; it keeps no ambient record.
+- **Investigation, save and report:** a confirmed summary is memory-only until an
+  explicit attachment or Save. Attachment follows the existing one-use,
+  destination/side, source-tab, stale-action and reset/revocation rules. Saved
+  records and reports use schema version 2 only when a new block is present;
+  version 1 remains readable and unchanged.
+
+These observations are not a diagnosis and cannot attribute a result to an
+extension, network or server.
+
 ## Companion
 
-The optional companion is approved v1 scope under #20 to #28, not an implemented capability. It needs a separate disclosure of local process access and data crossing the native messaging boundary. #20 selects one read-only operation and its consent. #21 to #23 prove it per intended OS and architecture. #24 to #28 deliver, install, remove and upgrade it. Its installation must never become a prerequisite for basic inventory, capability explanations or extension-only inspection. The companion supplies no implicit browser authority.
+The optional companion is approved v1 scope under #20 to #28, not an implemented
+capability. The approved NET-1 capability is a display-only connectivity check for
+the selected page's actual host and port: DNS resolution, one TCP connection and,
+for HTTPS, one TLS handshake with certificate and hostname validation. The
+hostname and port cross the native-messaging boundary. The host sends no HTTP
+request and receives no URL path, query, cookie, credential, header or page
+content. The result contains stage outcomes, durations and a coarse error class,
+at most 1 KiB, and is not saved, attached or exported.
+
+The direct check does not reproduce the browser's proxy, PAC, VPN, DNS-over-HTTPS,
+cache, cookies, authentication or TLS session, and it does not identify a culprit
+extension. Its installation must never become a prerequisite for basic inventory,
+capability explanations or extension-only inspection. Companion host identity,
+distribution channel and native platform signing remain open with #4 and #25–#28.
+#21 to #23 prove the operation per intended OS and architecture. #24 to #28
+deliver, install, remove and upgrade it. The companion supplies no implicit
+browser authority.
 
 ## References
 

@@ -28,6 +28,8 @@ Require only `activeTab` in the initial manifest. Declare `management` and `scri
 
 Do not declare broad host permissions, `tabs`, `webRequest`, `storage`, or `nativeMessaging` in Phase 0. A missing browser API is an unavailable outcome, not an excuse to request broader access.
 
+The current runtime keeps that budget. The 2026-11-06 contracts approve two future optional paths: `webRequest` plus a temporary exact-origin host grant for the request-failure check, and `nativeMessaging` for the optional companion. Neither is a current permission or install-time host grant. Their implementation must request access only at the explicit user action and fail closed without broader fallback. The request check preserves pre-existing grants and removes only the host access it newly acquired; the companion permission remains a user-managed optional grant.
+
 ## Data and trust boundaries
 
 The inventory is sensitive because extension choices can reveal user interests. Keep it in the visible interface's memory. Normalize only fields the product displays. Do not load remote icons or contact extension homepages.
@@ -259,27 +261,68 @@ remote resource, automatic sharing or collector is introduced.
 
 ## Expanded v1 target
 
-The finite target is [the v1 contract](v1-contract.md). The sections below describe implemented slices and the boundaries future work must change deliberately. Saved investigations and report exchange (#5 to #11), guided trials (#12), mutation and request-failure checks (#13 to #19) and the optional companion (#20 to #28) each need their approved contract and feasibility proof before they alter permission, storage, lifetime or native boundaries. The extension-only inspection path remains useful without the companion.
+The finite target is [the v1 contract](v1-contract.md). The sections below describe implemented slices and the boundaries future work must change deliberately. Saved investigations and report exchange (#5 to #11), guided trials (#12), mutation and request-failure checks (#13 to #19) and the optional companion (#20 to #28) have approved contracts; each still needs its feasibility proof, implementation and qualification before it alters permission, storage, lifetime or native boundaries. The extension-only inspection path remains useful without the companion.
 
-## Future diagnostics
+## Approved bounded collectors (not implemented)
 
-Introduce a background coordinator only when the approved workflow requires a longer session. Define the session lifetime, navigation behavior, event bounds, stop/clear behavior, and revocation handling before building a collector. Event pages can be suspended, so durable session behavior needs deliberate design and a privacy review.
+The [collector contract](plans/mutation-request-failure.md) was approved on
+2026-11-06. It defines two owners:
 
-Page errors, timing, mutation counts, and request failures are observations. Each event needs an observation source, time, frame scope, collection method, and uncertainty. Other extensions' private worlds and internal consoles are outside ordinary visibility. A page-world bridge, if approved, must validate messages, resist spoofing, and explain its interference risk.
+- a **mutation check** owns one source-tab/document generation, one top-document
+  `MutationObserver`, fixed counters and one 1 KiB summary. It adds no background
+  context and no permission. The observer is installed only after explicit Start
+  and disconnected on Stop, cap, timeout, navigation, BFCache, revocation or
+  owner teardown;
+- a **request-failure check** owns one source tab, one exact origin and one
+  active-check generation. A background event page (Firefox) or service worker
+  (Chrome) registers `webRequest.onCompleted` and `onErrorOccurred` at top level
+  but ignores events unless the active check matches. It retains fixed counters
+  only. Newly granted optional permissions are cleaned up; pre-existing grants
+  are preserved. A worker restart marks the attempt interrupted rather than
+  producing a zero.
 
-The approved v1 tickets #13 to #19 define the next collector contracts. #33 characterizes existing budget variability without changing the agreed limits.
+The check tab owns the visible attempt and source binding. Event listeners cannot
+outlive the attempt or resume after navigation, BFCache restore or close. The
+timer is advisory; elapsed-time and cap checks are authoritative. Page errors,
+timing, mutation notifications and request outcomes are separate observations,
+not causal evidence. Other extensions' private worlds and internal consoles remain
+outside ordinary visibility.
+
+The current build has no mutation observer, request listener or collector
+background context. Event pages can be suspended, so #17 must prove the request
+check's bounded lifetime and cleanup before product wiring.
 
 ## Optional Rust companion
 
-This was a later feasibility project. The approved v1 backlog now makes it concrete through #20 to #28. Native messaging connects the extension to a separately installed local process with an explicit extension allowlist. It does not confer Firefox internal control. #20 selects one versioned, bounded read-only operation and obtains a user verdict before implementation. #21 to #23 prove it per intended OS. #24 to #28 deliver, install, remove and upgrade it. Require explicit installation and invocation, timeouts, cancellation, and safe handling of process failure.
+The [companion connectivity contract](plans/companion-connectivity.md) was
+approved on 2026-11-06. The optional host is a separately installed Rust process
+connected through native messaging with an explicit extension allowlist. It
+performs one display-only operation: DNS resolution, a TCP connection and, for
+HTTPS, a TLS handshake with certificate and hostname validation for the selected
+page's actual host and port. It sends no HTTP request and receives no URL path,
+query, cookie, credential, header or page content.
 
-Any proposal for browser control must identify a supported mechanism and obtain its own authorization. Profile database edits, hidden policy changes, and claims that native messaging bypasses browser permissions are outside the agreed design.
+The extension validates the selected scheme, host and port before consent; the
+host validates the versioned request and bounds DNS, TCP, TLS, cancellation and
+the total 5-second window. The result is at most 1 KiB and remains in memory.
+Native host identity, distribution channel, installer layout and platform signing
+remain open with #4 and #25–#28. #21 to #23 prove the operation per intended OS.
+#24 to #28 deliver, install, remove and upgrade it.
+
+The companion supplies no implicit browser authority, and its installation must
+never become a prerequisite for inventory, capability explanations or
+extension-only inspection. Any proposal for browser control must identify a
+supported mechanism and obtain its own authorization. Profile database edits,
+hidden policy changes, and claims that native messaging bypasses browser
+permissions are outside the agreed design.
 
 ## Compatibility boundary
 
-The approved targets are Firefox desktop MV3 at minimum 140 and Chrome desktop MV3 at minimum 156. The v1 target keeps those distributions and intends macOS arm64, Windows x64 and Linux x64. Exact OS versions remain a release-planning gate. `lib/browser-target.ts` maps WXT's build-time browser value to a closed context passed through the session, adapters, and UI. Unknown targets fail; the product does not inspect user agents. Conditional manifests include Gecko settings and Firefox data consent only for Firefox, and `minimum_chrome_version` only for Chrome. No background process is needed for either build.
+The approved targets are Firefox desktop MV3 at minimum 140 and Chrome desktop MV3 at minimum 156. The v1 target keeps those distributions and intends macOS arm64, Windows x64 and Linux x64. On 2026-11-06 the user approved minimum floors of macOS 14, Windows 11 24H2 and Ubuntu 24.04 LTS GNOME Wayland; candidate-current versions are named at the #39 freeze. Minimum and candidate-current qualification are separate. `lib/browser-target.ts` maps WXT's build-time browser value to a closed context passed through the session, adapters, and UI. Unknown targets fail; the product does not inspect user agents. Conditional manifests include Gecko settings and Firefox data consent only for Firefox, and `minimum_chrome_version` only for Chrome. The current build needs no background process.
 
 The manifest minimum is a loading constraint, not proof of every release or OS. Exact distribution/version/OS evidence lives in dated reports. Edge, Safari, Android, and MV2 require separate decisions, and v1 does not add them. The [test-authority ADR](adr/0002-test-authority-and-browser-qualification.md) distinguishes unmodified product consent from pre-granted Chrome UI fixtures.
+
+The future request-failure check may add a background event page/service worker that counts only during an explicit active check. It is not a continuous background coordinator. Its lifetime, cleanup and failure behavior require #17 proof.
 
 ## Sources
 
