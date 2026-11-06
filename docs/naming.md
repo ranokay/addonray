@@ -4,6 +4,13 @@ Decision: AddonRay, repository `addonray`. Approved by the user on 2026-10-22.
 
 “Addon” states the subject and “Ray” suggests inspection. The name remains appropriate if a later optional companion is added. It makes no promise of control over other extensions.
 
+## Companion release names (2026-11-06)
+
+The stable native-messaging host ID is `dev.ranokay.addonray`. Companion artifact
+base names are `addonray-companion-<version>-<os>-<arch>`, distributed through
+GitHub Releases in `ranokay/addonray`. These are approved plan names; no artifact,
+key or release is published.
+
 ## Live checks on 2026-10-22
 
 | Candidate | GitHub repository-name search | Firefox Add-ons search | Exact npm package | Assessment                                        |

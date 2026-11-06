@@ -33,8 +33,23 @@ the verifier is rejected. The companion process makes no HTTP request, follows n
 redirect and opens no unrelated destination. It tests at most one resolved
 address; if DNS fails, none is tested, so failure does not prove the host is
 unreachable. It cannot identify a culprit extension or prove the browser path is
-healthy. The check stays optional and display-only. Native host identity, distribution channel, platform signing,
-installer layout and release authorization remain open with #4 and #25–#28.
+healthy. The check stays optional and display-only.
+
+Q7 and Q8 (2026-11-06) fix the host ID, artifact base name, GitHub Releases
+channel and detached minisign/SHA-256 method. Detached-only signing is the v1
+route on every OS and supersedes the earlier native-platform-signing
+recommendation. It gives one owner-controlled authenticity and integrity path
+without Developer ID, notarization or Authenticode accounts, but it does not
+provide OS code-signing identity, reputation or a Gatekeeper/SmartScreen bypass.
+On macOS and Windows, downloaded artifacts with the applicable quarantine or
+Mark-of-the-Web marker intact must qualify warning, allow and cancel flows; Linux
+uses a downloaded artifact with the same verification plus install, update and
+removal evidence. Local builds and removed download markers are not distribution
+evidence. A warning-free installation is not promised. Exact public key values,
+private credentials, installer layout and release authorization remain open. A public verification key is not a secret and may be distributed
+through an authenticated owner-controlled path; bundling it only with the artifact
+does not establish that artifact's authenticity.
+
 Per-OS DNS/TCP/TLS, cancellation, exact-port, malformed-input, actual
 resolver/verifier traffic and cleanup behavior require #21–#23 proof before
 product delivery. See the [connectivity contract](../plans/companion-connectivity.md).

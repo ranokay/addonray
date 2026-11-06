@@ -472,10 +472,18 @@ companion process makes no HTTP request, follows no redirect and opens no
 unrelated destination. It does not identify a culprit extension.
 
 Its installation must never become a prerequisite for basic inventory, capability
-explanations or extension-only inspection. Companion host identity, distribution
-channel and native platform signing remain open with #4 and #25–#28. #21 to #23
-prove the operation per intended OS and architecture. #24 to #28 deliver, install,
-remove and upgrade it. The companion supplies no implicit browser authority.
+explanations or extension-only inspection. Q7 fixes the host ID, artifact base
+name and GitHub Releases channel as a plan. Q8 requires detached minisign and
+SHA-256 verification against a previously trusted, owner-controlled public key
+before execution; failed verification prevents installation, registration or
+execution. Public verification keys and fingerprints are not secrets, but exact
+values and an authenticated distribution path remain owner-controlled. Private
+signing credentials and concrete release authorization remain owner gates.
+Detached signatures add no telemetry, account, update check or runtime network
+path, and do not provide Developer ID, notarization or Windows Authenticode
+trust. #21 to #23 prove the operation per intended OS and architecture. #24 to
+#28 deliver, install, remove and upgrade it. The companion supplies no implicit
+browser authority.
 
 ## References
 

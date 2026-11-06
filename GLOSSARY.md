@@ -140,6 +140,18 @@ _Avoid_: Announcement, store listing.
 An optional, separately installed local application whose capabilities require their own consent and evidence. In v1 it supplies one display-only connectivity check.
 _Avoid_: Privileged browser backdoor, required helper.
 
+**Companion artifact**:
+A per-OS and per-architecture companion package distributed as a versioned release asset. Its integrity and publisher authenticity are checked against a previously trusted public key before it is installed or run.
+_Avoid_: Store build, native platform-signed installer.
+
+**Detached signature**:
+A signature published separately from the artifact it covers. It establishes integrity and possession of the signing key relative to a previously trusted public key, not OS code-signing identity, notarization or platform reputation.
+_Avoid_: Notarization, Authenticode, OS trust.
+
+**Verification key**:
+The non-secret public key used to check a detached signature. Its trust comes from an authenticated distribution path, not from being packaged beside the artifact.
+_Avoid_: Signing credential, private key.
+
 **Qualification**:
 Recorded evidence for named behaviors on an exact browser distribution, version, operating system and architecture. A build alone does not establish it.
 _Avoid_: Blanket browser support, feature detection as a passing result.

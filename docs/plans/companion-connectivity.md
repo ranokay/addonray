@@ -3,10 +3,12 @@
 ## Status
 
 The user approved the NET-1 capability on 2026-11-06 as the #20 companion
-contract. This document authorizes no runtime implementation, native host
-installation, signed artifact, publication or support claim. Companion release
-identity, distribution channel and native platform signing remain open. The
-current runtime has no companion and no `nativeMessaging` permission.
+contract. The same date's Q7 and Q8 answers select the companion host ID, artifact
+names, GitHub Releases channel and detached minisign/SHA-256 method as a plan.
+This document authorizes no runtime implementation, native host installation, key
+creation, signature, publication or support claim. Exact public-key values,
+private credentials and release authorization remain owner gates. The current
+runtime has no companion and no `nativeMessaging` permission.
 
 ## Problem and result
 
@@ -170,7 +172,60 @@ One Rust native-messaging host performs the operation. It:
 
 The same operation is planned for macOS, Windows and Linux. Native host
 registration, installer layout, update, removal and browser registration differ
-per OS and are #25–#28. Exact host identity and artifact naming remain open.
+per OS and are #25–#28. The stable host ID is `dev.ranokay.addonray` and the
+artifact base name is `addonray-companion-<version>-<os>-<arch>`; per-OS archive
+or installer suffixes are #25–#28 choices.
+
+## Release identity and distribution
+
+Q7 fixes the stable native-messaging host ID as `dev.ranokay.addonray`. The host
+manifest and browser registration use that ID. Companion artifacts use the base
+name `addonray-companion-<version>-<os>-<arch>`: `<version>` is the release
+version, `<os>` is `macos`, `windows` or `linux`, and `<arch>` is `arm64` or `x64`
+for the intended support matrix. The per-OS archive or installer suffix belongs to
+#25–#28 and does not change the base name.
+
+Releases use GitHub Releases in `ranokay/addonray`. The release record names the
+exact source commit and tag, the clean-source build run, supported
+OS/architecture options and the artifact hashes. A release contains each
+companion artifact, its SHA-256 checksum, a detached minisign signature and the
+public verification key fingerprint. The public verification key and fingerprint
+are obtained through an authenticated owner-controlled path before verification;
+a key bundled only beside the artifact cannot establish that artifact's
+authenticity. The release record may repeat the fingerprint, but the trusted
+source is the authenticated path, not the release asset. The exact public key
+value and fingerprint remain unestablished, and private signing credentials remain
+unknown and outside source and tickets. No separate companion store or account is
+selected.
+
+## Signature and integrity verification
+
+Q8 selects detached minisign signatures plus SHA-256 checksums for every
+companion artifact on every OS. Detached-only signing is the v1 route and
+supersedes the earlier native-platform-signing recommendation. Developer ID,
+notarization and Windows Authenticode are not v1 requirements.
+
+The installation or update path verifies the checksum and signature against the
+previously trusted public key before registering or executing the host. No host
+binary runs before that check, and an update verifies the replacement before
+replacing or executing it. On failure, the artifact is not installed, registered
+or executed. There is no unsigned fallback, no instruction to disable OS security
+and no download-marker removal. A failed first install leaves no host
+registration; a failed update keeps the last verified installation and reports the
+failure; the artifact is discarded or left where the OS download flow placed it.
+
+The signature establishes authenticity and integrity relative to the trusted
+public key. It does not provide Developer ID or Authenticode identity,
+notarization, OS reputation or a Gatekeeper/SmartScreen bypass. On macOS and
+Windows, Gatekeeper or SmartScreen warning, allow and cancel flows, plus install,
+update and removal, are qualified from actual downloaded artifacts with the
+applicable quarantine or Mark-of-the-Web marker intact. On Linux, a downloaded
+artifact gets the same checksum and signature verification plus install, update
+and removal evidence; macOS and Windows markers are not required. Local developer
+builds, removed quarantine and browser or harness results are not native
+distribution evidence. A warning-free installation is not promised. Missing
+minimum macOS 14 and suitable Windows/Linux environments remain explicit
+blockers; candidate-current versions remain separate.
 
 ## Trust and TLS validation
 
@@ -216,16 +271,21 @@ widen native access or silently drop a stage.
 
 ## Open release decisions
 
-The capability is approved; these release decisions are not:
+The capability, host identity, artifact base name and channel are approved as a
+plan. These release items remain open:
 
-- companion host identity and artifact name;
-- distribution channel and release ownership;
-- native platform signing for macOS and Windows, and the Linux signature method;
-- installer/update/removal mechanism and exact supported artifact formats;
-- publisher account access and release authorization.
+- exact public verification key value and fingerprint, and the authenticated
+  owner-controlled distribution path for them;
+- private signing credential ownership, key access and concrete signing
+  authorization;
+- installer/update/removal mechanism and exact supported archive/installer
+  formats (#25–#28);
+- publisher account access and concrete release authorization (#43);
+- actual downloaded-artifact qualification on each supported OS and architecture,
+  including macOS/Windows warning flows and Linux install/update/removal evidence.
 
-These remain with #4 and #25–#28. No upload, signature, publication or account
-access is authorized by this contract.
+These remain with #4, #39 and #43. No key generation, key access, upload,
+signature, publication or account access is authorized by this contract.
 
 ## Issue map
 
@@ -236,9 +296,10 @@ access is authorized by this contract.
 | #22               | Prove NET-1 on Windows.                                                                          |
 | #23               | Prove NET-1 on Linux.                                                                            |
 | #24               | Deliver NET-1 through the bounded protocol and product consent flow.                             |
-| #25–#27           | Install and remove the host on each OS.                                                          |
-| #28               | Upgrade and protocol compatibility.                                                              |
+| #25–#27           | Install and remove the host on each OS, including pre-execution verification.                    |
+| #28               | Upgrade, protocol compatibility and verified-signature update failure.                           |
 | #29, #34, #35–#39 | Private-context guards, accessibility, native journeys, security review and candidate packaging. |
+| #43               | Publish the approved companion release through GitHub Releases.                                  |
 
 ## Current runtime
 

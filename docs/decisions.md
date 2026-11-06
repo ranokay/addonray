@@ -231,12 +231,13 @@ qualification and release work. The milestone description and ticket bodies are
 the scope record. [The v1 contract](v1-contract.md) records the support matrix,
 supersession map, release acceptance and exclusions.
 
-The approval fixes scope. It does not answer #4 (license, visibility,
-identities, publisher and pre-release route), #13 (mutation and request-failure
-collector contracts) or #20 (companion capability). Those remain decision gates.
-It also does not authorize signing, publication, a license grant or a visibility
-change. The #5 saved-data decision was answered on 2026-10-30; see the
-saved-investigation and report-exchange interview below.
+The approval fixes scope. It did not answer #4 (license, visibility, identities,
+publisher and pre-release route), #13 (mutation and request-failure collector
+contracts) or #20 (companion capability). Those were decision gates. #13 and #20
+were answered on 2026-11-06; #4 remains open. The approval also does not authorize
+signing, publication, a license grant or a visibility change. The #5 saved-data
+decision was answered on 2026-10-30; see the saved-investigation and
+report-exchange interview below.
 
 The user also agreed in the same conversation that macOS arm64, Windows x64 and
 Linux x64 are the intended v1 operating-system and architecture targets. Exact
@@ -339,21 +340,24 @@ authorization.
 
 ## v1 backlog readiness decisions (2026-11-06)
 
-The user answered the six first-round readiness questions. These answers record
-approved future contracts and target plans. They do not implement a collector or
-companion, change the current manifest, qualify a browser or OS, verify a release
-route, or authorize signing, an upload, a purchase, an OS/VM installation or
-publication. The current runtime remains the inventory, comparison, timing,
-page-error, saved-data and report behavior described elsewhere in this record.
+The user answered eight readiness questions: six first-round questions and two
+companion release questions. These answers record approved future contracts and
+target plans. They do not implement a collector or companion, change the current
+manifest, qualify a browser or OS, verify a release route, or authorize signing,
+an upload, a purchase, an OS/VM installation or publication. The current runtime
+remains the inventory, comparison, timing, page-error, saved-data and report
+behavior described elsewhere in this record.
 
-| Question | Approved answer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Q1       | Count top-document mutation notifications by type for up to 30 seconds or 2,000 notifications, with a 1 KiB summary and no DOM content or new permission. Proposed collector-work limits are setup 10 ms, callback 5 ms and aggregation/finalization 5 ms p95, with 100 ms total measured collector work. Cleanup, timing and bounds must pass feasibility before product implementation.                                                                                                                                                                                                                                                                                                |
-| Q2       | Use optional `webRequest` plus temporary access to the selected page's exact scheme and host. Collection is restricted to the selected tab and exact origin, including the effective port in a runtime filter. Count terminal observations only: observed requests, HTTP 4xx/5xx and network failures, for up to 30 seconds or 500 terminal observations, with a 1 KiB summary. Retain no request details. Exclude third parties; blocked-request coverage is incomplete. Proposed collector-work limits are setup 10 ms, event 2 ms and aggregation/finalization 5 ms p95, with 100 ms total measured collector work. Permission cleanup and background lifetime must pass feasibility. |
-| Q3       | Add optional native-messaging connectivity check for the selected page's actual host and port: explicit DNS resolution, TCP connection and HTTPS TLS validation. The result is a 5-second, 1 KiB, display-only record. The hostname enters the native host and the host makes connections, but sends no HTTP request, cookies or URL path, and saves nothing. Compare the machine's direct network path with browser failures without identifying a culprit extension or reproducing browser proxy behavior. Native permission and installation are required.                                                                                                                            |
-| Q4       | Use one live Before/After pair and five steps: baseline, manual setting change, reproduce, capture After, assess. Preserve only by explicit Save. Warn and offer Save before Start over discards an unsaved completed trial. No autosave, automatic extension change or causal verdict.                                                                                                                                                                                                                                                                                                                                                                                                  |
-| Q5       | Retain Firefox `addonray@ranokay.dev`; use AMO unlisted signing for test candidates. The Chrome Web Store assigns the Chrome ID under the user publisher account with private/trusted-tester distribution. #4 stays open until identities, accounts and route availability are verified. No upload, signing or publication is authorized.                                                                                                                                                                                                                                                                                                                                                |
-| Q6       | Retain macOS arm64, Windows x64 and Linux x64 intent with floors macOS 14, Windows 11 24H2 and Ubuntu 24.04 GNOME Wayland. Qualify the minimum and candidate-current versions separately. Missing environments stay explicit blockers; no purchases or OS/VM installation are authorized. No future “latest” version is hardcoded and macOS-only support is not narrowed.                                                                                                                                                                                                                                                                                                                |
+| Question | Approved answer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q1       | Count top-document mutation notifications by type for up to 30 seconds or 2,000 notifications, with a 1 KiB summary and no DOM content or new permission. Proposed collector-work limits are setup 10 ms, callback 5 ms and aggregation/finalization 5 ms p95, with 100 ms total measured collector work. Cleanup, timing and bounds must pass feasibility before product implementation.                                                                                                                                                                                                                                                                                                                                                                                   |
+| Q2       | Use optional `webRequest` plus temporary access to the selected page's exact scheme and host. Collection is restricted to the selected tab and exact origin, including the effective port in a runtime filter. Count terminal observations only: observed requests, HTTP 4xx/5xx and network failures, for up to 30 seconds or 500 terminal observations, with a 1 KiB summary. Retain no request details. Exclude third parties; blocked-request coverage is incomplete. Proposed collector-work limits are setup 10 ms, event 2 ms and aggregation/finalization 5 ms p95, with 100 ms total measured collector work. Permission cleanup and background lifetime must pass feasibility.                                                                                    |
+| Q3       | Add optional native-messaging connectivity check for the selected page's actual host and port: explicit DNS resolution, TCP connection and HTTPS TLS validation. The result is a 5-second, 1 KiB, display-only record. The hostname enters the native host and the host makes connections, but sends no HTTP request, cookies or URL path, and saves nothing. Compare the machine's direct network path with browser failures without identifying a culprit extension or reproducing browser proxy behavior. Native permission and installation are required.                                                                                                                                                                                                               |
+| Q4       | Use one live Before/After pair and five steps: baseline, manual setting change, reproduce, capture After, assess. Preserve only by explicit Save. Warn and offer Save before Start over discards an unsaved completed trial. No autosave, automatic extension change or causal verdict.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Q5       | Retain Firefox `addonray@ranokay.dev`; use AMO unlisted signing for test candidates. The Chrome Web Store assigns the Chrome ID under the user publisher account with private/trusted-tester distribution. #4 stays open until identities, accounts and route availability are verified. No upload, signing or publication is authorized.                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Q6       | Retain macOS arm64, Windows x64 and Linux x64 intent with floors macOS 14, Windows 11 24H2 and Ubuntu 24.04 GNOME Wayland. Qualify the minimum and candidate-current versions separately. Missing environments stay explicit blockers; no purchases or OS/VM installation are authorized. No future “latest” version is hardcoded and macOS-only support is not narrowed.                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Q7       | Use `dev.ranokay.addonray` as the stable native-messaging host ID. Name companion artifacts `addonray-companion-<version>-<os>-<arch>` and distribute them through GitHub Releases in `ranokay/addonray`. These are plan names only; no publication is authorized.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Q8       | Use detached minisign signatures plus SHA-256 checksums for every companion artifact on every OS. Verify both against a previously trusted, owner-controlled public key and fingerprint before execution; fail closed on failure. Qualify macOS Gatekeeper and Windows SmartScreen warning, allow and cancel flows on actual downloaded artifacts with the applicable quarantine or Mark-of-the-Web marker intact. Linux qualification uses a downloaded artifact with the same verification plus install, update and removal evidence, not macOS/Windows markers. Do not require Developer ID, notarization or Windows Authenticode for v1, and do not imply detached signatures supply native platform trust. No accounts, keys, purchases or signing are authorized now. |
 
 “Direct” in Q3 means the native process's OS resolver and OS routing, not a VPN
 bypass or a claim about the browser's proxy path. The OS may carry the target
@@ -361,6 +365,65 @@ connection or DNS through a VPN, split tunnel or OS proxy; the companion makes n
 network-isolation guarantee beyond the permitted target/resolver traffic. Online
 TLS-verifier traffic is not part of v1 and requires an explicit user-approved
 contract revision.
+
+### Companion release and signing plan (2026-11-06)
+
+Q7 and Q8 settle the companion's release identity and the v1 signing method. They
+do not create or verify any key, account or artifact.
+
+- **Host identity.** `dev.ranokay.addonray` is the stable native-messaging host ID
+  used by the host manifest and browser registration. It does not change the
+  extension IDs or current permissions.
+- **Artifact names.** The base name is
+  `addonray-companion-<version>-<os>-<arch>`. `<version>` is the companion release
+  version; `<os>` is `macos`, `windows` or `linux`; `<arch>` is `arm64` or `x64`
+  for the intended support matrix. Archive or installer suffixes belong to the
+  per-OS installation design in #25–#28 and do not change the base name.
+- **Channel and ownership.** Releases use GitHub Releases under
+  `ranokay/addonray`. The release record names the exact source commit and tag,
+  the clean-source build run, the supported OS/architecture options and the
+  artifact hashes. No separate companion store or account is selected.
+- **Provenance.** Each companion artifact is built from the named clean source
+  and is accompanied by its SHA-256 checksum, a detached minisign signature and
+  the public verification key fingerprint. The public verification key and
+  fingerprint are obtained through an authenticated owner-controlled path before
+  verification. A key published only beside the artifact it verifies cannot
+  establish that artifact's authenticity by itself. The release record may repeat
+  the fingerprint, but the trusted source is the authenticated path, not the
+  release asset.
+- **Verification before execution.** The installation or update path verifies the
+  checksum and detached signature against the previously trusted public key
+  before it registers or executes the host. A host binary does not run before
+  this check. An update verifies the replacement before replacing or executing
+  it.
+- **Failed verification.** On a checksum or signature failure, the artifact is
+  not installed, registered or executed. There is no unsigned or unverified
+  fallback and no instruction to disable OS security or strip a download marker.
+  A failed first install leaves no host registration; a failed update keeps the
+  last verified installation and reports the failure. The artifact is discarded
+  or left where the OS download flow placed it.
+- **Trust boundary.** The detached signature establishes publisher authenticity
+  and artifact integrity relative to the trusted public key. It is not Developer
+  ID, notarization, Windows Authenticode, OS reputation or a
+  Gatekeeper/SmartScreen bypass. Detached-only signing is the selected v1 route
+  on every OS; it supersedes the earlier native-platform-signing recommendation.
+  A warning-free installation is not promised.
+- **Qualification.** On macOS and Windows, Gatekeeper or SmartScreen warning,
+  allow and cancel flows, plus install, update and removal, are qualified from
+  actual downloaded artifacts with the applicable quarantine or Mark-of-the-Web
+  marker intact. On Linux, a downloaded artifact gets the same checksum and
+  signature verification plus install, update and removal evidence; macOS and
+  Windows markers are not required. Local developer builds, removed quarantine
+  and browser/harness results are not native distribution evidence. Missing
+  minimum macOS 14 and suitable Windows/Linux environments remain explicit
+  blockers; candidate-current versions remain separate.
+- **Not authorized.** No key generation, key access, signature, account access,
+  upload, purchase, OS/VM installation or release publication is authorized by
+  this plan. The exact public key value and fingerprint remain unestablished, and
+  private signing credentials and credential ownership remain unknown until the
+  owner establishes them. #4 remains open for the final Chrome ID, account/route
+  verification and credential ownership; #39 and #43 retain their signing and
+  publication authorizations.
 
 The approved collector contract is [the mutation and request-failure
 plan](plans/mutation-request-failure.md). It separates mutation notifications
@@ -389,9 +452,9 @@ lifetime gate returns for a revised plan; it does not widen permission.
 The following items remain open and are not granted by these answers:
 
 - #4 final Chrome extension ID, verified AMO and Chrome Web Store account access,
-  candidate signing and limited-test routes, companion host identity and artifact
-  name, companion distribution channel, native platform signing and credential
-  ownership.
+  candidate signing and limited-test routes, companion public-key/fingerprint
+  establishment, private signing credential ownership, and concrete companion
+  release authorization.
 - Native macOS 14 arm64, Windows 11 24H2+ x64 and Ubuntu 24.04 LTS x64 GNOME
   Wayland environments for minimum-version qualification. No purchase,
   installation or acquisition is authorized. The available environment inventory
@@ -402,6 +465,7 @@ The following items remain open and are not granted by these answers:
 - All signing, upload, publication, external-participant and release
   authorization gates already recorded for #39 and #42–#46.
 
-These answers settle the #12, #13 and #20 decision contracts. They do not mark
-their implementation or qualification complete, and they do not authorize #4 to
-close.
+These answers settle the #12, #13 and #20 decision contracts. Q7 and Q8 settle the
+companion release identity and detached-signature method as a plan; they do not
+verify accounts, keys or distribution. These answers do not mark implementation
+or qualification complete, and they do not authorize #4 to close.
