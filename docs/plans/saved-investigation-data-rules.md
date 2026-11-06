@@ -6,13 +6,16 @@ single-record delete in extension-origin IndexedDB without a new permission.
 The #7 slice adds a per-save 7/30/90-day retention choice, bulk deletion and
 confirmed delete-all. The #8 slice adds schema version 1 JSON preview and
 download for the live investigation and the saved archive. The #9 slice adds
-explicit strict import, read-only review and a separate imported save. Printable
-HTML and clipboard remain future #10 and #11 work. See the
+explicit strict import, read-only review and a separate imported save. The #10
+slice adds self-contained printable HTML for live, saved and unsaved imported
+reports with the browser Print/Save-as-PDF path. Clipboard remains future #11
+work. See the
 [Stage 1 feasibility record](../evidence/2026-10-30-saved-storage-feasibility.md),
-[Stage 2 product evidence](../evidence/2026-10-30-saved-investigations.md) and
-[the #8 evidence](../evidence/2026-11-01-json-report-export.md).
-The existing live Markdown report and the new JSON output are the implemented
-report formats. See
+[Stage 2 product evidence](../evidence/2026-10-30-saved-investigations.md),
+[the #8 evidence](../evidence/2026-11-01-json-report-export.md) and
+[the #10 evidence](../evidence/2026-11-06-printable-report.md).
+The existing live Markdown report, the JSON output and the printable HTML output
+are the implemented report formats. See
 [the interview record](../decisions.md#saved-investigation-and-report-exchange-interview).
 
 Issue [#5](https://github.com/ranokay/addonray/issues/5) settles the product and
@@ -490,7 +493,9 @@ evidence:
   provenance retention. Implemented and locally qualified in
   [the #9 evidence](../evidence/2026-11-05-json-report-import.md).
 - #10: self-contained printable HTML, escaping, long names, pagination, empty
-  sections, browser Print/Save as PDF, cancellation and exact bound.
+  sections, browser Print/Save as PDF, cancellation and exact bound. Implemented
+  and locally qualified in
+  [the #10 evidence](../evidence/2026-11-06-printable-report.md).
 - #11: explicit clipboard copy, exact reviewed text, success after write, denial
   and unavailable results.
 - #29: private and unknown context qualification for saving, import, export,
@@ -528,8 +533,10 @@ memory. #8 adds a schema version 1 JSON format to that view and to an open saved
 archive. The saved export requests no collection permission and re-reads storage
 before each action. #9 adds explicit strict JSON file import in the library, an
 untrusted read-only imported view and a separate imported save; import alone
-persists nothing and needs no collection permission or storage availability.
-There is no printable HTML or clipboard action. Natural eviction, an actual
+persists nothing and needs no collection permission or storage availability. #10
+adds self-contained printable HTML for the live view, saved archives and unsaved
+imports, rendered in an inert preview and printed through the browser's
+Print/Save-as-PDF dialog. There is no clipboard action. Natural eviction, an actual
 Chrome engine quota error and a reachable Chrome private main-frame library route
 remain unqualified; see
 [product evidence](../evidence/2026-10-30-saved-investigations.md) and

@@ -394,14 +394,15 @@ until explicitly observed.
 ## Saved-investigation and exchange checks
 
 The [saved-data contract](plans/saved-investigation-data-rules.md) governs the
-bounded #6 through #9 slices and the future exchange work. #6 save/list/read-only
+bounded #6 through #10 slices and the future exchange work. #6 save/list/read-only
 reopen and single-record delete are implemented with model, storage, UI and
 product browser checks. #7 adds per-save 7/30/90-day retention, bulk deletion and
 confirmed delete-all. #8 adds exact schema version 1 JSON preview and download
 for the live investigation and saved archives. #9 adds explicit strict file
-import, read-only review and a separate imported save. Printable HTML and
-clipboard remain future tests. Keep model tests, storage adapter tests, UI tests,
-browser evidence and native observations separate.
+import, read-only review and a separate imported save. #10 adds self-contained
+printable HTML and the browser Print/Save-as-PDF path. Clipboard remains a future
+test. Keep model tests, storage adapter tests, UI tests, browser evidence and
+native observations separate.
 
 Model and schema checks:
 
@@ -457,8 +458,8 @@ UI checks:
 - normal, private and unknown context guards for every saved-data action;
 - imported label, untrusted rendering, separate Save imported report, view-only
   disclosure and no automatic persistence;
-- exact Markdown and JSON previews, and exact printable HTML previews and
-  clipboard text (future #10 and #11);
+- exact Markdown, JSON and printable HTML previews, and exact clipboard text
+  (future #11);
 - truthful clipboard success after a write and bounded denial or failure
   (future #11);
 - download and print reported as requests, not completion.
@@ -588,6 +589,45 @@ Browser and native evidence:
 A passing model or fixture check does not qualify storage, output, native
 usability or support. Run future exchange checks only when the corresponding
 implementation and qualification tickets are authorized.
+
+#10 execution:
+
+- `tests/report-html.test.ts` covers the complete document, inline style only,
+  absent scripts/resource elements/attributes, escaping of markup, quotes,
+  controls, bidi formatting and lone surrogates, empty and missing states,
+  stored changes, duplicate-name limitation, 4,096-code-point names, all 1,000
+  rows and 2,000 changes, the exact 1 MiB refusal without truncation, captured/
+  imported/claim provenance and absent local metadata.
+- `tests/report-export.test.ts`, `tests/saved-export.test.ts` and
+  `tests/import-output.test.ts` cover the three output sources, exact HTML and
+  print handoffs, format changes, over-limit refusal, stale print/download after
+  deferred context or permission checks, reset/assessment/attachment/permission
+  invalidation, saved deletion/expiry/replacement/busy rejection and imported
+  replacement/clear/suspension/disposal invalidation.
+- `tests/report-print.test.ts` covers the frame guard: missing, mismatched,
+  unloaded and cross-frame documents are refused; only a matching loaded tree is
+  printed. `tests/report-export-view.test.tsx`,
+  `tests/saved-export-view.test.tsx` and `tests/report-import-view.test.tsx`
+  cover the inert iframe `srcdoc`, escaped hostile content, print/download
+  controls, busy state and request-only wording.
+- `scripts/html-export-checks.mjs` drives the packaged UI on the pinned browsers.
+  It asserts the loaded frame tree equals a fresh parse of the exact `srcdoc`,
+  no executable/resource elements or attributes exist, printable-width layout
+  has no horizontal overflow and repeated headers/break rules are present, one
+  exact UTF-8 `.html` download completes, and the instrumented print call targets
+  the exact loaded frame. This is packaged-product evidence, not the native
+  print dialog.
+- At clean `3f18892dda2e2ceac52bc45455b5aeb58582136d`, the local product probes
+  pass 110 checks on Firefox 140.0, 153.5.1esr and 158.0.1 and 101 on Chrome for
+  Testing 156.0.8078.47. Firefox prepares, downloads and prints saved HTML after
+  actual management removal; the imported flow verifies replacement invalidation
+  and the near-limit printable refusal.
+- A separate native disposable Chrome run opened the exact 8-page print preview,
+  cancelled without a file, then saved an 8-page `%PDF-1.4` file. Firefox 158.0.1
+  opened the exact 8-page in-tab preview and cancelled without a file. Completing
+  Firefox's native Save-to-PDF dialog, Windows/Linux print/PDF and hosted OS
+  evidence remain unqualified. See
+  [the #10 evidence](evidence/2026-11-06-printable-report.md).
 
 ## Approved future collector checks
 

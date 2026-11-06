@@ -68,6 +68,10 @@ _Avoid_: Diagnosis, automatic submission, saved investigation history.
 The exact report text offered for the user's review before a download. It belongs to the current investigation and becomes outdated when its observations change.
 _Avoid_: Editable report, live recorder, completed download.
 
+**Printable HTML report**:
+A self-contained report representation with inline styling only and no scripts or remote resources, previewed as the exact document and printed through the browser's Print/Save-as-PDF dialog. The dialog's outcome is not observable.
+_Avoid_: Generated PDF, completed print, report server.
+
 **Saved investigation**:
 An immutable local archive of one completed investigation, reopened read-only without collecting new observations or resuming collectors.
 _Avoid_: Editable record, live session, automatic history.
