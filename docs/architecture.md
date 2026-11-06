@@ -166,8 +166,9 @@ IndexedDB candidate was accepted for the bounded #6 slice on 2026-10-30; save,
 list, read-only reopen and single-record delete are implemented. #7 adds a
 per-save retention choice, frozen bulk selection and confirmed delete-all. #8
 adds JSON export from an open archive. #9 adds explicit file import, read-only
-review and a separate imported save. Printable HTML and clipboard remain future
-work.
+review and a separate imported save. #10 adds self-contained printable HTML and
+the browser Print/Save-as-PDF path for live, saved and unsaved imported reports.
+Clipboard remains future work.
 
 `lib/saved-record.ts` is the pure schema/model boundary. It accepts one
 completed, idle live snapshot, requires both successful inventories, strips
@@ -261,7 +262,7 @@ remote resource, automatic sharing or collector is introduced.
 
 ## Expanded v1 target
 
-The finite target is [the v1 contract](v1-contract.md). The sections below describe implemented slices and the boundaries future work must change deliberately. Saved investigations and report exchange slices #6–#9 are implemented and locally qualified with explicit gaps. #10/#11, guided trials (#12), mutation and request-failure checks (#13–#19) and the optional companion (#20–#28) have approved contracts or scope; each remaining slice still needs its feasibility proof, implementation and qualification before it alters permission, storage, lifetime or native boundaries. The extension-only inspection path remains useful without the companion.
+The finite target is [the v1 contract](v1-contract.md). The sections below describe implemented slices and the boundaries future work must change deliberately. Saved investigations and report exchange slices #6–#10 are implemented and locally qualified with explicit gaps. #11, guided trials (#12), mutation and request-failure checks (#13–#19) and the optional companion (#20–#28) have approved contracts or scope; each remaining slice still needs its feasibility proof, implementation and qualification before it alters permission, storage, lifetime or native boundaries. The extension-only inspection path remains useful without the companion.
 
 ## Approved bounded collectors (not implemented)
 

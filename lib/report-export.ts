@@ -1,8 +1,9 @@
 import type { Browser } from 'wxt/browser';
 import type { Investigation } from './investigation';
 import { createInvestigationReport } from './investigation-report';
+import { createPrintableHtml } from './report-html';
 import type { ReportFormat } from './report-download';
-import { createExchangeJson } from './saved-record';
+import { createExchangeJson, createSavedReport } from './saved-record';
 
 export interface ReportBrowser {
   tabs: {
@@ -11,6 +12,11 @@ export interface ReportBrowser {
   permissions: {
     contains(permissions: Browser.permissions.Permissions): Promise<boolean>;
   };
+}
+
+export interface ReportHandoffs {
+  download(text: string, format: ReportFormat): void;
+  print(text: string, format: ReportFormat): void;
 }
 
 interface ExportSnapshot {
@@ -27,11 +33,29 @@ interface ReportPermit {
   text: string | null;
 }
 
+const downloadMessage =
+  'Download requested. Check your browser downloads for its outcome.';
+const printMessage =
+  'Print dialog requested. AddonRay cannot observe whether it was printed, cancelled or saved as a PDF.';
+
+function createLivePrintableHtml(
+  snapshot: ReturnType<Investigation['getSnapshot']>,
+) {
+  const report = createSavedReport(snapshot);
+  if (report.status !== 'success') return report;
+  const html = createPrintableHtml(report.value, { provenance: 'captured' });
+  if (html.status === 'success') return html;
+  return {
+    ...html,
+    reason: `${html.reason} JSON and Markdown remain available if they fit their own limits.`,
+  };
+}
+
 // The document owns this controller. It never sends report data to another view.
 export function createReportExport(
   api: ReportBrowser,
   investigation: Investigation,
-  handoff: (text: string, format: ReportFormat) => void,
+  handoffs: ReportHandoffs,
 ) {
   let state: ExportSnapshot = {
     format: 'markdown',
@@ -92,6 +116,59 @@ export function createReportExport(
       return false;
     }
     return true;
+  }
+
+  // Download and print share the same permit, lease, freshness checks and
+  // synchronous handoff boundary. Print is available only for the HTML frame.
+  async function deliver(kind: 'download' | 'print') {
+    const permit = source;
+    if (!live || state.busy || subscribers.size === 0 || permit?.text == null)
+      return;
+    if (kind === 'print' && permit.format !== 'html') return;
+    const lease = investigation.activity.tryBegin('report');
+    if (!lease) {
+      publish({
+        ...state,
+        preview: permit.text,
+        busy: false,
+        message: 'Another action is in progress. Try again.',
+      });
+      return;
+    }
+    try {
+      const ticket = ++operation;
+      publish({ ...state, preview: permit.text, busy: true, message: null });
+      try {
+        if (!(await verify(ticket, permit))) return;
+        if (!current(ticket, permit) || permit.text === null) return;
+        if (kind === 'print' && permit.format !== 'html') return;
+        // No await separates the final validity check from browser handoff.
+        const handoff =
+          kind === 'download' ? handoffs.download : handoffs.print;
+        handoff(permit.text, permit.format);
+        if (!current(ticket, permit)) return;
+        publish({
+          ...state,
+          preview: permit.text,
+          busy: false,
+          message: kind === 'download' ? downloadMessage : printMessage,
+        });
+      } catch {
+        if (current(ticket, permit)) {
+          publish({
+            ...state,
+            preview: permit.text,
+            busy: false,
+            message:
+              kind === 'download'
+                ? 'The download could not be requested. Try again from this preview.'
+                : 'The print dialog could not be requested. Try again from this preview.',
+          });
+        }
+      }
+    } finally {
+      lease.release();
+    }
   }
 
   return {
@@ -161,7 +238,9 @@ export function createReportExport(
           const result =
             permit.format === 'json'
               ? createExchangeJson(permit.snapshot)
-              : createInvestigationReport(permit.snapshot);
+              : permit.format === 'html'
+                ? createLivePrintableHtml(permit.snapshot)
+                : createInvestigationReport(permit.snapshot);
           if (!current(ticket, permit)) return;
           if (result.status !== 'success') {
             discard(result.reason);
@@ -186,49 +265,10 @@ export function createReportExport(
       }
     },
     async download() {
-      const permit = source;
-      if (!live || state.busy || subscribers.size === 0 || permit?.text == null)
-        return;
-      const lease = investigation.activity.tryBegin('report');
-      if (!lease) {
-        publish({
-          ...state,
-          preview: permit.text,
-          busy: false,
-          message: 'Another action is in progress. Try again.',
-        });
-        return;
-      }
-      try {
-        const ticket = ++operation;
-        publish({ ...state, preview: permit.text, busy: true, message: null });
-        try {
-          if (!(await verify(ticket, permit))) return;
-          if (!current(ticket, permit) || permit.text === null) return;
-          // No await separates the final validity check from browser handoff.
-          handoff(permit.text, permit.format);
-          if (!current(ticket, permit)) return;
-          publish({
-            ...state,
-            preview: permit.text,
-            busy: false,
-            message:
-              'Download requested. Check your browser downloads for its outcome.',
-          });
-        } catch {
-          if (current(ticket, permit)) {
-            publish({
-              ...state,
-              preview: permit.text,
-              busy: false,
-              message:
-                'The download could not be requested. Try again from this preview.',
-            });
-          }
-        }
-      } finally {
-        lease.release();
-      }
+      await deliver('download');
+    },
+    async print() {
+      await deliver('print');
     },
     cancel: () => discard(),
     dispose() {

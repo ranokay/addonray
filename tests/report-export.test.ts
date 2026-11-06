@@ -51,8 +51,16 @@ async function fixture({
       ),
     },
   };
-  const handoff = vi.fn((_text: string, _format: 'markdown' | 'json') => {});
-  const exporter = createReportExport(api, model, handoff);
+  const handoff = vi.fn(
+    (_text: string, _format: 'markdown' | 'json' | 'html') => {},
+  );
+  const printHandoff = vi.fn(
+    (_text: string, _format: 'markdown' | 'json' | 'html') => {},
+  );
+  const exporter = createReportExport(api, model, {
+    download: handoff,
+    print: printHandoff,
+  });
   const unsubscribe = exporter.subscribe(() => {});
   cleanup.push(() => {
     exporter.dispose();
@@ -82,7 +90,7 @@ async function fixture({
     if (afterEntries) getAll.mockResolvedValue(afterEntries);
     await model.captureAfter();
   }
-  return { api, model, handoff, exporter, request, unsubscribe };
+  return { api, model, handoff, printHandoff, exporter, request, unsubscribe };
 }
 
 it('starts empty without inspecting context or requesting a download', async () => {
@@ -454,5 +462,103 @@ it('forgets previews and pending ownership when its last subscriber leaves', asy
   await exporter.download();
   expect(api.tabs.getCurrent).toHaveBeenCalledTimes(1);
   expect(handoff).not.toHaveBeenCalled();
+  expect(model.getSnapshot().before).toBeNull();
+});
+
+it('prepares, downloads and prints the exact printable HTML only after separate checks', async () => {
+  const { api, exporter, handoff, printHandoff, request } = await fixture();
+  exporter.setFormat('html');
+  await exporter.prepare();
+  const reviewed = exporter.getSnapshot().preview;
+  if (reviewed === null) throw new Error('Missing printable HTML preview');
+  expect(reviewed.startsWith('<!doctype html>')).toBe(true);
+  expect(reviewed).toContain('Captured report.');
+  expect(reviewed).not.toContain('<script');
+  expect(handoff).not.toHaveBeenCalled();
+  expect(printHandoff).not.toHaveBeenCalled();
+  expect(api.permissions.contains).toHaveBeenLastCalledWith({
+    permissions: ['management'],
+  });
+  const requests = request.mock.calls.length;
+
+  await exporter.download();
+  expect(handoff.mock.calls).toEqual([[reviewed, 'html']]);
+  expect(printHandoff).not.toHaveBeenCalled();
+  expect(exporter.getSnapshot().message).toContain('Download requested');
+
+  await exporter.print();
+  expect(printHandoff.mock.calls).toEqual([[reviewed, 'html']]);
+  expect(exporter.getSnapshot().preview).toBe(reviewed);
+  expect(exporter.getSnapshot().message).toContain('Print dialog requested');
+  expect(exporter.getSnapshot().message).not.toContain('printed successfully');
+  expect(browser.permissions.request).toHaveBeenCalledTimes(requests);
+});
+
+it('does not print a non-HTML preview', async () => {
+  const { exporter, handoff, printHandoff } = await fixture();
+  await exporter.prepare();
+  expect(exporter.getSnapshot().preview).toContain('# AddonRay');
+  await exporter.print();
+  expect(printHandoff).not.toHaveBeenCalled();
+  expect(handoff).not.toHaveBeenCalled();
+});
+
+it('refuses printable HTML above 1 MiB while the same JSON report stays available', async () => {
+  const entries = Array.from({ length: 1000 }, (_, index) => ({
+    id: `entry-${index}@test`,
+    name: '&'.repeat(400),
+    version: '1',
+    enabled: true,
+    type: 'extension' as const,
+  })) as unknown as Awaited<ReturnType<typeof browser.management.getAll>>;
+  const { exporter, model, handoff, printHandoff } = await fixture({
+    beforeEntries: entries,
+    afterEntries: entries,
+  });
+  exporter.setFormat('html');
+  await exporter.prepare();
+  expect(exporter.getSnapshot().preview).toBeNull();
+  expect(exporter.getSnapshot().message).toContain('1 MiB');
+  expect(exporter.getSnapshot().message).toContain('JSON and Markdown');
+  await exporter.download();
+  await exporter.print();
+  expect(handoff).not.toHaveBeenCalled();
+  expect(printHandoff).not.toHaveBeenCalled();
+  expect(model.getSnapshot().after?.status).toBe('success');
+  exporter.setFormat('json');
+  await exporter.prepare();
+  expect(exporter.getSnapshot().preview).not.toBeNull();
+});
+
+it('rejects a stale HTML print while permission revalidation is pending', async () => {
+  const { api, model, exporter, printHandoff } = await fixture();
+  exporter.setFormat('html');
+  await exporter.prepare();
+  const held = Promise.withResolvers<boolean>();
+  const started = Promise.withResolvers<void>();
+  api.permissions.contains.mockImplementation(async () => {
+    started.resolve();
+    return held.promise;
+  });
+  const pending = exporter.print();
+  await started.promise;
+  model.setAssessment('unchanged');
+  held.resolve(true);
+  await pending;
+  expect(printHandoff).not.toHaveBeenCalled();
+  expect(exporter.getSnapshot().preview).toBeNull();
+  expect(exporter.getSnapshot().busy).toBe(false);
+});
+
+it('erases a printable preview on permission removal before printing', async () => {
+  const { model, exporter, printHandoff } = await fixture();
+  exporter.setFormat('html');
+  await exporter.prepare();
+  const listener = onRemoved;
+  if (!listener) throw new Error('Missing permission listener');
+  listener({ permissions: ['management'] });
+  await exporter.print();
+  expect(printHandoff).not.toHaveBeenCalled();
+  expect(exporter.getSnapshot().preview).toBeNull();
   expect(model.getSnapshot().before).toBeNull();
 });

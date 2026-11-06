@@ -8,6 +8,13 @@ import {
   observeExactJsonDownload,
   snapshotJsonDownloads,
 } from './json-export-checks.mjs';
+import {
+  assertHtmlPreview,
+  assertPrintableLayout,
+  observeExactHtmlDownload,
+  requestAndAssertPrint,
+  snapshotHtmlDownloads,
+} from './html-export-checks.mjs';
 import { checkReportImport } from './report-import-checks.mjs';
 import {
   databaseName,
@@ -359,7 +366,98 @@ async function checkSavedJsonExport({
     `${authority}: ${stage} exposes the exact reviewed JSON preview and generic UTF-8 download`,
     { savedInvestigations: { jsonExport: evidence } },
   );
-  return evidence;
+
+  await driver.findElement(By.id('saved-format-html')).click();
+  await driver.findElement(By.id('saved-json-prepare')).click();
+  const htmlFrame = await driver.wait(
+    until.elementLocated(By.id('saved-html-preview')),
+    10000,
+  );
+  assert.equal(await htmlFrame.getTagName(), 'iframe');
+  const htmlPreview = await assertHtmlPreview(driver, {
+    frameId: 'saved-html-preview',
+    fixtureName,
+    fixtureId,
+    investigationLabel,
+  });
+  const layout = await assertPrintableLayout(driver, 'saved-html-preview');
+  assert(
+    layout.horizontalOverflow <= layout.viewportWidth + 1,
+    `Saved printable HTML must not overflow horizontally: ${JSON.stringify(layout)}`,
+  );
+  assert.deepEqual(layout.overflowing, []);
+  assert.equal(layout.headerGroup, 'table-header-group');
+  assert.equal(layout.headingBreak, 'avoid');
+  const reviewedHtml = htmlPreview.reviewedHtml;
+  const reviewedHtmlBytes = Buffer.from(reviewedHtml, 'utf8');
+  const htmlBefore = await snapshotHtmlDownloads(directory);
+  await driver.findElement(By.id('saved-json-download')).click();
+  const downloadedHtml = await observeExactHtmlDownload({
+    driver,
+    directory,
+    expected: reviewedHtml,
+    before: htmlBefore,
+  });
+  assert.deepEqual(await readFile(downloadedHtml.path), reviewedHtmlBytes);
+  await driver.wait(
+    async () =>
+      (
+        await sectionText(
+          driver,
+          'section[aria-labelledby="saved-json-heading"]',
+        )
+      ).includes(
+        'Download requested. Check your browser downloads for its outcome.',
+      ),
+    10000,
+  );
+  const htmlEvidence = {
+    stage,
+    ...htmlPreview,
+    layout,
+    filename: downloadedHtml.filename,
+    downloadedPath: downloadedHtml.path,
+    downloadedBytes: downloadedHtml.bytes,
+    downloadedSha256: createHash('sha256')
+      .update(await readFile(downloadedHtml.path))
+      .digest('hex'),
+    exactUtf8Match: true,
+    newlyObserved: downloadedHtml.newlyObserved,
+    modifiedAtNs: downloadedHtml.modifiedAtNs,
+    previousModifiedAtNs: downloadedHtml.previousModifiedAtNs,
+    observedEntries: downloadedHtml.observedEntries,
+    fixtureIdExcluded: true,
+    investigationLabelExcluded: true,
+    requestOnlyWording: true,
+    noCollectionPermission: true,
+  };
+  delete htmlEvidence.preview;
+  delete htmlEvidence.reviewedHtml;
+  passed(
+    `${authority}: ${stage} printable HTML matches its exact loaded preview and downloads those UTF-8 bytes without a collection permission`,
+    { savedInvestigations: { htmlExport: htmlEvidence } },
+  );
+
+  const printEvidence = await requestAndAssertPrint(driver, {
+    buttonId: 'saved-print',
+    frameId: 'saved-html-preview',
+    sectionSelector: 'section[aria-labelledby="saved-json-heading"]',
+    reviewedHtml,
+  });
+  passed(
+    `${authority}: ${stage} Print / Save as PDF requests the dialog for the exact loaded saved printable frame and reports only a request`,
+    { savedInvestigations: { htmlPrint: printEvidence } },
+  );
+  await driver.findElement(By.id('saved-json-cancel')).click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.id('saved-html-preview'))).length === 0,
+    10000,
+  );
+  // Later library checks reuse this exporter expecting the JSON default.
+  await driver.findElement(By.id('saved-format-json')).click();
+  const htmlEvidenceFull = { ...htmlEvidence, print: printEvidence };
+  return { json: evidence, html: htmlEvidenceFull };
 }
 
 export async function checkSavedInvestigations({

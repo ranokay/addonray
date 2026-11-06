@@ -1,12 +1,13 @@
 import { expect, it } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ImportReportSection } from '../entrypoints/library/ImportReport';
+import { importOutputStub } from './import-output-stub';
 import { reportImportStub as importer } from './report-import-stub';
 import { hostileReport as report } from './saved-report-fixture';
 
 it('offers explicit file selection and discloses that import alone persists nothing', () => {
   const markup = renderToStaticMarkup(
-    <ImportReportSection importer={importer()} />,
+    <ImportReportSection importer={importer()} output={importOutputStub()} />,
   );
   expect(markup).toContain('Import report');
   expect(markup).toContain('Choose a JSON report file');
@@ -28,6 +29,7 @@ it('renders an accepted file as a read-only Imported report with escaped text', 
         importedAt: 1_800_000_000_000,
         saveable: true,
       })}
+      output={importOutputStub()}
     />,
   );
   expect(markup).toContain('Imported report');
@@ -45,6 +47,36 @@ it('renders an accepted file as a read-only Imported report with escaped text', 
   expect(markup).toContain('7 days');
   expect(markup).toContain('30 days');
   expect(markup).toContain('90 days');
+  expect(markup).toContain('Printable report');
+  expect(markup).toContain('id="imported-html-prepare"');
+  expect(markup).not.toContain('id="imported-html-download"');
+});
+
+it('renders the exact imported printable document in an inert preview with download and print', () => {
+  const reviewed =
+    '<!doctype html>\n<html lang="en"><body><p>&lt;script&gt;alert(9)&lt;/script&gt;</p></body></html>\n';
+  const markup = renderToStaticMarkup(
+    <ImportReportSection
+      importer={importer({
+        report: report(),
+        claimedProvenance: 'captured',
+        importedAt: 1_800_000_000_000,
+        saveable: true,
+      })}
+      output={importOutputStub({ preview: reviewed })}
+    />,
+  );
+  expect(markup).toContain('id="imported-html-preview"');
+  expect(markup).toContain('Exact printable preview');
+  expect(markup).toContain('sandbox="allow-same-origin allow-modals"');
+  expect(markup).not.toContain('allow-scripts');
+  expect(markup).toContain('&lt;!doctype html&gt;');
+  expect(markup).toContain('&amp;lt;script&amp;gt;alert(9)');
+  expect(markup).not.toContain('<script>alert(9)');
+  expect(markup).toContain('id="imported-html-download"');
+  expect(markup).toContain('id="imported-html-print"');
+  expect(markup).toContain('cannot observe whether you print, cancel or save');
+  expect(markup).toContain('keeps the imported provenance');
 });
 
 it('explains view-only imports and does not offer a save action for them', () => {
@@ -56,6 +88,7 @@ it('explains view-only imports and does not offer a save action for them', () =>
         importedAt: 1_800_000_000_000,
         saveable: false,
       })}
+      output={importOutputStub()}
     />,
   );
   expect(markup).toContain('view-only');
@@ -76,6 +109,7 @@ it('renders bounded status text and a separate clear action', () => {
         message:
           'The selected file is not valid JSON: duplicate property name.',
       })}
+      output={importOutputStub()}
     />,
   );
   expect(markup).toContain('duplicate property name');

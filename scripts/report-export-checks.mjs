@@ -8,6 +8,13 @@ import {
   observeExactJsonDownload,
   snapshotJsonDownloads,
 } from './json-export-checks.mjs';
+import {
+  assertHtmlPreview,
+  assertPrintableLayout,
+  observeExactHtmlDownload,
+  requestAndAssertPrint,
+  snapshotHtmlDownloads,
+} from './html-export-checks.mjs';
 
 const filename = 'addonray-investigation.md';
 const beforeSelector = '[data-testid="before-snapshot"]';
@@ -412,5 +419,126 @@ export async function checkReportExport({
     `${authority}: live JSON report preview and download preserve the exact reviewed UTF-8 schema version 1 bytes`,
     { reportExport: { ...evidence, json: jsonState } },
   );
-  return { ...evidence, json: jsonState };
+
+  await driver.findElement(By.id('report-format-html')).click();
+  await driver.findElement(By.id('report-prepare')).click();
+  const htmlFrame = await driver.wait(
+    until.elementLocated(By.id('report-html-preview')),
+    10000,
+  );
+  assert.equal(await htmlFrame.getTagName(), 'iframe');
+  const htmlPreview = await assertHtmlPreview(driver, {
+    frameId: 'report-html-preview',
+    fixtureName,
+    fixtureId,
+    investigationLabel,
+  });
+  const layout = await assertPrintableLayout(driver, 'report-html-preview');
+  assert(
+    layout.horizontalOverflow <= layout.viewportWidth + 1,
+    `Printable HTML must not overflow horizontally: ${JSON.stringify(layout)}`,
+  );
+  assert.deepEqual(layout.overflowing, []);
+  assert.equal(layout.headerGroup, 'table-header-group');
+  assert.equal(layout.headingBreak, 'avoid');
+  assert.equal(layout.entryWrap, 'anywhere');
+  assert(layout.entryCount >= 1);
+  const htmlFilesBefore = (await readdir(directory)).filter((name) =>
+    name.endsWith('.html'),
+  );
+  assert.deepEqual(
+    htmlFilesBefore,
+    [],
+    'Preparing printable HTML must not download a file',
+  );
+  assert.equal(
+    await driver.findElement(By.id('report-print')).isEnabled(),
+    true,
+  );
+  const reviewedHtml = htmlPreview.reviewedHtml;
+  const htmlBytes = Buffer.from(reviewedHtml, 'utf8');
+  const htmlBefore = await snapshotHtmlDownloads(directory);
+  await driver.findElement(By.id('report-download')).click();
+  const downloadedHtml = await observeExactHtmlDownload({
+    driver,
+    directory,
+    expected: reviewedHtml,
+    before: htmlBefore,
+  });
+  assert.deepEqual(await readFile(downloadedHtml.path), htmlBytes);
+  await pairRemains();
+  assert.equal(
+    await driver
+      .findElement(By.id('report-html-preview'))
+      .getProperty('srcdoc'),
+    reviewedHtml,
+  );
+  const htmlEvidence = {
+    stage: 'verified',
+    ...htmlPreview,
+    layout,
+    filename: downloadedHtml.filename,
+    downloadedPath: downloadedHtml.path,
+    downloadedBytes: downloadedHtml.bytes,
+    downloadedSha256: sha256(await readFile(downloadedHtml.path)),
+    exactUtf8Match: true,
+    newlyObserved: downloadedHtml.newlyObserved,
+    modifiedAtNs: downloadedHtml.modifiedAtNs,
+    previousModifiedAtNs: downloadedHtml.previousModifiedAtNs,
+    observedEntries: downloadedHtml.observedEntries,
+    fixtureIdExcluded: true,
+    investigationLabelExcluded: true,
+    ownerStayedOpenUntilFileCompletion: true,
+    originalPairPreserved: true,
+  };
+  delete htmlEvidence.preview;
+  delete htmlEvidence.reviewedHtml;
+  passed(
+    `${authority}: live printable HTML is the exact inert loaded preview and downloads those UTF-8 bytes within 1 MiB`,
+    { reportExport: { ...evidence, html: htmlEvidence } },
+  );
+
+  const printEvidence = await requestAndAssertPrint(driver, {
+    buttonId: 'report-print',
+    frameId: 'report-html-preview',
+    sectionSelector: '[aria-labelledby="report-heading"]',
+    reviewedHtml,
+  });
+  await pairRemains();
+  passed(
+    `${authority}: Print / Save as PDF requests the browser dialog for the exact loaded printable frame and reports only a request`,
+    { reportExport: { ...evidence, htmlPrint: printEvidence } },
+  );
+
+  await setAssessment('worse');
+  assert.equal(
+    (await driver.findElements(By.id('report-html-preview'))).length,
+    0,
+    'An assessment change must discard the printable preview',
+  );
+  assert.equal((await driver.findElements(By.id('report-print'))).length, 0);
+  assert.deepEqual(
+    (await readdir(directory)).filter((name) => name.endsWith('.html')),
+    [downloadedHtml.filename],
+    'An invalidated printable preview must not download another file',
+  );
+  await setAssessment('uncertain');
+  passed(
+    `${authority}: an assessment change discards the printable preview and its print/download actions without another handoff`,
+    {
+      reportExport: { htmlInvalidation: 'assessment change discarded preview' },
+    },
+  );
+  // Later checks open this section expecting the preserved Markdown default.
+  await driver.findElement(By.id('report-format-markdown')).click();
+  assert.equal(
+    (await driver.findElements(By.id('report-html-preview'))).length,
+    0,
+  );
+  return {
+    ...evidence,
+    json: jsonState,
+    html: htmlEvidence,
+    htmlPrint: printEvidence,
+  };
 }

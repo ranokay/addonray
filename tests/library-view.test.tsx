@@ -6,6 +6,7 @@ import type { SavedExport } from '../lib/saved-export';
 import type { SavedRecord } from '../lib/saved-record';
 import { SAVED_RETENTION_MS } from '../lib/saved-record';
 import { reportImportStub as importer } from './report-import-stub';
+import { importOutputStub } from './import-output-stub';
 import { hostileReport } from './saved-report-fixture';
 
 const recordId = '11111111-1111-1111-1111-111111111111';
@@ -42,10 +43,17 @@ function snapshot(
 
 function exporter(): SavedExport {
   return {
-    getSnapshot: () => ({ preview: null, busy: false, message: null }),
+    getSnapshot: () => ({
+      format: 'json',
+      preview: null,
+      busy: false,
+      message: null,
+    }),
     subscribe: () => () => {},
+    setFormat: vi.fn(),
     prepare: vi.fn(async () => {}),
     download: vi.fn(async () => {}),
+    print: vi.fn(async () => {}),
     cancel: vi.fn(),
     dispose: vi.fn(),
   };
@@ -81,6 +89,7 @@ it('lists a saved record and unsupported or unreadable rows for deletion only', 
     <App
       exporter={exporter()}
       importer={importer()}
+      output={importOutputStub()}
       library={library(
         snapshot({
           entries: [
@@ -108,8 +117,8 @@ it('lists a saved record and unsupported or unreadable rows for deletion only', 
     'no encryption layer',
     'Browser or OS backups',
     'Uninstall clearing is browser-controlled',
-    'can export an open saved report as JSON and import a JSON report',
-    'does not print or copy saved reports',
+    'can export an open saved report as JSON or printable HTML',
+    'cannot copy saved reports to the clipboard',
     'import alone stores nothing',
   ])
     expect(markup).toContain(phrase);
@@ -121,6 +130,7 @@ it('renders a selected archive as escaped untrusted text with no extension ident
     <App
       exporter={exporter()}
       importer={importer()}
+      output={importOutputStub()}
       library={library(
         snapshot({
           selected,
@@ -156,7 +166,12 @@ it('renders an inline delete confirmation without mutating', () => {
     }),
   );
   const markup = renderToStaticMarkup(
-    <App library={current} exporter={exporter()} importer={importer()} />,
+    <App
+      library={current}
+      exporter={exporter()}
+      importer={importer()}
+      output={importOutputStub()}
+    />,
   );
   expect(markup).toContain('Delete this saved record?');
   expect(markup).toContain('Delete saved record');
@@ -172,7 +187,12 @@ it('renders a frozen bulk confirmation without mutating', () => {
     }),
   );
   const markup = renderToStaticMarkup(
-    <App library={current} exporter={exporter()} importer={importer()} />,
+    <App
+      library={current}
+      exporter={exporter()}
+      importer={importer()}
+      output={importOutputStub()}
+    />,
   );
   expect(markup).toContain('Confirm bulk delete');
   expect(markup).toContain('Delete 1 selected saved record?');
@@ -184,7 +204,12 @@ it('renders a frozen bulk confirmation without mutating', () => {
 it('requires explicit confirmation before delete-all', () => {
   const current = library(snapshot({ pendingBulk: { kind: 'all' } }));
   const markup = renderToStaticMarkup(
-    <App library={current} exporter={exporter()} importer={importer()} />,
+    <App
+      library={current}
+      exporter={exporter()}
+      importer={importer()}
+      output={importOutputStub()}
+    />,
   );
   expect(markup).toContain('Confirm delete all');
   expect(markup).toContain('Delete all saved records?');
@@ -196,7 +221,12 @@ it('requires explicit confirmation before delete-all', () => {
 it('offers delete-all even when the visible list is empty', () => {
   const current = library(snapshot({ entries: [] }));
   const markup = renderToStaticMarkup(
-    <App library={current} exporter={exporter()} importer={importer()} />,
+    <App
+      library={current}
+      exporter={exporter()}
+      importer={importer()}
+      output={importOutputStub()}
+    />,
   );
   expect(markup).toContain('No saved investigations.');
   expect(markup).toContain('Delete all saved records');
@@ -208,6 +238,7 @@ it('exposes no saved rows when context is denied even if a caller supplies data'
     <App
       exporter={exporter()}
       importer={importer()}
+      output={importOutputStub()}
       library={library(
         snapshot({
           phase: 'denied',
@@ -229,6 +260,7 @@ it('reports unavailable storage with a retry action', () => {
     <App
       exporter={exporter()}
       importer={importer()}
+      output={importOutputStub()}
       library={library(
         snapshot({
           phase: 'unavailable',

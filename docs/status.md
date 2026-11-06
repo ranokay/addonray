@@ -14,7 +14,7 @@ The license portion of #4 is decided; its other release responsibilities remain.
 
 The user approved the private milestone [`v1.0.0`](https://github.com/ranokay/addonray/milestone/1) as the finite expanded v1 target on 2026-10-29. It contains tickets #2 through #46: saved investigations and report exchange, guided comparisons, mutation and request-failure diagnostics, an optional Rust companion, brand assets, qualification and release work. [The v1 contract](v1-contract.md) records the dated scope snapshot, intended support, existing evidence, supersession map, release acceptance and exclusions.
 
-The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4 remains an open owner/release gate. #5 is approved and recorded; its bounded #6 save/list/reopen/delete, #7 retention/bulk-delete, #8 JSON export and #9 import slices are implemented and locally qualified with explicit release gaps. Backlog approval does not authorize signing, publication, licensing or visibility changes.
+The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4 remains an open owner/release gate. #5 is approved and recorded; its bounded #6 save/list/reopen/delete, #7 retention/bulk-delete, #8 JSON export, #9 import and #10 printable HTML slices are implemented and locally qualified with explicit release gaps. Backlog approval does not authorize signing, publication, licensing or visibility changes.
 
 ## V1 backlog readiness (2026-11-06)
 
@@ -191,10 +191,10 @@ Implementation and qualification evidence is recorded in
 assertions across 38 files and native type checking of 87 files pass. The shared
 product probes pass 95 checks on each Firefox pin and 88 on Chrome for Testing
 156.0.8078.47, including exact UTF-8 JSON preview/download before and, on
-Firefox, after actual management removal. Printable HTML (#10), clipboard (#11),
-saved-archive Markdown output, the hosted exact-OS matrix and native human
-download/cancellation observation remain open. The #6 storage and
-private-context gaps and the #7 release gaps are unchanged.
+Firefox, after actual management removal. Printable HTML (#10) is implemented
+separately; clipboard (#11), saved-archive Markdown output, the hosted exact-OS
+matrix and native human download/cancellation observation remain open. The #6
+storage and private-context gaps and the #7 release gaps are unchanged.
 
 ## JSON report import (#9)
 
@@ -235,10 +235,60 @@ Implementation and qualification evidence is recorded in
 assertions across 40 files and native type checking of 94 files pass. The shared
 product probes pass 100 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 pin
 and 93 on Chrome for Testing 156.0.8078.47, including five production file-input
-checks per target. Printable HTML (#10), clipboard (#11), native human
-file-picker observation, the hosted exact-OS matrix and signed distribution
-remain open. The authentic private import action is model-tested; the Chrome
-private main-frame library route remains policy-blocked. The #6 storage and
+checks per target. Printable HTML (#10) is implemented separately; clipboard
+(#11), native human file-picker observation, the hosted exact-OS matrix and
+signed distribution remain open. The authentic private import action is
+model-tested; the Chrome private main-frame library route remains policy-blocked.
+The #6 storage and private-context gaps and the #7 release gaps are unchanged.
+
+## Printable HTML report (#10)
+
+The bounded #10 slice adds a self-contained printable HTML representation with
+inline CSS only and no scripts, remote fonts, images or other resources. It is
+available for the live investigation, an open saved archive and the unsaved
+imported report. Each output has its own exact preview: the generated document
+string is rendered in an inert iframe, and the print helper verifies both the
+`srcdoc` attribute and the loaded document tree before calling that frame's print
+method. The browser's Print/Save-as-PDF dialog remains browser-controlled.
+
+The document contains only the approved report content: provenance, assessment,
+both inventories, the stored precomputed ID-based changes, optional timing and
+page-error summaries and observation limits. Missing, unrecorded, unavailable and
+empty states stay explicit; changes are never recomputed from names; duplicate
+names and the stored-change limitation are stated. Captured and imported
+provenance are labelled honestly, including an unauthenticated file claim on an
+unsaved import. No record IDs, timestamps, permission or host metadata, URLs,
+titles or browser context are included. Hostile and control text is escaped, and
+invisible controls and backslashes are shown as Unicode escape notation.
+
+The complete UTF-8 document, including CSS and markup, is checked against 1 MiB
+before publication. An oversized printable representation is refused without
+truncation while JSON and Markdown keep their independent bounds. The print
+layout uses page margins, wrapping tables, repeated table headers and heading
+break avoidance. It does not make whole sections unbreakable; an entry taller
+than a page continues onto the next page.
+
+Live output shares the existing idle-pair, snapshot, generation, activity,
+normal-window and current-permission checks. Saved output re-reads IndexedDB
+before each action and again after the final asynchronous context check, so a
+deletion, delete-all or replacement during that wait cannot publish or hand off
+stale content; it rejects deleted, expired, unsupported, unreadable or changed
+records without requesting collection permission. Imported output
+discards its preview on replacement, clear, suspension, disposal or context loss.
+Download and print are reported as requests only; a print dialog's cancellation
+or outcome and any disk completion are not observable by AddonRay.
+
+Implementation and qualification evidence is recorded in
+[the #10 evidence](evidence/2026-11-06-printable-report.md). At clean
+`6cb16346e153eae4fc1691f2579e9299fb96576a`, 672 behavior tests with 2,023,284
+assertions across 43 files and native type checking of 101 files pass. The shared
+product probes pass 110 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 pin
+and 101 on Chrome for Testing 156.0.8078.47. A disposable Chrome product run
+opened the exact 8-page preview, cancelled without a file, and saved an 8-page
+PDF. Firefox 158.0.1 opened the exact 8-page in-tab preview and cancelled without
+a file; completing Firefox's native Save-to-PDF dialog remains unobserved.
+Clipboard (#11), saved-archive Markdown, native Windows/Linux print/PDF, the
+hosted exact-OS matrix and retail installation remain open. The #6 storage and
 private-context gaps and the #7 release gaps are unchanged.
 
 ## Brand asset kit
@@ -588,7 +638,8 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Implement and qualify #7 per-save 7/30/90-day retention, bulk deletion and delete-all. See [the #7 evidence](evidence/2026-10-31-history-retention-bulk-deletion.md).
 - [x] Implement and locally qualify #8 schema version 1 JSON preview and download for the live investigation and saved archives. See [the #8 evidence](evidence/2026-11-01-json-report-export.md).
 - [x] Implement and locally qualify #9 explicit untrusted import, read-only inspection and separate imported save. See [the #9 evidence](evidence/2026-11-05-json-report-import.md).
-- [ ] Implement and qualify #10 printable HTML/PDF and #11 clipboard.
+- [x] Implement and locally qualify #10 self-contained printable HTML for live, saved and unsaved imported reports, with browser print/Save-as-PDF and request-only outcomes. See [the #10 evidence](evidence/2026-11-06-printable-report.md).
+- [ ] Implement and qualify #11 clipboard.
 - [ ] Qualify private and unknown contexts, multi-view deletion, expiry, storage failure and the exact browser and OS matrix for the exchange outputs.
 - [ ] Reassess the Firefox declaration and Chrome Web Store privacy disclosure before publication.
 
@@ -598,8 +649,8 @@ Issue #2 is complete at this documentation head. [The v1 contract](v1-contract.m
 is the current scope and support record. #5's
 [saved-investigation and report-exchange contract](plans/saved-investigation-data-rules.md)
 was approved and recorded on 2026-10-30. The bounded #6 slice, the #7 retention/bulk-delete slice, the #8 JSON export
-slice and the #9 untrusted import slice are implemented and locally qualified
-with explicit gaps; product restart, production-adapter regressions and the
+slice, the #9 untrusted import slice and the #10 printable HTML slice are
+implemented and locally qualified with explicit gaps; product restart, production-adapter regressions and the
 simulated lifecycle path pass, and the local frozen gate passed, while the final
 release matrix and independent review remain. The #13, #12 and #20 contracts and
 the Q7/Q8 companion release and signing plan were approved on 2026-11-06 and
@@ -608,11 +659,12 @@ open for final Chrome ID, verified accounts, companion public-key/credential
 ownership, candidate signing/limited-test routes and concrete release
 authorization. Q7/Q8 settle the host ID, artifact naming, GitHub Releases channel
 and detached-signature method as a plan; keys remain unverified and this planning
-work creates no signature or release. #10
-and #11 are readiness-labelled from already-merged decisions and may start under
-their approved contracts. #31 is readiness-labelled but remains blocked by #10;
-its qualification starts only after #10 lands. No implementation is claimed.
-This implementation task authorizes no push or PR. #32 is
+work creates no signature or release. #10 is implemented and locally qualified
+from clean `6cb1634`; it is not merged or pushed. #11 remains readiness-labelled
+from already-merged decisions and may start under its approved contract. #31
+remains readiness-labelled but still needs #10 merged and its own qualification;
+no #31 evidence is claimed here. This implementation task adds no other runtime
+claim. This implementation task authorizes no push or PR. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
 current main includes the change at `a708fb5`. #33's bounded collector-budget
 investigation is in PR #50. Study evidence is at `031ebff`; test-only
