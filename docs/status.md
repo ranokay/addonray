@@ -51,9 +51,9 @@ change no current permission. In particular:
 The settled #10, #11 and #31 issues were readiness-labelled on 2026-11-06 from
 already-merged decisions. After this amendment merges, the proposed
 ready-for-agent set is #24, #25, #28 and #38, subject to fresh per-issue review.
-#25 keeps native links #4 and #24; #28 keeps #25–#27; #38 keeps #4 and the
-implementation work including #28. Those are captured start-order dependencies,
-not unanswered specification decisions. #26/#27 and #22/#23 remain needs-info for
+#24 keeps #21–#23; #25 keeps native links #4 and #24; #28 keeps #25–#27; #38
+keeps #4 and the implementation work including #28. Those are captured start-order
+dependencies, not unanswered specification decisions. #26/#27 and #22/#23 remain needs-info for
 missing Windows/Linux environments; #39/#43 retain signing and publication
 prerequisites, and #4 stays open/human. No implementation, qualification,
 publication, permission or tracker-label claim follows from a readiness label.
