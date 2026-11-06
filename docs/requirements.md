@@ -6,7 +6,7 @@ Status: Phase 0 scope approved on 2026-10-22 and scaffold implemented. The user 
 
 On 2026-10-29 the user approved private milestone `v1.0.0`, tickets #2 through #46, as the finite v1 target. [The v1 contract](v1-contract.md) records the dated scope snapshot, intended support, existing exact evidence, supersession map, release acceptance and exclusions. This file describes implemented or individually approved behavior. It is not the complete v1 promise.
 
-Current runtime limits remain effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #5 is approved and recorded. #4, #13 and #20 remain decision gates.
+Current runtime limits remain effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #5 is approved and recorded. #13, #12 and #20 were approved on 2026-11-06. #4 remains an owner/release decision gate.
 
 ## User stories
 
@@ -159,7 +159,9 @@ Every saved-data action requires a verified normal window. Private, incognito an
 
 Continuous recording, network collection, page-world instrumentation, console interception, automatic culprit ranking, automated extension state changes, theme management, report export, persistent history, mobile support, additional Chromium browsers, accounts, sync, AMO publication, and a native companion implementation.
 
-That list was the Phase 0 boundary. The later expanded v1 target approves report exchange, local saved investigations and an optional companion as future work under [the v1 contract](v1-contract.md). The [#5 saved-data contract](plans/saved-investigation-data-rules.md) records the saved-data rules. The bounded #6 save/list/reopen/delete, #7 retention/bulk-delete, #8 JSON export and #9 JSON import slices are implemented; the remaining exchange work still requires its own implementation and qualification.
+That list was the Phase 0 boundary. The later expanded v1 target approves report exchange, local saved investigations, bounded mutation and request-failure checks, guided trials and an optional companion as future work under [the v1 contract](v1-contract.md). The [#5 saved-data contract](plans/saved-investigation-data-rules.md) records the saved-data rules. The bounded #6 save/list/reopen/delete, #7 retention/bulk-delete, #8 JSON export and #9 JSON import slices are implemented; the remaining exchange work still requires its own implementation and qualification.
+
+On 2026-11-06 the user approved the [mutation and request-failure contract](plans/mutation-request-failure.md), the [guided-trial contract](plans/v1-guided-trials.md) and the [companion connectivity contract](plans/companion-connectivity.md). These are future product boundaries. The current runtime has no mutation or request-failure collector, no guided checklist, no schema version 2 and no native host. [The v1 contract](v1-contract.md) keeps the current limits effective until each implementation and qualification gate passes.
 
 ## Important edge cases
 

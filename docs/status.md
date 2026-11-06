@@ -14,7 +14,36 @@ The license portion of #4 is decided; its other release responsibilities remain.
 
 The user approved the private milestone [`v1.0.0`](https://github.com/ranokay/addonray/milestone/1) as the finite expanded v1 target on 2026-10-29. It contains tickets #2 through #46: saved investigations and report exchange, guided comparisons, mutation and request-failure diagnostics, an optional Rust companion, brand assets, qualification and release work. [The v1 contract](v1-contract.md) records the dated scope snapshot, intended support, existing evidence, supersession map, release acceptance and exclusions.
 
-The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4, #13 and #20 are open decision gates. #5 is approved and recorded; its bounded #6 save/list/reopen/delete and #7 retention/bulk-delete slices are implemented and locally qualified with explicit release gaps. Backlog approval does not authorize signing, publication, licensing or visibility changes.
+The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4 remains an open owner/release gate. #5 is approved and recorded; its bounded #6 save/list/reopen/delete, #7 retention/bulk-delete, #8 JSON export and #9 import slices are implemented and locally qualified with explicit release gaps. Backlog approval does not authorize signing, publication, licensing or visibility changes.
+
+## V1 backlog readiness (2026-11-06)
+
+The user answered the six first-round readiness questions and approved the
+[#13 mutation and request-failure contract](plans/mutation-request-failure.md), the
+[#12 guided-trial contract](plans/v1-guided-trials.md), the [#20 companion
+connectivity contract](plans/companion-connectivity.md), the #4 extension
+identity and signing plan, and the OS target plan. The full answers are in
+[the decision record](decisions.md#v1-backlog-readiness-decisions-2026-11-06).
+
+These decisions approve future boundaries. They implement no runtime feature and
+change no current permission. In particular:
+
+- the current build still has no mutation or request-failure collector, no
+  background request observer, no live request cleanup ownership, no schema
+  version 2 and no native host;
+- the request check's optional `webRequest` and scheme+host grant are future
+  permissions, not current ones. The grant may cover all ports on the selected
+  host; the runtime filter limits collection to the selected origin and port;
+- the companion remains display-only and optional; its host identity, distribution
+  channel, platform signing and release authorization remain open with #4 and
+  #25–#28;
+- #4 remains `ready-for-human` until the Chrome ID, account access, signing routes
+  and route verification are real.
+
+The settled #10, #11 and #31 issues were readiness-labelled on 2026-11-06 from
+already-merged decisions. Other dependent labels wait for this contract commit to
+merge. No implementation, qualification, publication or permission claim follows
+from a readiness label.
 
 ## Saved investigations (#6)
 
@@ -510,8 +539,12 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Record the prospective supersession map and keep current runtime limits effective.
 - [x] Record final release acceptance, exclusions and the post-release support receipt.
 - [x] Close the #5 saved-investigation and report-exchange decision on 2026-10-30. See [the data contract](plans/saved-investigation-data-rules.md).
-- [ ] Close the #4, #13 and #20 decisions before their dependent implementation tickets.
-- [ ] Settle exact OS versions, Linux distribution and candidate release combinations before #39 candidate qualification.
+- [x] Answer the #13 mutation and request-failure collector contracts and the #20 companion capability on 2026-11-06. See [the collector contract](plans/mutation-request-failure.md) and [the connectivity contract](plans/companion-connectivity.md).
+- [x] Answer the #12 guided-trial contract on 2026-11-06. See [the guided-trial contract](plans/v1-guided-trials.md).
+- [x] Record the minimum OS floors as macOS 14, Windows 11 24H2 and Ubuntu 24.04 LTS GNOME Wayland; keep candidate-current versions for the #39 freeze.
+- [ ] Verify #4 final Chrome ID, AMO/Chrome Web Store account access, companion identity/channel/platform signing and candidate signing/limited-test routes before releasing dependent tickets.
+- [ ] Acquire or otherwise provide the minimum and candidate-current native environments. No purchase or OS/VM installation is authorized.
+- [ ] Implement and qualify #10–#19 and #20–#28 under the approved contracts; no readiness label is implementation evidence.
 
 ## Brand asset checklist
 
@@ -550,9 +583,13 @@ was approved and recorded on 2026-10-30. The bounded #6 slice, the #7 retention/
 slice and the #9 untrusted import slice are implemented and locally qualified
 with explicit gaps; product restart, production-adapter regressions and the
 simulated lifecycle path pass, and the local frozen gate passed, while the final
-release matrix and independent review remain. The next v1 decisions are #4, #13
-and #20. #10 and #11 may start only under the approved #5 contract and their own
-gates.
+release matrix and independent review remain. The #13, #12 and #20 contracts were
+approved on 2026-11-06 and recorded in this documentation commit; dependent labels
+wait for merge. #4 remains open for final Chrome ID, verified accounts, companion
+identity/channel/platform signing and candidate signing/limited-test routes. #10
+and #11 are readiness-labelled from already-merged decisions and may start under
+their approved contracts. #31 is readiness-labelled but remains blocked by #10;
+its qualification starts only after #10 lands. No implementation is claimed.
 This implementation task authorizes no push or PR. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
 current main includes the change at `a708fb5`. #33's bounded collector-budget
@@ -607,7 +644,7 @@ timing limit has changed.
 
 Native Linux/Windows usability, full accessibility, private/unknown-context native guards, retail installation/store and signed-distribution qualification remain release gates. Chrome's page-side observer is not tamper-proof. Production Firefox BFCache restoration remains unobserved; focused candidate restoration and production fresh-load outcomes are separate evidence. Follow the [desktop QA handoff](desktop-popup-qa.md) when an appropriate visible desktop becomes available.
 
-The user approved the private build while these release gates remain open. Licensing/public visibility remain undecided. The original inventory prototype remains on signed `36e4d24` outside `main`. Toolchain setup and pinning remain in [toolchain](toolchain.md).
+The user approved the private build while these release gates remain open. License and source visibility are settled; signing, account verification and publication remain release gates. The original inventory prototype remains on signed `36e4d24` outside `main`. Toolchain setup and pinning remain in [toolchain](toolchain.md).
 
 ## Delivery evidence
 
@@ -619,20 +656,21 @@ For fresh revision-bound evidence, run `/Users/ranokay/.agents/tools/run gate_ru
 
 Before the expanded v1 approval, the items below were recorded as unresolved future decisions. The approval moved them into the backlog and kept them as decision gates. The remaining items are open:
 
-- #4: license and source visibility, final extension and companion identities,
-  publisher ownership, and the pre-release signing and limited-distribution
-  routes.
-- #13: mutation and request-failure collector contracts.
-- #20: the useful read-only companion capability.
-- Exact OS versions, Linux distribution and release combinations. The intended
-  architectures are macOS arm64, Windows x64 and Linux x64. Exact versions must
-  be settled before candidate qualification. Existing evidence does not set a
-  minimum OS version or qualify retail, native or full-v1 support.
+- #4: final Chrome extension ID and companion identity, publisher/account access,
+  companion distribution channel, native platform signing, and the pre-release
+  signing and limited-distribution routes. License and source visibility are
+  settled.
+- Minimum and candidate-current native environments for macOS 14, Windows 11
+  24H2+ and Ubuntu 24.04 LTS GNOME Wayland. Missing environments are blockers;
+  no purchase, installation or acquisition is authorized.
+- Candidate-current OS versions, exact release/ESR/Chrome versions and release
+  combinations, named at the #39 freeze.
+- All explicit signing, upload, publication and external-participant approvals
+  recorded for #39 and #42–#46.
 
-#5 was closed on 2026-10-30. Its approved
-[saved-investigation and report-exchange contract](plans/saved-investigation-data-rules.md)
-records the future data rules. It authorizes no storage, permission, format or
-runtime implementation.
+#5 was closed on 2026-10-30. #13, #12 and #20 were answered on 2026-11-06; their
+contracts are recorded in this documentation commit. These answers authorize no
+storage, permission, format, runtime or native implementation.
 
 These are approval gates inside the approved backlog, not open scope questions.
 Current runtime limits remain effective until each contract and its applicable

@@ -24,6 +24,10 @@ _Avoid_: Culprit, proof of a conflict.
 Two or more observations taken under conditions the user records, such as a manually changed extension state.
 _Avoid_: Automatic isolation, causal proof.
 
+**Guided trial**:
+A five-step comparison journey: baseline, one manual setting change, reproduction, After capture and assessment. It is preserved only by an explicit Save.
+_Avoid_: Automatic diagnosis, autosaved session, controlled experiment.
+
 **Inventory snapshot**:
 The inventory reported by the browser at one deliberate capture, used as a before or after observation in a comparison.
 _Avoid_: Extensions active on the page, complete browser state.
@@ -101,12 +105,24 @@ A confirmed library action that removes every saved record. It is distinct from 
 _Avoid_: Clear session, automatic cleanup.
 
 **Mutation check**:
-A deliberate, bounded count of DOM mutation notifications for one selected source during an approved observation window. It does not retain DOM content or identify a cause.
-_Avoid_: Page recorder, conflict detector.
+A deliberate, bounded count of mutation notifications in one selected page's top document during an approved observation window. It does not retain DOM content or identify a cause.
+_Avoid_: Page recorder, conflict detector, DOM-change count.
+
+**Mutation notification**:
+A browser mutation record delivered to an observer. One notification can describe several node or attribute changes, and not every page change produces one.
+_Avoid_: DOM operation, confirmed page change.
 
 **Request-failure check**:
-A deliberate, bounded count or summary of failed requests for one selected source during an approved observation window. It does not retain request details or attribute failure to an extension.
-_Avoid_: Network log, culprit evidence.
+A deliberate, bounded summary of terminal request outcomes for one selected page's exact origin during an approved observation window. It distinguishes observed requests, HTTP error responses and terminal failures without retaining request details or attributing failure to an extension. It cannot reliably distinguish browser-blocked requests from network failures.
+_Avoid_: Network log, complete request audit, network-failure proof, culprit evidence.
+
+**Collector work**:
+The elapsed time AddonRay's own setup, event handling and finalization spend during a bounded check. It is not a CPU measurement unless separately profiled.
+_Avoid_: CPU usage, page overhead.
+
+**Connectivity check**:
+An optional, explicit companion check of DNS resolution, TCP connection and HTTPS TLS validation for the selected page's actual host and port. It describes the machine's direct path, not the browser's proxy path or a cause.
+_Avoid_: Browser request replay, network diagnosis, culprit evidence.
 
 **Support matrix**:
 The finite list of intended and qualified browser, distribution, operating-system and architecture combinations, each with its evidence state.
@@ -121,8 +137,8 @@ The post-publication record that ties downloaded extension and companion artifac
 _Avoid_: Announcement, store listing.
 
 **Companion**:
-An optional, separately installed local application whose capabilities require their own consent and evidence.
-_Avoid_: Privileged browser backdoor.
+An optional, separately installed local application whose capabilities require their own consent and evidence. In v1 it supplies one display-only connectivity check.
+_Avoid_: Privileged browser backdoor, required helper.
 
 **Qualification**:
 Recorded evidence for named behaviors on an exact browser distribution, version, operating system and architecture. A build alone does not establish it.
