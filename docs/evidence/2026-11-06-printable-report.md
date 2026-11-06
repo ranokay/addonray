@@ -1,10 +1,13 @@
 # Printable HTML report
 
-Status: bounded #10 implementation qualified from clean
-`6cb16346e153eae4fc1691f2579e9299fb96576a`. A later documentation-only
-commit records this evidence without changing product bytes. Deterministic checks, native type
-checking, one clean Chrome and three clean Firefox product runs pass, and a
-native Chrome print/Save-as-PDF observation completed. This record adds no
+Status: bounded #10 implementation initially qualified from clean
+`6cb16346e153eae4fc1691f2579e9299fb96576a`. Review fixes at `3ce50ea`
+(sandboxed previews and deduplicated probes), `5f67c0b` (backslash escaping) and
+`4667cda` (exact-document preview wait) follow; the final exact-head matrix is
+recorded in the pull request instead of a moving documentation head. This record
+preserves the initial qualification, corrections and gaps. Deterministic checks,
+native type checking, one clean Chrome and three clean Firefox product runs pass,
+and a native Chrome print/Save-as-PDF observation completed. This record adds no
 permission, dependency, browser target, support claim, clipboard action or PDF
 library. #11 remains future work.
 
@@ -36,9 +39,7 @@ passes **101 files**. Focused coverage includes:
 
 - complete document shape, inline style only, absent script/link/image/iframe/
   object/embed elements and absent resource attributes;
-- escape of markup, quotes, backslashes, controls, bidi formatting and lone
-  surrogates, including a literal escape-looking sequence beside the actual
-  control character;
+- escape of markup, quotes, controls, bidi formatting and lone surrogates;
 - empty inventories, absent assessment, unattached diagnostics and preserved
   measured, unrecorded and unavailable states;
 - stored changes used verbatim, duplicate-name limitation, full 4,096-code-point
@@ -141,6 +142,12 @@ The evidence is in `.scratch/native-firefox3-print-preview.png` and
 - The report serializer and controllers were checked against the approved
   minimized fields and the stored-change rule; no name-based recomputation or
   local envelope field was added.
+- CodeRabbit found that a literal `\u{202E}` and an actual U+202E rendered the
+  same. The fix at `5f67c0b` escapes literal backslashes as `\u{5C}` and adds a
+  regression distinguishing the two. The `6cb1634` suite remained 672 tests and
+  did not include that case; the later head's suite is 673 tests and includes it.
+  This changes only values containing backslashes; reports without backslashes
+  keep the earlier bytes.
 - Saved delivery originally validated the record fetched before the final
   asynchronous normal-context check. Another view could delete, delete-all or
   replace the row while that check was pending without a delivered notification,
