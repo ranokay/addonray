@@ -194,9 +194,9 @@ are obtained through an authenticated owner-controlled path before verification;
 a key bundled only beside the artifact cannot establish that artifact's
 authenticity. The release record may repeat the fingerprint, but the trusted
 source is the authenticated path, not the release asset. The exact public key
-value, fingerprint and private signing credentials remain unknown and outside
-source and tickets. No separate companion
-store or account is selected.
+value and fingerprint remain unestablished, and private signing credentials remain
+unknown and outside source and tickets. No separate companion store or account is
+selected.
 
 ## Signature and integrity verification
 

@@ -42,9 +42,9 @@ change no current permission. In particular:
   checksums, verified against a previously trusted public key before execution,
   and requires Gatekeeper/SmartScreen warning qualification on downloaded
   artifacts with quarantine or Mark-of-the-Web intact;
-- companion public-key/fingerprint values, private signing credentials, signing
-  and publication remain unauthorized and unknown. Detached signatures do not
-  supply Developer ID, notarization or Authenticode trust;
+- companion public-key/fingerprint values remain unestablished; private signing
+  credentials, signing and publication remain unauthorized and unknown. Detached
+  signatures do not supply Developer ID, notarization or Authenticode trust;
 - #4 remains `ready-for-human` until the final Chrome ID, account access,
   credential ownership and route verification are real.
 

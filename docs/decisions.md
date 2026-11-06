@@ -416,11 +416,11 @@ do not create or verify any key, account or artifact.
   remain explicit blockers; candidate-current versions remain separate.
 - **Not authorized.** No key generation, key access, signature, account access,
   upload, purchase, OS/VM installation or release publication is authorized by
-  this plan. The exact public key value and fingerprint, private signing
-  credentials and credential ownership remain unknown until the owner establishes
-  them. #4 remains open for the final Chrome ID, account/route verification and
-  credential ownership; #39 and #43 retain their signing and publication
-  authorizations.
+  this plan. The exact public key value and fingerprint remain unestablished, and
+  private signing credentials and credential ownership remain unknown until the
+  owner establishes them. #4 remains open for the final Chrome ID, account/route
+  verification and credential ownership; #39 and #43 retain their signing and
+  publication authorizations.
 
 The approved collector contract is [the mutation and request-failure
 plan](plans/mutation-request-failure.md). It separates mutation notifications
