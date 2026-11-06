@@ -20,8 +20,11 @@ process.env.SE_SKIP_DRIVER_IN_PATH = 'true';
 process.env.SE_SKIP_BROWSER_IN_PATH = 'true';
 
 const mib = 1024 * 1024;
-// Local probe commands resolve through a fixed, non-user-writable PATH.
-const commandEnv = { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' };
+// Local probe commands use an absolute executable path, never PATH lookup.
+const gitCommand =
+  platform() === 'win32'
+    ? 'C:\\Program Files\\Git\\cmd\\git.exe'
+    : '/usr/bin/git';
 const writerId = 'clipboard-feasibility-writer@addonray.test';
 const readerId = 'clipboard-feasibility-reader@addonray.test';
 const expectedMib = 'x'.repeat(mib);
@@ -239,14 +242,12 @@ const report = {
   target,
   timestamp: new Date().toISOString(),
   os: `${platform()} ${arch()}`,
-  sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], {
+  sourceCommit: execFileSync(gitCommand, ['rev-parse', 'HEAD'], {
     encoding: 'utf8',
-    env: commandEnv,
   }).trim(),
   sourceDirty: Boolean(
-    execFileSync('git', ['status', '--porcelain'], {
+    execFileSync(gitCommand, ['status', '--porcelain'], {
       encoding: 'utf8',
-      env: commandEnv,
     }).trim(),
   ),
   requestedVersion: requestedVersion ?? null,
