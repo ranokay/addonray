@@ -318,11 +318,16 @@ the final context check and rejects deleted, expired, unsupported, unreadable,
 replaced or busy records without a collection permission. Imported copy reads no
 storage and discards on replacement, clear, suspension or context loss. A write
 already in flight is not cancellable; stale success and preview restoration are
-suppressed after it resolves.
+suppressed after it resolves. After a successful write resolves, the controller
+revalidates authoritative saved storage/expiry and normal context, live normal
+context and current permissions, and imported normal context and held-report
+identity before publishing success. A completed write whose eligibility changed
+reports that the clipboard write completed and cannot be recalled; it never
+claims the copy did not happen.
 
 Implementation and qualification evidence is recorded in
 [the #11 evidence](evidence/2026-11-06-clipboard-report.md). At clean
-`eec3a2d84196dd3d935552c6d4352d04eb402e77`, 701 behavior tests with 2,023,426
+`8af95aed24ff50fb5d02411ef6ac8363a107050e`, 708 behavior tests with 2,023,448
 assertions across 45 files and native type checking of 105 files pass. The shared
 product probes pass 116 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 pin
 and 106 on Chrome for Testing 156.0.8078.47. Headful runs on Firefox 158.0.1 and
@@ -707,7 +712,7 @@ authorization. Q7/Q8 settle the host ID, artifact naming, GitHub Releases channe
 and detached-signature method as a plan; keys remain unverified and this planning
 work creates no signature or release. #10 is implemented and locally qualified
 from clean `6cb1634`; it is not merged or pushed. #11 is implemented and locally
-qualified from clean `eec3a2d`; it is not merged or pushed. #31 remains
+qualified from clean `8af95ae`; it is not merged or pushed. #31 remains
 readiness-labelled but still needs #10 and #11 merged and its own qualification;
 no #31 evidence is claimed here. This implementation task adds no other runtime
 claim. This implementation task authorizes no push or PR. #32 is

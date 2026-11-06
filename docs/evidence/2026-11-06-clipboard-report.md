@@ -1,9 +1,9 @@
 # Clipboard report (#11)
 
 Status: bounded #11 implementation qualified from clean
-`eec3a2d84196dd3d935552c6d4352d04eb402e77` on macOS 27.2 arm64. A later
-documentation-only head requires its own frozen gate and browser matrix receipt.
-The
+`8af95aed24ff50fb5d02411ef6ac8363a107050e` on macOS 27.2 arm64, including the
+F1 post-write eligibility correction. A later documentation-only head requires
+its own frozen gate and browser matrix receipt. The
 permission-free gate passed before product wiring. Deterministic checks, native
 type checking, one clean Chrome run and three clean Firefox product runs pass.
 Headful product runs on Firefox 158.0.1 and Chrome for Testing 156.0.8078.47
@@ -52,23 +52,23 @@ Raw reports (ignored `.scratch/`):
 
 ## Implemented boundary
 
-| Area           | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Action         | Explicit **Copy Markdown** only. No automatic, scheduled, background or cross-view copy. No manifest permission change; the product manifest remains `activeTab` with optional `management` and `scripting`.                                                                                                                                                                                                                                                                                                                                    |
-| Representation | Live clipboard text is the existing reviewed Markdown report. Saved archives and unsaved imported reports have a new provenance-aware Markdown review generated from the stored `SavedReport`; it is not a copy of the JSON or printable HTML source. No saved or imported Markdown download was added.                                                                                                                                                                                                                                         |
-| Review         | Each entrypoint shows its own labelled **Exact Markdown clipboard review** before the action. Live uses the existing Markdown textarea; saved and imported use a copy-only Markdown format choice with a read-only textarea.                                                                                                                                                                                                                                                                                                                    |
-| Disclosure     | The interface names the **system clipboard** as the destination and states that other applications and people can read it and that AddonRay cannot recall or erase copied content. The copied Markdown also states that copied, downloaded or printed content is outside AddonRay's control.                                                                                                                                                                                                                                                    |
-| Content        | Only the approved report fields: provenance, both inventories, the stored precomputed ID-based changes, assessment, optional timing and page-error summaries, observation limits and fixed limit text. No extension IDs, record IDs, timestamps, page or browser context, permission or host metadata. Imported provenance and an unauthenticated file claim are labelled honestly.                                                                                                                                                             |
-| States         | Empty inventories, absent assessment, unattached diagnostics and measured, unrecorded and unavailable milestones stay explicit. Stored changes are used verbatim and never recomputed from names. Duplicate names remain indistinguishable and the limit is stated.                                                                                                                                                                                                                                                                             |
-| Escaping       | Names and versions render in Markdown code spans. Backticks, backslashes, quotes, controls, format characters, lone surrogates and line separators use Unicode escape notation, so copied text cannot close a code span or masquerade as different content.                                                                                                                                                                                                                                                                                     |
-| Bound          | The live serializer and the new saved/imported Markdown renderer both cap the complete UTF-8 text at 1 MiB. The clipboard adapter rechecks the exact UTF-8 bytes before the platform call. No operation truncates.                                                                                                                                                                                                                                                                                                                              |
-| Guards         | Live copy reuses the idle completed-pair, snapshot reference, reset generation, exclusive activity lease, normal-window, current-permission and freshness checks. Saved copy re-reads IndexedDB before and after the final context check, compares the fresh Markdown with the reviewed text, and rejects deleted, expired, unsupported, unreadable, replaced, busy or non-normal state. Imported copy uses the held content, normal-window and replacement/clear/suspension checks; it reads no storage and requests no collection permission. |
-| Outcomes       | Success is published only after `writeText` resolves. Denied, unavailable and ordinary failures have separate bounded messages. The reviewed preview is preserved on ordinary failure, denial and unavailability. After the write resolves, a stale permit suppresses success and content restoration. A browser-accepted clipboard write is treated as outside recall; AddonRay never claims it can cancel or erase it.                                                                                                                        |
-| Staleness      | Model tests resolve a deferred write after reset, record replacement or selection deletion and assert that no success or preview restoration appears. The platform write itself is not cancellable; the controller only suppresses stale status. The cleanup of the reviewed text in pending permits remains unchanged.                                                                                                                                                                                                                         |
+| Area           | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Action         | Explicit **Copy Markdown** only. No automatic, scheduled, background or cross-view copy. No manifest permission change; the product manifest remains `activeTab` with optional `management` and `scripting`.                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Representation | Live clipboard text is the existing reviewed Markdown report. Saved archives and unsaved imported reports have a new provenance-aware Markdown review generated from the stored `SavedReport`; it is not a copy of the JSON or printable HTML source. No saved or imported Markdown download was added.                                                                                                                                                                                                                                                                                                      |
+| Review         | Each entrypoint shows its own labelled **Exact Markdown clipboard review** before the action. Live uses the existing Markdown textarea; saved and imported use a copy-only Markdown format choice with a read-only textarea.                                                                                                                                                                                                                                                                                                                                                                                 |
+| Disclosure     | The interface names the **system clipboard** as the destination and states that other applications and people can read it and that AddonRay cannot recall or erase copied content. The copied Markdown also states that copied, downloaded or printed content is outside AddonRay's control.                                                                                                                                                                                                                                                                                                                 |
+| Content        | Only the approved report fields: provenance, both inventories, the stored precomputed ID-based changes, assessment, optional timing and page-error summaries, observation limits and fixed limit text. No extension IDs, record IDs, timestamps, page or browser context, permission or host metadata. Imported provenance and an unauthenticated file claim are labelled honestly.                                                                                                                                                                                                                          |
+| States         | Empty inventories, absent assessment, unattached diagnostics and measured, unrecorded and unavailable milestones stay explicit. Stored changes are used verbatim and never recomputed from names. Duplicate names remain indistinguishable and the limit is stated.                                                                                                                                                                                                                                                                                                                                          |
+| Escaping       | Names and versions render in Markdown code spans. Backticks, backslashes, quotes, controls, format characters, lone surrogates and line separators use Unicode escape notation, so copied text cannot close a code span or masquerade as different content.                                                                                                                                                                                                                                                                                                                                                  |
+| Bound          | The live serializer and the new saved/imported Markdown renderer both cap the complete UTF-8 text at 1 MiB. The clipboard adapter rechecks the exact UTF-8 bytes before the platform call. No operation truncates.                                                                                                                                                                                                                                                                                                                                                                                           |
+| Guards         | Live copy reuses the idle completed-pair, snapshot reference, reset generation, exclusive activity lease, normal-window, current-permission and freshness checks. Saved copy re-reads IndexedDB before and after the final context check, compares the fresh Markdown with the reviewed text, and rejects deleted, expired, unsupported, unreadable, replaced, busy or non-normal state. Imported copy uses the held content, normal-window and replacement/clear/suspension checks; it reads no storage and requests no collection permission.                                                              |
+| Outcomes       | Success is published only after `writeText` resolves. Denied, unavailable and ordinary failures have separate bounded messages. The reviewed preview is preserved on ordinary failure, denial and unavailability. After a successful write resolves, authoritative eligibility is revalidated before success. A completed write whose eligibility changed says the clipboard write completed and cannot be recalled; it never says the copy did not happen. A browser-accepted clipboard write is treated as outside recall; AddonRay never claims it can cancel or erase it.                                |
+| Staleness      | Model tests resolve a deferred write after reset, record replacement or selection deletion and assert that no success or preview restoration appears. F1 adds no-notification cases: saved expiry, deletion and replacement re-read authoritative storage and context; live permission and normal-context loss recheck those sources; imported normal-context and held-report changes recheck the authoritative view. The platform write itself is not cancellable; the controller only suppresses stale success and preview restoration. The cleanup of reviewed text in pending permits remains unchanged. |
 
 ## Deterministic checks
 
-The full suite at clean `eec3a2d` passes **701 tests / 2,023,426 assertions
+The full suite at clean `8af95ae` passes **708 tests / 2,023,448 assertions
 across 45 files** and native type checking of **105 files**. Focused coverage
 includes:
 
@@ -80,14 +80,18 @@ includes:
   duplicate names, all missing states, hostile code-span escaping and 1 MiB
   over-limit refusal without truncation;
 - live copy after the async context/permission checks, exact handoff text,
-  JSON/HTML copy refusal, deferred success, denial preservation, thrown failure
-  and reset during a write suppressing success or restored preview;
+  JSON/HTML copy refusal, deferred success, denial preservation, thrown failure,
+  reset during a write suppressing success or restored preview, and a resolved
+  write followed by normal-context or permission loss revalidating before status;
 - saved Markdown preparation, copy-only behavior with no download, fresh storage
-  reads, exact regenerated comparison, deferred success, denial preservation and
-  deletion during a write suppressing success;
+  reads, exact regenerated comparison, deferred success, denial preservation,
+  deletion during a write suppressing success, and resolved-write expiry,
+  deletion and replacement without a notification revalidating authoritative
+  storage before status;
 - imported Markdown preparation, imported provenance and claim retention,
   copy-only behavior, deferred success, denial preservation, replacement during
-  a write and no copy from the HTML preview;
+  a write, no copy from the HTML preview, and resolved-write context or
+  held-report changes without a notification suppressing success;
 - server-rendered view checks for the labelled exact Markdown review, system
   clipboard and outside-recall disclosure, copy actions only in Markdown format
   and no copy controls for JSON or printable HTML.
@@ -96,9 +100,12 @@ Model and UI checks are not browser clipboard evidence.
 
 ## Clean browser qualification
 
-All runs used disposable profiles through the repository runners, sequentially,
-from clean `eec3a2d` (`sourceDirty: false`). Firefox runs install the unmodified
-development build in a temporary directory. Chrome extracts the validated ZIP.
+All runs used disposable profiles through the repository runners, sequentially.
+The initial matrix ran from clean `eec3a2d`; the F1 correction reran Chrome for
+Testing and Firefox 158.0.1 from clean `8af95ae`, both `sourceDirty: false`. The
+full final documentation-head matrix is recorded in the delivery report. Firefox
+runs install the unmodified development build in a temporary directory. Chrome
+extracts the validated ZIP.
 
 | Target                                | Driver                     | Result                         | Checks | Report SHA-256                                                     |
 | ------------------------------------- | -------------------------- | ------------------------------ | ------ | ------------------------------------------------------------------ |
@@ -106,6 +113,12 @@ development build in a temporary directory. Chrome extracts the validated ZIP.
 | Firefox 153.5.1esr (reported 153.5.1) | geckodriver 0.37.1         | passed-with-qualification-gaps | 116    | `29268916c570fd79662e506c16e037b91ea0577fd0597157bfe5b8031b8ee685` |
 | Firefox 158.0.1                       | geckodriver 0.37.1         | passed-with-qualification-gaps | 116    | `d3046eaff53cb3d1f9430b64aed95b667cd830849fab84792e8f81d05bbc16ae` |
 | Chrome for Testing 156.0.8078.47      | ChromeDriver 156.0.8078.47 | passed-with-qualification-gaps | 106    | `bbe7396342cb4e301ceac734fa935fc52783b2704b06e5dcf59360acd10e8292` |
+
+F1 rerun at `8af95ae`: Chrome for Testing 156.0.8078.47 passes 106 checks
+(report `b95ea032ecfcec7b72cf078cf0b888eeddc2a1192b96ab994a5c437760f37d05`) and
+Firefox 158.0.1 passes 116 checks
+(report `351a8f0b60c73b5e746b7417d3e4277f76f3d5186ed8e8b37a948791f01eb73f`).
+Both copied the same live/saved/imported hashes recorded below.
 
 Each browser run copies the live Markdown, an open saved archive's Markdown and
 an unsaved imported report's Markdown. A separate test-only reader fixture reads
@@ -119,7 +132,7 @@ the imported document; the product reports it and preserves the review. The
 reader/writer fixtures use test-only authority and are generated in ignored
 scratch space.
 
-Exact Firefox copied content at `eec3a2d`:
+Exact Firefox copied content (unchanged by F1):
 
 | Output                   | Bytes | SHA-256                                                            |
 | ------------------------ | ----- | ------------------------------------------------------------------ |
@@ -162,6 +175,21 @@ untrusted-provenance label and hostile names shown as literal code-span text.
 
 ## Review corrections
 
+- **F1:** saved clipboard completion originally checked only local selection
+  identity after the platform write resolved. A record could expire, be deleted
+  or be replaced by another view while `writeText` was pending, with its
+  notification delayed, and the controller would still publish success and
+  restore the review. Completion now re-reads authoritative storage and normal
+  context after the resolved write, rechecks the operation after every await,
+  and compares the regenerated representation with the reviewed text. Expiry,
+  deletion and replacement without a notification discard the review and report
+  that the clipboard write completed but cannot be recalled. Live completion now
+  rechecks normal context and current permissions; imported completion rechecks
+  normal context and held-report identity. Deterministic deferred-write tests
+  cover saved expiry, deletion and replacement, live context and permission
+  loss, and imported context and replacement loss without source notification.
+  The earlier local-selection race test remains. The platform write is still
+  irrevocable; the fix suppresses stale success, not the write.
 - The first product probe opened the test reader tab immediately before each
   trusted copy click. Firefox then treated the imported copy as lacking
   activation. The session now captures the preexisting clipboard once and does
