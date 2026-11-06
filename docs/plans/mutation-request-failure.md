@@ -162,12 +162,14 @@ Measurement protocol:
 
 ### Permission model
 
-The manifest adds `webRequest` to optional permissions and a runtime-requestable
-host template to optional host permissions. Installation grants no host access.
-At Start, inside the user gesture, request together:
+The manifest adds `webRequest` to optional permissions and an optional host
+template (`*://*/*`) that permits requesting a runtime origin. The template grants
+nothing by itself and creates no install-time host access. At Start, inside the
+user gesture, request together:
 
 - `webRequest`;
-- the selected source page's exact scheme and host as a host pattern;
+- the selected source page's exact scheme and host as a host pattern
+  (`scheme://host/*`, path ignored);
 - no broader host pattern.
 
 The host permission may cover multiple ports on that host because Firefox host

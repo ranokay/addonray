@@ -136,7 +136,7 @@ One Rust native-messaging host performs the operation. It:
   installs no background service and accepts no arbitrary file or URL request;
 - returns only the bounded result above.
 
-The same operation is implemented on macOS, Windows and Linux. Native host
+The same operation is planned for macOS, Windows and Linux. Native host
 registration, installer layout, update, removal and browser registration differ
 per OS and are #25–#28. Exact host identity and artifact naming remain open.
 
