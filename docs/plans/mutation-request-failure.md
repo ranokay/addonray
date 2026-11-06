@@ -235,12 +235,17 @@ Ordering:
    expected-cleanup marker is cleared so a later user removal is external; a
    retry creates a new marker. Pre-existing grants are never removed.
 8. A late `permissions.onRemoved` event is ignored only when it matches the live
-   expected-cleanup marker by attempt ID and exact permission set. Every other
-   removal is **external** and invalidates live results, pending transfers and
-   attached copies. If the check owner's channel disconnects without confirming
-   cleanup, receiver views clear the marker and treat later removals as external.
-   Permission events carry no provenance; this is a bounded in-memory
-   coordination rule, not an attribution claim.
+   expected-cleanup marker by attempt ID and exact permission set. A live check
+   owner that observes a removal outside expected cleanup sends an explicit
+   **external-revocation** signal; that signal invalidates live standalone
+   results, pending transfers and attached copies. If no live marker or owner can
+   classify the removal, it is **unclassified**: live standalone results and
+   pending transfers are invalidated, but an existing independent attached copy
+   is retained and marked “source permission unverified” until investigation
+   reset or close. A removal is not silently assumed external merely because the
+   owner is gone. Permission events carry no provenance; this is a bounded
+   in-memory coordination rule, not an attribution claim. #17 must prove the
+   protection of existing attachments when the acknowledgement deadline expires.
 
 A user revocation that races the exact cleanup call is indistinguishable from
 expected cleanup for that permission set. The small cleaning window is treated as
@@ -408,12 +413,14 @@ existing page-error attachment contract:
 - all timing, page-error, mutation and request attachments in one investigation
   share the numeric source-tab ID of the first attachment;
 - a matching tab ID does not prove the same page or document;
-- investigation Start over, **external** permission revocation, or destination
-  close/reload discards the copy and invalidates pending transfers. The
-  participating view's in-memory expected-cleanup marker distinguishes expected
-  operation-owned cleanup from external revocation, including for a late
-  `onRemoved` event. A marker without a live check-owner channel is cleared and
-  later removals are external;
+- investigation Start over, an external revocation classified by the live check
+  owner, or destination close/reload discards the copy and invalidates pending
+  transfers. The participating view's in-memory expected-cleanup marker
+  distinguishes expected operation-owned cleanup from external revocation,
+  including for a late `onRemoved` event. If neither a live marker nor a live
+  owner can classify the removal, the removal is unclassified: pending transfers
+  are invalidated but an existing attached copy is retained and marked “source
+  permission unverified” until investigation reset or close;
 - stale, duplicate, wrong-side or wrong-generation transfers fail without
   changing existing observations.
 
@@ -528,11 +535,15 @@ Request cleanup and revocation proof must cover:
   cleanup; after the deadline it is excluded from attachment and the newly
   granted permissions are removed;
 - late `permissions.onRemoved`: a matching event while the marker and owner
-  channel are live does not clear the result or attached copy; a removal outside
-  a matching marker, or after the owner channel disconnects, is external;
+  channel are live does not clear the result or attached copy. A live owner
+  classifies a removal outside the marker as external. If the owner channel is
+  gone and no marker can classify it, the removal is unclassified: pending
+  transfers clear, but an existing attached copy is retained with its source
+  permission marked unverified;
 - external revocation during active, sealed, cleanup-pending, cleanup-failed and
-  attached states: live results and pending transfers clear, and an attached copy
-  clears per the investigation rule;
+  attached states: a live-owner external signal clears live results, pending
+  transfers and attached copies; an unclassified removal after owner loss
+  preserves an existing attached copy until investigation reset or close;
 - pre-existing `webRequest` or origin grants: they are never included in the
   expected-cleanup marker, are not removed, and an external removal of them is
   external;

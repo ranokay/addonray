@@ -432,10 +432,12 @@ approved on 2026-11-06. It is a future data lifecycle, not current behavior.
   explicit check is active; it keeps no ambient record. Grant ownership and
   expected cleanup stay in the live check owner's and participating views'
   memory; no origin pattern or cleanup record is persisted. A sealed result and
-  an independent attached copy survive expected cleanup; external revocation
-  clears live results, pending transfers and attached copies. If the check owner
-  is lost, cleanup is unverified and retained grants are reviewed through the
-  browser's permission controls.
+  an independent attached copy survive expected cleanup. An external revocation
+  classified by the live check owner clears live results, pending transfers and
+  attached copies. If the owner is lost, cleanup is unverified and a removal that
+  cannot be classified preserves an existing attached copy with its source
+  permission marked unverified until investigation reset or close. Retained grants
+  are reviewed through the browser's permission controls.
 - **Investigation, save and report:** a confirmed summary is memory-only until an
   explicit attachment or Save. Attachment follows the existing one-use,
   destination/side, source-tab, stale-action and reset/revocation rules. Saved
@@ -451,8 +453,9 @@ The optional companion is approved v1 scope under #20 to #28, not an implemented
 capability. The approved NET-1 capability is a display-only connectivity check for
 the selected page's actual host and port: DNS resolution, one TCP connection and,
 for HTTPS, one TLS handshake with certificate and hostname validation. The
-hostname and port cross the native-messaging boundary. Only one resolved address
-is tested; the result does not prove the host is unreachable. The host sends no HTTP
+hostname and port cross the native-messaging boundary. At most one resolved
+address is tested; if DNS fails, none is tested, and the result does not prove the
+host is unreachable. The host sends no HTTP
 request and receives no URL path, query, cookie, credential, header or page
 content. The result contains stage outcomes, durations and a coarse error class,
 at most 1 KiB, and is not saved, attached or exported.

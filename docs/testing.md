@@ -627,17 +627,20 @@ Request failure (#17–#19):
   unavailable and the contract returns for a revised permission UX;
 - cleanup lifecycle tests for stop-counting/seal/publication with cleanup
   pending, expected-cleanup marker delivery and acknowledgement before a view is
-  attachment-eligible, matching and non-matching late `permissions.onRemoved`,
-  external revocation during active, sealed, cleanup-pending, cleanup-failed and
-  attached states, retained pre-existing grants, cleanup retry, removal-event
-  timeout clearing the marker as unverified, worker restart with the live owner,
-  owner-channel disconnect clearing the marker, and owner loss leaving cleanup
-  unverified with no silent removal;
+  attachment-eligible, acknowledgement-deadline expiry excluding an unresponsive
+  view and allowing cleanup to proceed, matching and non-matching late
+  `permissions.onRemoved`, external revocation during active, sealed,
+  cleanup-pending, cleanup-failed and attached states, retained pre-existing
+  grants, cleanup retry, removal-event timeout clearing the marker as unverified,
+  worker restart with the live owner, owner-channel disconnect clearing the
+  marker, and owner loss leaving cleanup unverified with no silent removal;
 - tests proving no origin pattern or cleanup record is written to IndexedDB or
   other persistent storage;
 - attachment tests proving a sealed result attaches during cleanup pending or a
   retained grant, survives expected cleanup including a late event while the
-  marker is live, and is cleared by external revocation;
+  marker is live, is cleared by a live-owner classified external revocation, and
+  survives an unclassified removal after owner loss with its source permission
+  marked unverified until investigation reset or close;
 - measured setup, event and finalization elapsed work with the same protocol and
   total caveat;
 - product tests for no ambient collection before Start, no standalone result or

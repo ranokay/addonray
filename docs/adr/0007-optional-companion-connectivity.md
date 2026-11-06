@@ -30,10 +30,10 @@ cache, cookies, authentication or TLS session. OS resolver traffic is inherent.
 TLS validation must be offline in v1; online OCSP/CRL or other verifier traffic is
 not permitted and requires an explicit user-approved contract revision, otherwise
 the verifier is rejected. The companion process makes no HTTP request, follows no
-redirect and opens no unrelated destination. It tests only one resolved address,
-so failure does not prove the host is unreachable. It cannot identify a culprit
-extension or prove the browser path is healthy. The check stays optional and
-display-only. Native host identity, distribution channel, platform signing,
+redirect and opens no unrelated destination. It tests at most one resolved
+address; if DNS fails, none is tested, so failure does not prove the host is
+unreachable. It cannot identify a culprit extension or prove the browser path is
+healthy. The check stays optional and display-only. Native host identity, distribution channel, platform signing,
 installer layout and release authorization remain open with #4 and #25–#28.
 Per-OS DNS/TCP/TLS, cancellation, exact-port, malformed-input, actual
 resolver/verifier traffic and cleanup behavior require #21–#23 proof before
