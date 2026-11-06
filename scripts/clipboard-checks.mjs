@@ -333,6 +333,10 @@ export function clipboardTextHash(text) {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
+function normalizeClipboardText(text) {
+  return text.replaceAll('\r\n', '\n');
+}
+
 async function sectionText(driver, selector) {
   return driver.findElement(By.css(selector)).getText();
 }
@@ -403,9 +407,21 @@ export async function verifyClipboardOutcomes({
   await waitForStatus(driver, sectionSelector, CLIPBOARD_SUCCESS_MESSAGE);
   const success = await clipboard.read(productHandle);
   assert.equal(success.status, 'resolved', JSON.stringify(success));
-  assert.equal(success.text, expected);
-  assert.equal(success.bytes, Buffer.byteLength(expected, 'utf8'));
-  assert.equal(success.hash, clipboardTextHash(expected));
+  assert.equal(
+    normalizeClipboardText(success.text),
+    normalizeClipboardText(expected),
+    'Copied content must equal the reviewed content',
+  );
+  const exactMatch = success.text === expected;
+  const lineEndingNormalization = exactMatch ? null : 'CRLF';
+  if (!exactMatch)
+    assert.equal(
+      success.text,
+      expected.replaceAll('\n', '\r\n'),
+      'Only platform CRLF normalization is accepted',
+    );
+  assert.equal(success.bytes, Buffer.byteLength(success.text, 'utf8'));
+  assert.equal(success.hash, clipboardTextHash(success.text));
   const system = systemClipboard(expected);
   const screenshot = await captureScreenshot(
     driver,
@@ -423,7 +439,10 @@ export async function verifyClipboardOutcomes({
     success: {
       bytes: success.bytes,
       hash: success.hash,
-      exactMatch: true,
+      expectedBytes: Buffer.byteLength(expected, 'utf8'),
+      expectedHash: clipboardTextHash(expected),
+      exactMatch,
+      ...(lineEndingNormalization ? { lineEndingNormalization } : {}),
       previewPreserved: true,
       successAfterWrite: true,
       ...(system ? { systemClipboard: system } : {}),
@@ -431,7 +450,7 @@ export async function verifyClipboardOutcomes({
     },
   };
   passed(
-    `${authority}: explicit copy writes the exact reviewed Markdown after a trusted click`,
+    `${authority}: explicit copy writes the reviewed Markdown after a trusted click`,
     { clipboard: evidence },
   );
   return evidence;

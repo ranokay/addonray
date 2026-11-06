@@ -118,6 +118,66 @@ export function createImportOutput(
     };
   }
 
+  async function deliverCopy(
+    ticket: number,
+    candidate: ImportedPermit,
+    text: string,
+  ) {
+    let outcome: ClipboardOutcome;
+    try {
+      outcome = await handoffs.copy(text);
+    } catch {
+      if (current(ticket, candidate))
+        publish({
+          ...state,
+          preview: text,
+          busy: false,
+          message: CLIPBOARD_ERROR_MESSAGE,
+        });
+      return;
+    }
+    if (!locallyCurrent(ticket, candidate)) return;
+    if (outcome.status !== 'success') {
+      if (!current(ticket, candidate)) {
+        discard(outcome.message);
+        return;
+      }
+      publish({
+        ...state,
+        preview: text,
+        busy: false,
+        message: outcome.message,
+      });
+      return;
+    }
+    // The write may be irrevocable. A replacement, clear, suspension or context
+    // loss during it suppresses success and content restoration, but never
+    // claims the completed write did not happen.
+    if (!current(ticket, candidate)) {
+      discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+      return;
+    }
+    let eligibility: 'valid' | 'stale' | 'cancelled';
+    try {
+      eligibility = await postWriteEligible(ticket, candidate);
+    } catch {
+      if (locallyCurrent(ticket, candidate))
+        discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+      return;
+    }
+    if (eligibility === 'cancelled') return;
+    if (eligibility === 'stale') {
+      discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+      return;
+    }
+    publish({
+      ...state,
+      preview: text,
+      busy: false,
+      message: outcome.message,
+    });
+  }
+
   async function deliver(kind: 'download' | 'print' | 'copy') {
     const candidate = permit;
     if (!live || state.busy || candidate === null || candidate.text === null)
@@ -161,60 +221,7 @@ export function createImportOutput(
       }
       if (!current(ticket, candidate)) return;
       if (kind === 'copy') {
-        const text = fresh.value;
-        let outcome: ClipboardOutcome;
-        try {
-          outcome = await handoffs.copy(text);
-        } catch {
-          if (current(ticket, candidate))
-            publish({
-              ...state,
-              preview: text,
-              busy: false,
-              message: CLIPBOARD_ERROR_MESSAGE,
-            });
-          return;
-        }
-        if (!locallyCurrent(ticket, candidate)) return;
-        if (outcome.status !== 'success') {
-          if (!current(ticket, candidate)) {
-            discard(outcome.message);
-            return;
-          }
-          publish({
-            ...state,
-            preview: text,
-            busy: false,
-            message: outcome.message,
-          });
-          return;
-        }
-        // The write may be irrevocable. A replacement, clear, suspension or
-        // context loss during it suppresses success and content restoration,
-        // but never claims the completed write did not happen.
-        if (!current(ticket, candidate)) {
-          discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
-          return;
-        }
-        let eligibility: 'valid' | 'stale' | 'cancelled';
-        try {
-          eligibility = await postWriteEligible(ticket, candidate);
-        } catch {
-          if (locallyCurrent(ticket, candidate))
-            discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
-          return;
-        }
-        if (eligibility === 'cancelled') return;
-        if (eligibility === 'stale') {
-          discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
-          return;
-        }
-        publish({
-          ...state,
-          preview: text,
-          busy: false,
-          message: outcome.message,
-        });
+        await deliverCopy(ticket, candidate, fresh.value);
         return;
       }
       try {
