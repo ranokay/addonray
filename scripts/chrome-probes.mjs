@@ -12,6 +12,10 @@ import {
   installChromeExtension,
 } from './chrome-session.mjs';
 import { checkInvestigation } from './investigation-checks.mjs';
+import {
+  createClipboardSession,
+  prepareClipboardFixtures,
+} from './clipboard-checks.mjs';
 import { checkTimingHandoff } from './timing-handoff-checks.mjs';
 import {
   preparePageErrorFixture,
@@ -91,6 +95,9 @@ const pageErrorComparisonFixture = await preparePageErrorComparisonFixture(
   errorComparisonDirectory,
   'chrome',
 );
+const clipboardFixtures = await prepareClipboardFixtures(
+  join(work, 'clipboard-fixtures'),
+);
 const timing = timingFixtures();
 const server = createServer((request, response) => {
   if (pageErrorFixtureHandler(request, response)) return;
@@ -140,8 +147,9 @@ const passed = (name, detail) => {
   console.log(`Passed: ${name}`);
 };
 let session;
+let clipboard;
 try {
-  session = await launchChrome();
+  session = await launchChrome({ headless: process.env.HEADFUL !== '1' });
   const { driver, cdp } = session;
   // Fixture-only browser setting; default user download behavior remains separate.
   await cdp.send('Browser.setDownloadBehavior', {
@@ -160,11 +168,30 @@ try {
     cdp,
     errorComparisonDirectory,
   );
+  const clipboardReaderId = await installChromeExtension(
+    cdp,
+    clipboardFixtures.reader,
+  );
+  const clipboardWriterId = await installChromeExtension(
+    cdp,
+    clipboardFixtures.writer,
+  );
   const productUrl = `chrome-extension://${productId}/popup.html`;
   const uiUrl = `chrome-extension://${uiId}/popup.html`;
   const productInvestigationUrl = `chrome-extension://${productId}/investigation.html`;
   const uiInvestigationUrl = `chrome-extension://${uiId}/investigation.html`;
   const controllerUrl = `chrome-extension://${controllerId}/probe.html`;
+  clipboard = createClipboardSession({
+    driver,
+    readerUrl: `chrome-extension://${clipboardReaderId}/reader.html`,
+    writerUrl: `chrome-extension://${clipboardWriterId}/writer.html`,
+  });
+  report.clipboardAuthority = {
+    reader: 'test-only clipboardRead; generated in ignored scratch space',
+    writer:
+      'test-only copy of the preexisting clipboard; no clipboard permission',
+    productManifest: 'activeTab only; no clipboard permission',
+  };
   await driver.get(productUrl);
   await driver.wait(until.elementLocated(By.css('h1')), 10000);
   assert.equal(await driver.findElement(By.css('h1')).getText(), 'AddonRay');
@@ -361,6 +388,7 @@ try {
     authority: 'Chrome pre-granted UI fixture with unchanged production assets',
     passed,
     simulateSavedQuota: true,
+    clipboard,
   });
 
   await driver.get(localUrl);
@@ -726,6 +754,29 @@ try {
   }
 } finally {
   timing.release();
+  if (session && clipboard) {
+    try {
+      const handles = await session.driver.getAllWindowHandles();
+      const handle = handles.find((candidate) => !clipboard.owns(candidate));
+      if (!clipboard.isRestored()) {
+        if (handle) {
+          await session.driver.switchTo().window(handle);
+          report.clipboardRestore = await clipboard.restore(handle);
+        } else {
+          report.clipboardRestore = {
+            restored: false,
+            reason: 'no surviving non-clipboard window',
+          };
+        }
+      }
+      await clipboard.close(handle ?? null);
+    } catch (clipboardError) {
+      report.clipboardRestore = {
+        restored: false,
+        reason: String(clipboardError),
+      };
+    }
+  }
   if (session) {
     session.cdp.close();
     try {

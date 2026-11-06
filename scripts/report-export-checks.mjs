@@ -15,6 +15,7 @@ import {
   requestAndAssertPrint,
   snapshotHtmlDownloads,
 } from './html-export-checks.mjs';
+import { verifyClipboardOutcomes } from './clipboard-checks.mjs';
 
 const filename = 'addonray-investigation.md';
 const beforeSelector = '[data-testid="before-snapshot"]';
@@ -34,6 +35,7 @@ export async function checkReportExport({
   fixtureInitiallyEnabled,
   authority,
   passed,
+  clipboard,
 }) {
   assert.deepEqual(
     await readdir(directory),
@@ -227,6 +229,17 @@ export async function checkReportExport({
 
   const reviewedMarkdown = await prepare('Uncertain');
   assert.equal(reviewedMarkdown, initialMarkdown);
+  const clipboardEvidence = await verifyClipboardOutcomes({
+    driver,
+    clipboard,
+    sectionSelector: '[aria-labelledby="report-heading"]',
+    previewId: 'report-text',
+    buttonId: 'report-copy',
+    expected: reviewedMarkdown,
+    authority,
+    passed,
+  });
+  evidence.clipboard = clipboardEvidence;
   const reviewedBytes = Buffer.from(reviewedMarkdown, 'utf8');
   assert(reviewedBytes.length <= 1_048_576);
   evidence.stage = 'download-requested';

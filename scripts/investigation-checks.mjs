@@ -32,6 +32,7 @@ export async function checkInvestigation({
   reportDirectory,
   simulateSavedQuota = false,
   privateSavedId = null,
+  clipboard,
 }) {
   await driver.get(popupUrl);
   await driver.wait(until.elementLocated(By.id('new-investigation')), 10000);
@@ -256,6 +257,7 @@ export async function checkInvestigation({
     fixtureInitiallyEnabled,
     authority,
     passed,
+    clipboard,
   });
 
   const libraryUrl = investigationUrl.replace(
@@ -276,6 +278,7 @@ export async function checkInvestigation({
     passed,
     simulateQuota: simulateSavedQuota,
     reportDirectory,
+    clipboard,
   });
 
   async function verifyRetainedReport(phase) {
@@ -363,6 +366,7 @@ export async function checkInvestigation({
     changeKind,
     investigationLabel,
     reportDirectory,
+    clipboard,
   });
 
   for (const handle of investigationWindows) {

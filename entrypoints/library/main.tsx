@@ -7,6 +7,7 @@ import { createSavedExport } from '../../lib/saved-export';
 import { createReportImport } from '../../lib/report-import';
 import { createImportOutput } from '../../lib/import-output';
 import { requestReportDownload } from '../../lib/report-download';
+import { writeReportClipboard } from '../../lib/report-clipboard';
 import { printReportPreview } from '../../lib/report-print';
 import { createIndexedDbSavedStore } from '../../lib/saved-store';
 import { App } from './App';
@@ -21,11 +22,13 @@ const library = createSavedLibrary(browser, store, hint);
 const exporter = createSavedExport(browser, store, library, {
   download: (text, format) => requestReportDownload(text, format),
   print: (text) => printReportPreview('saved-html-preview', text),
+  copy: (text) => writeReportClipboard(text),
 });
 const importer = createReportImport(browser, store, hint);
 const output = createImportOutput(browser, importer, {
   download: (text) => requestReportDownload(text, 'html'),
   print: (text) => printReportPreview('imported-html-preview', text),
+  copy: (text) => writeReportClipboard(text),
 });
 window.addEventListener('pagehide', (event) => {
   if (event.persisted) {

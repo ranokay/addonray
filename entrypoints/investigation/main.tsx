@@ -5,6 +5,7 @@ import { getBrowserContext } from '../../lib/browser-target';
 import { createInvestigation } from '../../lib/investigation';
 import { createReportExport } from '../../lib/report-export';
 import { requestReportDownload } from '../../lib/report-download';
+import { writeReportClipboard } from '../../lib/report-clipboard';
 import { printReportPreview } from '../../lib/report-print';
 import { createSavedSave } from '../../lib/saved-save';
 import { createSavedChangeHint } from '../../lib/saved-notifier';
@@ -23,6 +24,7 @@ const exporter = createReportExport(browser, investigation, {
   print: (text) => {
     printReportPreview('report-html-preview', text);
   },
+  copy: (text) => writeReportClipboard(text),
 });
 const savedHint = createSavedChangeHint();
 const savedSaver = createSavedSave(

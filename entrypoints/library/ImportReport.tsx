@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import type { ImportOutput } from '../../lib/import-output';
+import { CLIPBOARD_DISCLOSURE } from '../../lib/report-clipboard';
 import type { ReportImport } from '../../lib/report-import';
 import type { SavedRetentionDays } from '../../lib/saved-record';
 import { ReportDetails } from './ArchiveView';
@@ -10,29 +11,57 @@ function ImportedOutputSection({ output }: { output: ImportOutput }) {
     output.getSnapshot,
     output.getSnapshot,
   );
+  const markdown = state.format === 'markdown';
   return (
-    <section aria-labelledby="imported-html-heading" aria-busy={state.busy}>
-      <h3 id="imported-html-heading">Printable report</h3>
-      <p id="imported-html-disclosure">
-        Review a self-contained printable HTML page for this imported report. It
-        keeps the imported provenance and untrusted-content label. It uses
-        inline styling only and loads no scripts, images, fonts or remote
-        resources. Printing uses your browser&rsquo;s dialog; AddonRay cannot
-        observe whether you print, cancel or save a PDF.
+    <section aria-labelledby="imported-output-heading" aria-busy={state.busy}>
+      <h3 id="imported-output-heading">Report output</h3>
+      <p id="imported-output-disclosure">
+        {markdown
+          ? 'Review the exact Markdown text that Copy Markdown places on your system clipboard for this imported report. It keeps the imported provenance and untrusted-content label. It omits record IDs, save times, page and browser context. It is not a copy of the JSON or printable HTML source.'
+          : 'Review a self-contained printable HTML page for this imported report. It keeps the imported provenance and untrusted-content label. It uses inline styling only and loads no scripts, images, fonts or remote resources. Printing uses your browser’s dialog; AddonRay cannot observe whether you print, cancel or save a PDF.'}
       </p>
+      <fieldset className="report-format" disabled={state.busy}>
+        <legend>Report format</legend>
+        <label>
+          <input
+            id="imported-format-markdown"
+            type="radio"
+            name="imported-report-format"
+            value="markdown"
+            checked={markdown}
+            onChange={() => output.setFormat('markdown')}
+          />
+          Markdown (clipboard)
+        </label>
+        <label>
+          <input
+            id="imported-format-html"
+            type="radio"
+            name="imported-report-format"
+            value="html"
+            checked={state.format === 'html'}
+            onChange={() => output.setFormat('html')}
+          />
+          Printable HTML
+        </label>
+      </fieldset>
       <div className="library-actions">
         <button
-          id="imported-html-prepare"
+          id="imported-output-prepare"
           disabled={state.busy}
           onClick={() => void output.prepare()}
         >
           {state.busy
-            ? 'Preparing printable report…'
-            : 'Prepare printable report'}
+            ? markdown
+              ? 'Preparing Markdown…'
+              : 'Preparing printable report…'
+            : markdown
+              ? 'Prepare Markdown for copy'
+              : 'Prepare printable report'}
         </button>
         {(state.preview !== null || state.busy) && (
           <button
-            id="imported-html-cancel"
+            id="imported-output-cancel"
             className="quiet"
             onClick={output.cancel}
           >
@@ -42,33 +71,64 @@ function ImportedOutputSection({ output }: { output: ImportOutput }) {
       </div>
       {state.preview !== null && (
         <div className="report-preview">
-          <p className="metadata">
-            Exact printable preview. This is the same document the download
-            button saves.
-          </p>
-          <iframe
-            id="imported-html-preview"
-            title="Imported printable report preview"
-            sandbox="allow-same-origin allow-modals"
-            srcDoc={state.preview}
-            aria-describedby="imported-html-disclosure"
-          />
-          <div className="library-actions">
-            <button
-              id="imported-html-download"
-              disabled={state.busy}
-              onClick={() => void output.download()}
-            >
-              Download HTML report
-            </button>
-            <button
-              id="imported-html-print"
-              disabled={state.busy}
-              onClick={() => void output.print()}
-            >
-              Print / Save as PDF
-            </button>
-          </div>
+          {markdown ? (
+            <>
+              <label htmlFor="imported-markdown-text">
+                Exact Markdown clipboard review
+              </label>
+              <textarea
+                id="imported-markdown-text"
+                readOnly
+                spellCheck={false}
+                rows={14}
+                value={state.preview}
+                aria-describedby="imported-output-disclosure imported-copy-help"
+              />
+              <p className="metadata" id="imported-copy-help">
+                {CLIPBOARD_DISCLOSURE}
+              </p>
+              <div className="library-actions">
+                <button
+                  id="imported-copy"
+                  disabled={state.busy}
+                  aria-describedby="imported-copy-help"
+                  onClick={() => void output.copy()}
+                >
+                  Copy Markdown
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="metadata">
+                Exact printable preview. This is the same document the download
+                button saves.
+              </p>
+              <iframe
+                id="imported-html-preview"
+                title="Imported printable report preview"
+                sandbox="allow-same-origin allow-modals"
+                srcDoc={state.preview}
+                aria-describedby="imported-output-disclosure"
+              />
+              <div className="library-actions">
+                <button
+                  id="imported-html-download"
+                  disabled={state.busy}
+                  onClick={() => void output.download()}
+                >
+                  Download HTML report
+                </button>
+                <button
+                  id="imported-html-print"
+                  disabled={state.busy}
+                  onClick={() => void output.print()}
+                >
+                  Print / Save as PDF
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
       <p role="status">{state.message ?? ''}</p>

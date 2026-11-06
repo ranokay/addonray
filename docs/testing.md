@@ -394,15 +394,16 @@ until explicitly observed.
 ## Saved-investigation and exchange checks
 
 The [saved-data contract](plans/saved-investigation-data-rules.md) governs the
-bounded #6 through #10 slices and the future exchange work. #6 save/list/read-only
+bounded #6 through #11 slices and the exchange work. #6 save/list/read-only
 reopen and single-record delete are implemented with model, storage, UI and
 product browser checks. #7 adds per-save 7/30/90-day retention, bulk deletion and
 confirmed delete-all. #8 adds exact schema version 1 JSON preview and download
 for the live investigation and saved archives. #9 adds explicit strict file
 import, read-only review and a separate imported save. #10 adds self-contained
-printable HTML and the browser Print/Save-as-PDF path. Clipboard remains a future
-test. Keep model tests, storage adapter tests, UI tests, browser evidence and
-native observations separate.
+printable HTML and the browser Print/Save-as-PDF path. #11 adds explicit
+clipboard copy of exact reviewed Markdown for live, saved and unsaved imported
+reports without a clipboard permission. Keep model tests, storage adapter tests,
+UI tests, browser evidence and native observations separate.
 
 Model and schema checks:
 
@@ -458,10 +459,9 @@ UI checks:
 - normal, private and unknown context guards for every saved-data action;
 - imported label, untrusted rendering, separate Save imported report, view-only
   disclosure and no automatic persistence;
-- exact Markdown, JSON and printable HTML previews, and exact clipboard text
-  (future #11);
-- truthful clipboard success after a write and bounded denial or failure
-  (future #11);
+- exact Markdown, JSON and printable HTML previews, and exact clipboard text;
+- truthful clipboard success after a write, bounded denial/unavailable/failure
+  outcomes, preserved review text and stale-write success suppression;
 - download and print reported as requests, not completion.
 
 Browser and native evidence:
@@ -634,6 +634,52 @@ implementation and qualification tickets are authorized.
   Firefox's native Save-to-PDF dialog, Windows/Linux print/PDF and hosted OS
   evidence remain unqualified. See
   [the #10 evidence](evidence/2026-11-06-printable-report.md).
+
+#11 execution:
+
+- The permission-free gate runs before product wiring:
+  `bun scripts/clipboard-feasibility.mjs firefox` and
+  `bun scripts/clipboard-feasibility.mjs chrome`, with
+  `FIREFOX_VERSION` for the Firefox pins. A writer fixture has no clipboard
+  permission; a separate reader declares test-only `clipboardRead`. Both live in
+  ignored scratch space and are absent from both packages and the source archive.
+  The probe records immediate and guarded writes, exact 1 MiB text, the actual
+  no-activation policy and restoration of the preexisting clipboard.
+- `tests/report-clipboard.test.ts` covers exact writes, the 1 MiB UTF-8 boundary,
+  over-limit refusal before the platform call, denial, unavailable and generic
+  failure without leaking platform detail.
+- `tests/report-markdown.test.ts` covers captured/imported provenance,
+  unauthenticated claims, omitted local identifiers, stored changes, duplicate
+  names, missing states, hostile code-span escaping and over-limit refusal.
+- `tests/report-export.test.ts`, `tests/saved-export.test.ts` and
+  `tests/import-output.test.ts` cover deferred success, exact handoff text,
+  copy-only formats, denial/failure preservation, and reset, deletion,
+  replacement or selection change during an in-flight write suppressing success
+  and preview restoration. They also hold the operation after the resolved write
+  and revalidate authoritative eligibility without a source notification: saved
+  expiry, deletion and replacement; live normal context and permission loss; and
+  imported normal context and held-report change. The three view suites cover
+  the labelled exact Markdown review, destination/outside-recall disclosure and
+  copy controls.
+- `scripts/clipboard-checks.mjs` adds the packaged-product checks. It generates
+  the test-only reader/writer fixtures, captures the preexisting clipboard once,
+  reads exact text/bytes/SHA-256 after each trusted click, restores the original
+  clipboard, and runs real or deterministic denial plus injected unavailable as
+  the final clipboard action in a document. `scripts/report-export-checks.mjs`,
+  `scripts/saved-checks.mjs` and `scripts/report-import-checks.mjs` invoke it for
+  live, saved, saved-after-management-removal and unsaved imported reports.
+- Headful runs set `HEADFUL=1 ADDONRAY_NATIVE_CLIPBOARD=1` and an
+  `ADDONRAY_SCREENSHOT_DIR`, then read the host clipboard with `pbpaste` and save
+  success/denial/unavailable screenshots. Headless and headful evidence are
+  recorded separately.
+- At clean `db615b3`, 708 behavior tests with 2,023,448 assertions and native
+  type checking of 106 files pass. The local product probes pass 116 checks on
+  Firefox 140.0, 153.5.1esr and 158.0.1 and 106 on Chrome for Testing
+  156.0.8078.47. Firefox records a real no-activation denial; Chrome records that
+  its focused extension page permits the write, then verifies injected denial.
+  Hosted Windows Chrome normalizes clipboard LF to CRLF; the probe accepts only
+  that transformation and records it, without claiming byte equality. See
+  [the #11 evidence](evidence/2026-11-06-clipboard-report.md).
 
 ## Approved future collector checks
 

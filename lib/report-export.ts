@@ -3,6 +3,11 @@ import type { Investigation } from './investigation';
 import { createInvestigationReport } from './investigation-report';
 import { createPrintableHtml } from './report-html';
 import type { ReportFormat } from './report-download';
+import {
+  CLIPBOARD_COMPLETED_STALE_MESSAGE,
+  CLIPBOARD_ERROR_MESSAGE,
+  type ClipboardOutcome,
+} from './report-clipboard';
 import { createExchangeJson, createSavedReport } from './saved-record';
 
 export interface ReportBrowser {
@@ -17,6 +22,7 @@ export interface ReportBrowser {
 export interface ReportHandoffs {
   download(text: string, format: ReportFormat): void;
   print(text: string, format: ReportFormat): void;
+  copy(text: string): Promise<ClipboardOutcome>;
 }
 
 interface ExportSnapshot {
@@ -89,6 +95,21 @@ export function createReportExport(
     permit.snapshot === investigation.getSnapshot() &&
     permit.generation === investigation.getGeneration();
 
+  function requiredPermissions(
+    permit: ReportPermit,
+  ): Parameters<ReportBrowser['permissions']['contains']>[0] {
+    // An inventory-only report does not require a never-granted page permission.
+    const hasPageData = !!(
+      permit.snapshot?.timingBefore ||
+      permit.snapshot?.timingAfter ||
+      permit.snapshot?.errorBefore ||
+      permit.snapshot?.errorAfter
+    );
+    return {
+      permissions: hasPageData ? ['management', 'scripting'] : ['management'],
+    };
+  }
+
   async function verify(ticket: number, permit: ReportPermit) {
     if (!current(ticket, permit)) return false;
     const tab = await api.tabs.getCurrent();
@@ -97,16 +118,7 @@ export function createReportExport(
       discard('Report export is available only in verified normal windows.');
       return false;
     }
-    // An inventory-only report does not require a never-granted page permission.
-    const hasPageData = !!(
-      permit.snapshot?.timingBefore ||
-      permit.snapshot?.timingAfter ||
-      permit.snapshot?.errorBefore ||
-      permit.snapshot?.errorAfter
-    );
-    const granted = await api.permissions.contains({
-      permissions: hasPageData ? ['management', 'scripting'] : ['management'],
-    });
+    const granted = await api.permissions.contains(requiredPermissions(permit));
     if (!current(ticket, permit)) return false;
     if (!granted) {
       investigation.startOver();
@@ -118,13 +130,43 @@ export function createReportExport(
     return true;
   }
 
-  // Download and print share the same permit, lease, freshness checks and
-  // synchronous handoff boundary. Print is available only for the HTML frame.
-  async function deliver(kind: 'download' | 'print') {
+  const locallyCurrent = (ticket: number, permit: ReportPermit) =>
+    live && ticket === operation && source === permit;
+
+  // A resolved platform write is not proof that the live view is still eligible.
+  // Recheck authoritative context and permission state before success, with the
+  // operation check after every await. Local generation alone cannot observe a
+  // permission removal that arrives without a notification.
+  async function postWriteEligible(
+    ticket: number,
+    permit: ReportPermit,
+  ): Promise<'valid' | 'stale' | 'cancelled'> {
+    if (!locallyCurrent(ticket, permit)) return 'cancelled';
+    if (!current(ticket, permit)) return 'stale';
+    const tab = await api.tabs.getCurrent();
+    if (!locallyCurrent(ticket, permit)) return 'cancelled';
+    if (!current(ticket, permit)) return 'stale';
+    if (tab?.incognito !== false) return 'stale';
+    const granted = await api.permissions.contains(requiredPermissions(permit));
+    if (!locallyCurrent(ticket, permit)) return 'cancelled';
+    if (!current(ticket, permit)) return 'stale';
+    if (!granted) {
+      investigation.startOver();
+      return 'stale';
+    }
+    return 'valid';
+  }
+
+  // Download, print and clipboard copy share the same permit, lease and
+  // freshness checks. Print is available only for the HTML frame and clipboard
+  // copy only for the reviewed Markdown text. Clipboard success waits for the
+  // platform write; it is never inferred from the click.
+  async function deliver(kind: 'download' | 'print' | 'copy') {
     const permit = source;
     if (!live || state.busy || subscribers.size === 0 || permit?.text == null)
       return;
     if (kind === 'print' && permit.format !== 'html') return;
+    if (kind === 'copy' && permit.format !== 'markdown') return;
     const lease = investigation.activity.tryBegin('report');
     if (!lease) {
       publish({
@@ -142,6 +184,52 @@ export function createReportExport(
         if (!(await verify(ticket, permit))) return;
         if (!current(ticket, permit) || permit.text === null) return;
         if (kind === 'print' && permit.format !== 'html') return;
+        if (kind === 'copy' && permit.format !== 'markdown') return;
+        if (kind === 'copy') {
+          const text = permit.text;
+          const outcome = await handoffs.copy(text);
+          if (!locallyCurrent(ticket, permit)) return;
+          if (outcome.status !== 'success') {
+            if (!current(ticket, permit)) {
+              discard(outcome.message);
+              return;
+            }
+            publish({
+              ...state,
+              preview: text,
+              busy: false,
+              message: outcome.message,
+            });
+            return;
+          }
+          // The platform write may be irrevocable. If the live view is stale,
+          // suppress success and content restoration, but do not claim the
+          // completed write did not happen.
+          if (!current(ticket, permit)) {
+            discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+            return;
+          }
+          let eligibility: 'valid' | 'stale' | 'cancelled';
+          try {
+            eligibility = await postWriteEligible(ticket, permit);
+          } catch {
+            if (locallyCurrent(ticket, permit))
+              discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+            return;
+          }
+          if (eligibility === 'cancelled') return;
+          if (eligibility === 'stale') {
+            discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+            return;
+          }
+          publish({
+            ...state,
+            preview: text,
+            busy: false,
+            message: outcome.message,
+          });
+          return;
+        }
         // No await separates the final validity check from browser handoff.
         const handoff =
           kind === 'download' ? handoffs.download : handoffs.print;
@@ -160,9 +248,11 @@ export function createReportExport(
             preview: permit.text,
             busy: false,
             message:
-              kind === 'download'
-                ? 'The download could not be requested. Try again from this preview.'
-                : 'The print dialog could not be requested. Try again from this preview.',
+              kind === 'copy'
+                ? CLIPBOARD_ERROR_MESSAGE
+                : kind === 'download'
+                  ? 'The download could not be requested. Try again from this preview.'
+                  : 'The print dialog could not be requested. Try again from this preview.',
           });
         }
       }
@@ -269,6 +359,9 @@ export function createReportExport(
     },
     async print() {
       await deliver('print');
+    },
+    async copy() {
+      await deliver('copy');
     },
     cancel: () => discard(),
     dispose() {

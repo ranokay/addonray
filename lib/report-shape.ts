@@ -1,5 +1,9 @@
 import type { TimingMeasurement, TimingSnapshot } from './inspector';
 
+// Shared complete UTF-8 report text bound. Format-specific renderers still
+// enforce their own bytes; clipboard text uses this bound.
+export const REPORT_TEXT_MAX_BYTES = 1_048_576;
+
 export type JsonObject = Record<string, unknown>;
 
 export function isRecord(value: unknown): value is JsonObject {
