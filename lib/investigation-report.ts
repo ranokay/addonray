@@ -5,12 +5,12 @@ import type { PageErrorSummary } from './page-error-check';
 import {
   assessmentLabels,
   changeLabels,
+  commonReportLimits,
   completionLabels,
   difference,
   measurement,
   milliseconds,
   milestones,
-  reportLimits,
   writeMarkdownLiteral,
 } from './report-content';
 
@@ -125,7 +125,7 @@ export function createInvestigationReport(
 
     write('\n## Observation limits\n\n');
     for (const limit of [
-      ...reportLimits.slice(0, 12),
+      ...commonReportLimits,
       'Start over, permission revocation or closing, reloading or unloading the investigation clears its in-memory results. An already saved file is outside that lifetime and is not erased by those actions.',
     ])
       write(`- ${limit}\n`);

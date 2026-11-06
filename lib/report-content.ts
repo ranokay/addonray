@@ -103,7 +103,7 @@ export function writeMarkdownLiteral(
   write('"`');
 }
 
-export const reportLimits = [
+export const commonReportLimits = [
   'Inventories contain only extensions reported by the browser. Enabled state does not show whether an extension ran on the tested page.',
   'Inventory, timing and page-error captures are separate observations. Attachment order does not prove when the page was tested or settings changed. Conditions may differ.',
   'Timing and error attachments share one source browser tab, but a tab can navigate. A match does not verify the page, document, reload, cache state or test conditions. No page URL or title fields are collected.',
@@ -116,5 +116,9 @@ export const reportLimits = [
   'Attachments are limited to verified normal windows. Private and unclassifiable contexts are excluded. Timings and errors do not identify a responsible extension; the manual page assessment remains separate.',
   'AddonRay does not change other extensions or reload the tested page. These observations do not establish what caused a page result.',
   'Extension names and versions can be sensitive. Review this report before sharing. Quoted code values show literal text; Unicode escape notation represents backticks, backslashes, quotes or invisible controls.',
+] as const;
+
+export const reportLimits = [
+  ...commonReportLimits,
   'Start over, permission revocation or closing, reloading or unloading the investigation clears its in-memory results. A copied report, downloaded file or print is outside that lifetime and is not erased by those actions.',
 ] as const;

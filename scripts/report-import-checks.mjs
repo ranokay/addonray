@@ -665,6 +665,7 @@ export async function checkReportImport({
   if (clipboard && !clipboard.isRestored()) {
     const handle = await driver.getWindowHandle();
     const restore = await clipboard.restore(handle);
+    assert.equal(restore.restored, true, JSON.stringify(restore));
     await clipboard.close(handle);
     passed(
       `${authority}: the preexisting system clipboard was restored after clipboard checks`,

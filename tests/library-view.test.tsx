@@ -119,7 +119,8 @@ it('lists a saved record and unsupported or unreadable rows for deletion only', 
     'Browser or OS backups',
     'Uninstall clearing is browser-controlled',
     'can export an open saved report as JSON or printable HTML',
-    'cannot copy saved reports to the clipboard',
+    'can copy reviewed Markdown to the system clipboard',
+    'files, prints and copied content remain outside',
     'import alone stores nothing',
   ])
     expect(markup).toContain(phrase);

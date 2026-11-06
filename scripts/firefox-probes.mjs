@@ -829,10 +829,20 @@ try {
   timing.release();
   if (driver && clipboard) {
     try {
-      const handle = await driver.getWindowHandle();
-      if (!clipboard.isRestored())
-        report.clipboardRestore = await clipboard.restore(handle);
-      await clipboard.close(handle);
+      const handles = await driver.getAllWindowHandles();
+      const handle = handles.find((candidate) => !clipboard.owns(candidate));
+      if (!clipboard.isRestored()) {
+        if (handle) {
+          await driver.switchTo().window(handle);
+          report.clipboardRestore = await clipboard.restore(handle);
+        } else {
+          report.clipboardRestore = {
+            restored: false,
+            reason: 'no surviving non-clipboard window',
+          };
+        }
+      }
+      await clipboard.close(handle ?? null);
     } catch (clipboardError) {
       report.clipboardRestore = {
         restored: false,

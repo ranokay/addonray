@@ -329,8 +329,8 @@ Implementation and qualification evidence is recorded in
 [the #11 evidence](evidence/2026-11-06-clipboard-report.md). At clean
 `db615b37e5a4bf99a787004bdbc16dd4f148fd7e`, 708 behavior tests with 2,023,448
 assertions across 45 files and native type checking of 106 files pass. The shared
-product probes pass 116 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 pin
-and 106 on Chrome for Testing 156.0.8078.47. Headful runs on Firefox 158.0.1 and
+product probes pass 116 checks on Firefox 140.0 and 153.5.1esr at `eec3a2d`, and
+116 on Firefox 158.0.1 and 106 on Chrome for Testing 156.0.8078.47 at `8af95ae`. Headful runs on Firefox 158.0.1 and
 Chrome 156.0.8078.47 verified the live, saved and imported copied text against
 the host system clipboard byte for byte, plus real Firefox denial, deterministic
 Chrome denial and injected unavailable outcomes. Saved copy also passes after

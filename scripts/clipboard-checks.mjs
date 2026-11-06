@@ -207,6 +207,7 @@ export function createClipboardSession({ driver, readerUrl, writerUrl }) {
       return clipboardMetadata(result);
     },
     isRestored: () => restored,
+    owns: (handle) => handle === readerHandle || handle === writerHandle,
     async restore(productHandle) {
       if (closed)
         return { restored: false, reason: 'clipboard session already closed' };
