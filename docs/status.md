@@ -21,10 +21,13 @@ The implemented runtime below remains the current product. No full-v1 implementa
 The user answered eight readiness questions (Q1–Q8) and approved the
 [#13 mutation and request-failure contract](plans/mutation-request-failure.md), the
 [#12 guided-trial contract](plans/v1-guided-trials.md), the [#20 companion
-connectivity contract](plans/companion-connectivity.md), the #4 extension
-identity and signing plan, the companion distribution and signing plan, and the OS
-target plan. The full answers are in
+connectivity contract](plans/companion-connectivity.md), the Q5 extension
+identity and signing plan, the Q7/Q8 companion release and detached-signing plan,
+and the Q6 OS target plan. The full answers are in
 [the decision record](decisions.md#v1-backlog-readiness-decisions-2026-11-06).
+Q7/Q8 record the approved companion names, channel and signature method; #4's
+final Chrome ID, account and credential verification, route checks and concrete
+authorizations remain open.
 
 These decisions approve future boundaries. They implement no runtime feature and
 change no current permission. In particular:
