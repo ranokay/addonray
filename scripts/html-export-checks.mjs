@@ -74,7 +74,7 @@ export async function readHtmlPreview(driver, frameId) {
         '[src], [href], [action], [style]',
       ).length,
       inlineStyleCount: loaded.querySelectorAll('style').length,
-      sandbox: [...frame.sandbox].sort(),
+      sandbox: [...frame.sandbox].sort((a, b) => a.localeCompare(b)),
       allowScripts: frame.sandbox.contains('allow-scripts'),
       printMedia: {
         headerGroup:

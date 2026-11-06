@@ -20,7 +20,7 @@ export function ReportExportView({
   onDownload: () => Promise<void>;
   onPrint: () => Promise<void>;
   onCancel: () => void;
-  onFormat: (_format: ReportFormat) => void;
+  onFormat(format: ReportFormat): void;
   previewRef?: Ref<HTMLTextAreaElement>;
 }) {
   const json = state.format === 'json';
