@@ -312,8 +312,20 @@ query, cookie, credential, header or page content.
 The extension validates the selected scheme, host and port before consent; the
 host validates the versioned request and bounds DNS, TCP, TLS, cancellation and
 the total 5-second window. The result is at most 1 KiB and remains in memory.
-Native host identity, distribution channel, installer layout and platform signing
-remain open with #4 and #25–#28. #21 to #23 prove the operation per intended OS.
+Q7 fixes the native host ID as `dev.ranokay.addonray` and the artifact base name
+as `addonray-companion-<version>-<os>-<arch>`, distributed through GitHub Releases
+in `ranokay/addonray`. Q8 selects detached minisign signatures plus SHA-256
+checksums for every OS, verified against a previously trusted owner-controlled
+public key before install or execution; a key shipped beside the artifact cannot
+establish its own authenticity. Detached-only signing is the v1 route on every OS
+and does not provide Developer ID, notarization, Windows Authenticode or OS
+reputation.
+A failed checksum or signature check installs, registers and executes nothing; an
+update keeps the last verified installation. Gatekeeper and SmartScreen warning
+flows are qualified from downloaded artifacts with quarantine or Mark-of-the-Web
+intact. Installer layout and exact archive formats remain #25–#28 engineering
+choices. Public-key/fingerprint and private credential ownership, signing and
+publication remain owner gates. #21 to #23 prove the operation per intended OS.
 #24 to #28 deliver, install, remove and upgrade it.
 
 The companion supplies no implicit browser authority, and its installation must

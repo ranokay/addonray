@@ -681,6 +681,25 @@ Verify no HTTP request, redirect, telemetry, update check or arbitrary host/port
 Verify process/socket cleanup. The result is display-only and must never enter
 saved data or a report.
 
+Companion distribution qualification uses an actual downloaded file that retains
+the OS quarantine attribute or Mark-of-the-Web. Before install or first execution,
+verify its SHA-256 checksum and detached minisign signature against a previously
+trusted public key and fingerprint obtained through an authenticated
+owner-controlled path; a key bundled only beside the artifact does not establish
+its authenticity. Record the exact artifact name, hash, signature result, OS,
+architecture, browser, source commit and release. Observe the Gatekeeper or
+SmartScreen warning, allow and cancel flows, then install, update and removal.
+The allow or cancel choice remains the user's; record it without pre-authorizing,
+scripting around or disabling the OS prompt.
+Detached-only signing is the v1 route on every OS; Developer ID, notarization and
+Windows Authenticode are not required and must not be implied. Local developer
+builds, a file with quarantine removed, browser fixtures and hosted runner results
+do not qualify native distribution. A failed signature must not install, register
+or execute anything; an update keeps the last verified installation, with no
+unsigned fallback, disabled OS security or quarantine removal. A warning-free
+installation is not promised. #25–#28 cover per-OS installation details; #39/#43 cover candidate
+and release evidence.
+
 ## Minimum and candidate-current OS evidence
 
 The user approved minimum floors on 2026-11-06: macOS 14 arm64, Windows 11 24H2

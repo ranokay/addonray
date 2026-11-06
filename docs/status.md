@@ -18,11 +18,12 @@ The implemented runtime below remains the current product. No full-v1 implementa
 
 ## V1 backlog readiness (2026-11-06)
 
-The user answered the six first-round readiness questions and approved the
+The user answered eight readiness questions (Q1–Q8) and approved the
 [#13 mutation and request-failure contract](plans/mutation-request-failure.md), the
 [#12 guided-trial contract](plans/v1-guided-trials.md), the [#20 companion
 connectivity contract](plans/companion-connectivity.md), the #4 extension
-identity and signing plan, and the OS target plan. The full answers are in
+identity and signing plan, the companion distribution and signing plan, and the OS
+target plan. The full answers are in
 [the decision record](decisions.md#v1-backlog-readiness-decisions-2026-11-06).
 
 These decisions approve future boundaries. They implement no runtime feature and
@@ -34,16 +35,28 @@ change no current permission. In particular:
 - the request check's optional `webRequest` and scheme+host grant are future
   permissions, not current ones. The grant may cover all ports on the selected
   host; the runtime filter limits collection to the selected origin and port;
-- the companion remains display-only and optional; its host identity, distribution
-  channel, platform signing and release authorization remain open with #4 and
-  #25–#28;
-- #4 remains `ready-for-human` until the Chrome ID, account access, signing routes
-  and route verification are real.
+- the companion remains display-only and optional. Q7 fixes native host ID
+  `dev.ranokay.addonray`, artifact base name
+  `addonray-companion-<version>-<os>-<arch>` and GitHub Releases in
+  `ranokay/addonray`. Q8 selects detached minisign signatures plus SHA-256
+  checksums, verified against a previously trusted public key before execution,
+  and requires Gatekeeper/SmartScreen warning qualification on downloaded
+  artifacts with quarantine or Mark-of-the-Web intact;
+- companion public-key/fingerprint values, private signing credentials, signing
+  and publication remain unauthorized and unknown. Detached signatures do not
+  supply Developer ID, notarization or Authenticode trust;
+- #4 remains `ready-for-human` until the final Chrome ID, account access,
+  credential ownership and route verification are real.
 
 The settled #10, #11 and #31 issues were readiness-labelled on 2026-11-06 from
-already-merged decisions. Other dependent labels wait for this contract commit to
-merge. No implementation, qualification, publication or permission claim follows
-from a readiness label.
+already-merged decisions. After this amendment merges, the proposed
+ready-for-agent set is #24, #25, #28 and #38, subject to fresh per-issue review.
+#25 keeps native links #4 and #24; #28 keeps #25–#27; #38 keeps #4 and the
+implementation work including #28. Those are captured start-order dependencies,
+not unanswered specification decisions. #26/#27 and #22/#23 remain needs-info for
+missing Windows/Linux environments; #39/#43 retain signing and publication
+prerequisites, and #4 stays open/human. No implementation, qualification,
+publication, permission or tracker-label claim follows from a readiness label.
 
 ## Saved investigations (#6)
 
@@ -541,8 +554,9 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Close the #5 saved-investigation and report-exchange decision on 2026-10-30. See [the data contract](plans/saved-investigation-data-rules.md).
 - [x] Answer the #13 mutation and request-failure collector contracts and the #20 companion capability on 2026-11-06. See [the collector contract](plans/mutation-request-failure.md) and [the connectivity contract](plans/companion-connectivity.md).
 - [x] Answer the #12 guided-trial contract on 2026-11-06. See [the guided-trial contract](plans/v1-guided-trials.md).
+- [x] Record the Q7/Q8 companion host ID, artifact naming, GitHub Releases channel, detached minisign/SHA-256 verification and OS-warning qualification plan on 2026-11-06.
 - [x] Record the minimum OS floors as macOS 14, Windows 11 24H2 and Ubuntu 24.04 LTS GNOME Wayland; keep candidate-current versions for the #39 freeze.
-- [ ] Verify #4 final Chrome ID, AMO/Chrome Web Store account access, companion identity/channel/platform signing and candidate signing/limited-test routes before releasing dependent tickets.
+- [ ] Verify #4 final Chrome ID, AMO/Chrome Web Store account access, companion public-key/fingerprint and private credential ownership, candidate signing/limited-test routes and concrete companion release authorization before releasing dependent tickets.
 - [ ] Acquire or otherwise provide the minimum and candidate-current native environments. No purchase or OS/VM installation is authorized.
 - [ ] Implement and qualify #10–#19 and #20–#28 under the approved contracts; no readiness label is implementation evidence.
 
@@ -583,10 +597,13 @@ was approved and recorded on 2026-10-30. The bounded #6 slice, the #7 retention/
 slice and the #9 untrusted import slice are implemented and locally qualified
 with explicit gaps; product restart, production-adapter regressions and the
 simulated lifecycle path pass, and the local frozen gate passed, while the final
-release matrix and independent review remain. The #13, #12 and #20 contracts were
-approved on 2026-11-06 and recorded in this documentation commit; dependent labels
-wait for merge. #4 remains open for final Chrome ID, verified accounts, companion
-identity/channel/platform signing and candidate signing/limited-test routes. #10
+release matrix and independent review remain. The #13, #12 and #20 contracts and
+the Q7/Q8 companion release and signing plan were approved on 2026-11-06 and
+recorded in this documentation commit; dependent labels wait for merge. #4 remains
+open for final Chrome ID, verified accounts, companion public-key/credential
+ownership, candidate signing/limited-test routes and concrete release
+authorization. Q7/Q8 settle the host ID, artifact naming, GitHub Releases channel
+and detached-signature method as a plan; no key, signature or release exists. #10
 and #11 are readiness-labelled from already-merged decisions and may start under
 their approved contracts. #31 is readiness-labelled but remains blocked by #10;
 its qualification starts only after #10 lands. No implementation is claimed.
@@ -656,10 +673,11 @@ For fresh revision-bound evidence, run `/Users/ranokay/.agents/tools/run gate_ru
 
 Before the expanded v1 approval, the items below were recorded as unresolved future decisions. The approval moved them into the backlog and kept them as decision gates. The remaining items are open:
 
-- #4: final Chrome extension ID and companion identity, publisher/account access,
-  companion distribution channel, native platform signing, and the pre-release
-  signing and limited-distribution routes. License and source visibility are
-  settled.
+- #4: final Chrome extension ID, publisher/account access, companion
+  public-key/fingerprint and private credential ownership, candidate signing and
+  limited-distribution routes, and concrete release authorization. Companion host
+  ID, artifact naming, GitHub Releases channel and detached-signature method are
+  planned; license and source visibility are settled.
 - Minimum and candidate-current native environments for macOS 14, Windows 11
   24H2+ and Ubuntu 24.04 LTS GNOME Wayland. Missing environments are blockers;
   no purchase, installation or acquisition is authorized.
@@ -668,9 +686,10 @@ Before the expanded v1 approval, the items below were recorded as unresolved fut
 - All explicit signing, upload, publication and external-participant approvals
   recorded for #39 and #42–#46.
 
-#5 was closed on 2026-10-30. #13, #12 and #20 were answered on 2026-11-06; their
-contracts are recorded in this documentation commit. These answers authorize no
-storage, permission, format, runtime or native implementation.
+#5 was closed on 2026-10-30. #13, #12 and #20 were answered on 2026-11-06, and
+Q7/Q8 record the companion release and signing plan; their contracts are recorded
+in this documentation commit. These answers authorize no storage, permission,
+format, runtime or native implementation, and no key, signature or release.
 
 These are approval gates inside the approved backlog, not open scope questions.
 Current runtime limits remain effective until each contract and its applicable
