@@ -177,7 +177,11 @@ export function createSavedExport(
         discard(contextMessage);
         return;
       }
-      const raw = await store.get(candidate.key);
+      // A first read establishes storage reachability before the final context
+      // check. The authoritative read follows that check: a delete, delete-all
+      // or replacement can complete while the context promise is pending without
+      // a delivered notification.
+      await store.get(candidate.key);
       if (!current(ticket, candidate)) return;
       const finalContext = await normalContext(api);
       if (!current(ticket, candidate)) return;
@@ -185,6 +189,8 @@ export function createSavedExport(
         discard(contextMessage);
         return;
       }
+      const raw = await store.get(candidate.key);
+      if (!current(ticket, candidate)) return;
       if (source.getSnapshot().busy) {
         publish({
           ...state,
@@ -300,18 +306,23 @@ export function createSavedExport(
           discard(contextMessage);
           return;
         }
+        // The final context check can wait while another view deletes, delete-alls
+        // or replaces the record without a delivered notification. Read storage
+        // again after that wait and trust only this authoritative snapshot. No
+        // await follows this read before publication.
+        const finalRaw = await store.get(candidate.key);
+        if (!current(ticket, candidate)) return;
         if (source.getSnapshot().busy) {
           discard(busyMessage);
           return;
         }
-        // Expiry and the stored report identity are time/state dependent.
-        // Revalidate the held snapshot after the last await and immediately
-        // before publishing. The record object cannot mutate in memory; a
-        // later storage write is outside this read snapshot and the next
-        // output action re-reads storage without needing a delivered hint.
-        const finalCheck = validate(checked, candidate);
+        const finalCheck = validate(finalRaw, candidate);
         if (typeof finalCheck === 'string') {
           discard(finalCheck);
+          return;
+        }
+        if (serializeExchange(finalCheck) !== serializeExchange(checked)) {
+          discard('The saved record changed. Prepare its report again.');
           return;
         }
         const finalOutput = createSavedOutput(finalCheck, candidate.format);

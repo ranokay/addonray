@@ -176,7 +176,7 @@ it('prepares the exact stored JSON and hands it off only after a fresh read', as
   expect(handoff).not.toHaveBeenCalled();
   await exporter.download();
   expect(handoff.mock.calls).toEqual([[expected, 'json']]);
-  expect(store.getCalls).toBe(2);
+  expect(store.getCalls).toBe(4);
   expect(api.tabs.getCurrent).toHaveBeenCalledTimes(4);
   expect(exporter.getSnapshot().message).toContain('Download requested');
   expect(exporter.getSnapshot().preview).toBe(expected);
@@ -373,7 +373,7 @@ it('does not let an obsolete private context clear a newer preview', async () =>
   stale.resolve({ incognito: true });
   await first;
   expect(exporter.getSnapshot().preview).toBe(reviewed);
-  expect(store.getCalls).toBe(1);
+  expect(store.getCalls).toBe(2);
 });
 
 it('does not let an obsolete download context clear a newer preview', async () => {
@@ -397,7 +397,7 @@ it('does not let an obsolete download context clear a newer preview', async () =
   await firstDownload;
   expect(exporter.getSnapshot().preview).toBe(reviewed);
   expect(handoff).not.toHaveBeenCalled();
-  expect(store.getCalls).toBe(2);
+  expect(store.getCalls).toBe(4);
 });
 it('discards a preview when the selected archive changes or disappears', async () => {
   const { exporter, select } = fixture();
@@ -459,7 +459,7 @@ it('refuses download while the library reports another action in progress', asyn
   publish({ busy: true });
   await exporter.download();
   expect(handoff).not.toHaveBeenCalled();
-  expect(store.getCalls).toBe(1);
+  expect(store.getCalls).toBe(2);
   expect(exporter.getSnapshot().preview).toBe(reviewed);
   expect(exporter.getSnapshot().message).toContain(
     'Another saved-history action is in progress.',
@@ -472,6 +472,96 @@ it('refuses download when no preview was prepared', async () => {
   expect(handoff).not.toHaveBeenCalled();
   expect(store.getCalls).toBe(0);
 });
+
+// Hold the second normal-context call. By then the first storage read has
+// returned, so mutations below model another view deleting, delete-alling,
+// replacing the store or changing a record without a delivered notification.
+function holdFinalContext(api: ReturnType<typeof fixture>['api']) {
+  const started = Promise.withResolvers<void>();
+  const released = Promise.withResolvers<{ incognito: false }>();
+  let calls = 0;
+  api.tabs.getCurrent.mockImplementation(async () => {
+    calls += 1;
+    if (calls < 2) return { incognito: false };
+    started.resolve();
+    return released.promise;
+  });
+  return {
+    started: started.promise,
+    release: () => released.resolve({ incognito: false }),
+  };
+}
+
+it('refuses a saved HTML preview when the record is deleted during the final context wait', async () => {
+  const { api, store, exporter } = fixture();
+  exporter.setFormat('html');
+  const hold = holdFinalContext(api);
+  const pending = exporter.prepare();
+  await hold.started;
+  expect(store.getCalls).toBe(1);
+  store.entries.clear();
+  hold.release();
+  await pending;
+  expect(exporter.getSnapshot().preview).toBeNull();
+  expect(exporter.getSnapshot().message).toContain('no longer available');
+});
+
+it('refuses a saved JSON preview when the record is replaced during the final context wait', async () => {
+  const { api, store, exporter } = fixture();
+  const hold = holdFinalContext(api);
+  const pending = exporter.prepare();
+  await hold.started;
+  expect(store.getCalls).toBe(1);
+  store.entries.set(
+    key,
+    record({ report: { ...record().report, assessment: 'better' } }),
+  );
+  hold.release();
+  await pending;
+  expect(exporter.getSnapshot().preview).toBeNull();
+  expect(exporter.getSnapshot().message).toContain('changed');
+});
+
+for (const scenario of [
+  { action: 'download', format: 'html', mutation: 'delete' },
+  { action: 'print', format: 'html', mutation: 'delete-all' },
+  { action: 'download', format: 'json', mutation: 'replace' },
+  { action: 'download', format: 'html', mutation: 'store-replacement' },
+] as const) {
+  it(`refuses ${scenario.format} ${scenario.action} after ${scenario.mutation} during the final context wait`, async () => {
+    const { api, store, exporter, handoff, printHandoff } = fixture();
+    exporter.setFormat(scenario.format);
+    await exporter.prepare();
+    const readsBefore = store.getCalls;
+    const hold = holdFinalContext(api);
+    const pending =
+      scenario.action === 'download' ? exporter.download() : exporter.print();
+    await hold.started;
+    expect(store.getCalls).toBe(readsBefore + 1);
+    if (scenario.mutation === 'delete') store.entries.clear();
+    if (scenario.mutation === 'delete-all') {
+      store.entries.clear();
+      store.state = { storeId: 'replaced-store-0123456789', epoch: 1 };
+    }
+    if (scenario.mutation === 'replace')
+      store.entries.set(
+        key,
+        record({ report: { ...record().report, assessment: 'better' } }),
+      );
+    if (scenario.mutation === 'store-replacement') {
+      store.entries.clear();
+      store.state = { storeId: 'replacement-store-9876543210', epoch: 2 };
+    }
+    hold.release();
+    await pending;
+    expect(handoff).not.toHaveBeenCalled();
+    expect(printHandoff).not.toHaveBeenCalled();
+    expect(exporter.getSnapshot().preview).toBeNull();
+    expect(exporter.getSnapshot().message).toMatch(
+      /no longer available|changed|unreadable|unavailable/i,
+    );
+  });
+}
 
 it('prepares, downloads and prints the exact stored printable HTML', async () => {
   const { store, api, handoff, printHandoff, exporter } = fixture();
@@ -488,7 +578,7 @@ it('prepares, downloads and prints the exact stored printable HTML', async () =>
   expect(printHandoff).not.toHaveBeenCalled();
   await exporter.download();
   expect(handoff.mock.calls).toEqual([[reviewed, 'html']]);
-  expect(store.getCalls).toBe(2);
+  expect(store.getCalls).toBe(4);
   await exporter.print();
   expect(printHandoff.mock.calls).toEqual([[reviewed, 'html']]);
   expect(exporter.getSnapshot().preview).toBe(reviewed);
