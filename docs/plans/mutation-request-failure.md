@@ -79,7 +79,7 @@ Rules:
 
 ## MUT-1: mutation notifications
 
-### Observation
+### MUT-1 observation
 
 Inject one isolated-world `MutationObserver` into the source tab's top document
 with `childList`, `attributes`, `characterData` and `subtree: true`. Count the
@@ -103,7 +103,7 @@ changes made by a page or extension. The UI, saved record and report use that
 wording. V1 does not add an affected-node count, which would be a different
 metric with a different cap.
 
-### Summary
+### MUT-1 summary
 
 ```json
 {
@@ -130,7 +130,7 @@ Rules:
 Unavailable, denied, interrupted or invalid attempts produce no summary and
 cannot be attached.
 
-### Proposed collector-work limits
+### MUT-1 proposed collector-work limits
 
 | Stage                        | Proposed p95 | What is measured                                                                     |
 | ---------------------------- | ------------ | ------------------------------------------------------------------------------------ |
@@ -264,7 +264,7 @@ Abrupt loss is explicit:
 A denied optional permission leaves the check unavailable. There is no fallback
 to a broader grant, a different tab or another origin.
 
-### Observation
+### REQ-1 observation
 
 Use extension-side `webRequest.onCompleted` and `webRequest.onErrorOccurred`
 listeners, registered at the top level of the background event page/service
@@ -316,7 +316,7 @@ window cannot be held without a wider permission or a persistent background
 page, the result returns to the user with a shorter window or a different
 mechanism.
 
-### Summary
+### REQ-1 summary
 
 ```json
 {
@@ -361,7 +361,7 @@ Rules:
 - No request ID, URL, initiator, status text, error string, IP or header is
   retained.
 
-### Proposed collector-work limits
+### REQ-1 proposed collector-work limits
 
 | Stage                        | Proposed p95 | What is measured                                                                                                      |
 | ---------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------- |
