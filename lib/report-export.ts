@@ -3,6 +3,10 @@ import type { Investigation } from './investigation';
 import { createInvestigationReport } from './investigation-report';
 import { createPrintableHtml } from './report-html';
 import type { ReportFormat } from './report-download';
+import {
+  CLIPBOARD_ERROR_MESSAGE,
+  type ClipboardOutcome,
+} from './report-clipboard';
 import { createExchangeJson, createSavedReport } from './saved-record';
 
 export interface ReportBrowser {
@@ -17,6 +21,7 @@ export interface ReportBrowser {
 export interface ReportHandoffs {
   download(text: string, format: ReportFormat): void;
   print(text: string, format: ReportFormat): void;
+  copy(text: string): Promise<ClipboardOutcome>;
 }
 
 interface ExportSnapshot {
@@ -118,13 +123,16 @@ export function createReportExport(
     return true;
   }
 
-  // Download and print share the same permit, lease, freshness checks and
-  // synchronous handoff boundary. Print is available only for the HTML frame.
-  async function deliver(kind: 'download' | 'print') {
+  // Download, print and clipboard copy share the same permit, lease and
+  // freshness checks. Print is available only for the HTML frame and clipboard
+  // copy only for the reviewed Markdown text. Clipboard success waits for the
+  // platform write; it is never inferred from the click.
+  async function deliver(kind: 'download' | 'print' | 'copy') {
     const permit = source;
     if (!live || state.busy || subscribers.size === 0 || permit?.text == null)
       return;
     if (kind === 'print' && permit.format !== 'html') return;
+    if (kind === 'copy' && permit.format !== 'markdown') return;
     const lease = investigation.activity.tryBegin('report');
     if (!lease) {
       publish({
@@ -142,6 +150,21 @@ export function createReportExport(
         if (!(await verify(ticket, permit))) return;
         if (!current(ticket, permit) || permit.text === null) return;
         if (kind === 'print' && permit.format !== 'html') return;
+        if (kind === 'copy' && permit.format !== 'markdown') return;
+        if (kind === 'copy') {
+          const text = permit.text;
+          const outcome = await handoffs.copy(text);
+          // The platform write may be irrevocable. If the permit went stale
+          // while it was pending, suppress both success and content restoration.
+          if (!current(ticket, permit)) return;
+          publish({
+            ...state,
+            preview: text,
+            busy: false,
+            message: outcome.message,
+          });
+          return;
+        }
         // No await separates the final validity check from browser handoff.
         const handoff =
           kind === 'download' ? handoffs.download : handoffs.print;
@@ -160,9 +183,11 @@ export function createReportExport(
             preview: permit.text,
             busy: false,
             message:
-              kind === 'download'
-                ? 'The download could not be requested. Try again from this preview.'
-                : 'The print dialog could not be requested. Try again from this preview.',
+              kind === 'copy'
+                ? CLIPBOARD_ERROR_MESSAGE
+                : kind === 'download'
+                  ? 'The download could not be requested. Try again from this preview.'
+                  : 'The print dialog could not be requested. Try again from this preview.',
           });
         }
       }
@@ -269,6 +294,9 @@ export function createReportExport(
     },
     async print() {
       await deliver('print');
+    },
+    async copy() {
+      await deliver('copy');
     },
     cancel: () => discard(),
     dispose() {

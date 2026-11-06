@@ -10,11 +10,19 @@ import {
   type SavedRecord,
 } from './saved-record';
 import { createPrintableHtml } from './report-html';
+import {
+  CLIPBOARD_ERROR_MESSAGE,
+  type ClipboardOutcome,
+} from './report-clipboard';
+import { createReportMarkdown } from './report-markdown';
 import type { Result } from './inspector';
 import type { ReportFormat } from './report-download';
 import { SavedStoreError, type SavedStore } from './saved-store';
 
-export type SavedExportFormat = Extract<ReportFormat, 'json' | 'html'>;
+export type SavedExportFormat = Extract<
+  ReportFormat,
+  'markdown' | 'json' | 'html'
+>;
 
 export type SavedExportSelection = Pick<
   SavedLibrarySnapshot,
@@ -36,6 +44,7 @@ export interface SavedExportSnapshot {
 export interface SavedExportHandoffs {
   download(text: string, format: SavedExportFormat): void;
   print(text: string, format: SavedExportFormat): void;
+  copy(text: string): Promise<ClipboardOutcome>;
 }
 
 interface ExportPermit {
@@ -63,6 +72,8 @@ function createSavedOutput(
   record: SavedRecord,
   format: SavedExportFormat,
 ): Result<string> {
+  if (format === 'markdown')
+    return createReportMarkdown(record.report, { provenance: record.origin });
   if (format === 'html') {
     const html = createPrintableHtml(record.report, {
       provenance: record.origin,
@@ -159,11 +170,15 @@ export function createSavedExport(
     return inspection.record;
   };
 
-  async function deliver(kind: 'download' | 'print') {
+  async function deliver(kind: 'download' | 'print' | 'copy') {
     const candidate = permit;
     if (!live || state.busy || candidate === null || candidate.text === null)
       return;
     if (kind === 'print' && candidate.format !== 'html') return;
+    if (kind === 'copy' && candidate.format !== 'markdown') return;
+    // Markdown is the reviewed clipboard representation in this slice. It does
+    // not add a saved-archive Markdown download.
+    if (kind === 'download' && candidate.format === 'markdown') return;
     if (source.getSnapshot().busy) {
       publish({ ...state, busy: false, message: busyMessage });
       return;
@@ -215,6 +230,32 @@ export function createSavedExport(
         return;
       }
       if (!current(ticket, candidate)) return;
+      if (kind === 'copy') {
+        const text = fresh.value;
+        let outcome: ClipboardOutcome;
+        try {
+          outcome = await handoffs.copy(text);
+        } catch {
+          if (current(ticket, candidate))
+            publish({
+              ...state,
+              preview: text,
+              busy: false,
+              message: CLIPBOARD_ERROR_MESSAGE,
+            });
+          return;
+        }
+        // A platform write can be irrevocable. Never restore content or report
+        // success if deletion, replacement or context loss won the race.
+        if (!current(ticket, candidate)) return;
+        publish({
+          ...state,
+          preview: text,
+          busy: false,
+          message: outcome.message,
+        });
+        return;
+      }
       try {
         // No await separates the final validity check from browser handoff.
         const handoff =
@@ -352,6 +393,9 @@ export function createSavedExport(
     },
     async print() {
       await deliver('print');
+    },
+    async copy() {
+      await deliver('copy');
     },
     cancel: () => discard(),
     dispose() {

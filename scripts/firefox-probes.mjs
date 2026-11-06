@@ -11,6 +11,10 @@ import { installTemporaryExtension } from './firefox-install.mjs';
 import { extensionArchive } from './package-paths.mjs';
 import { sha256 } from './check-package.mjs';
 import { checkInvestigation } from './investigation-checks.mjs';
+import {
+  createClipboardSession,
+  prepareClipboardFixtures,
+} from './clipboard-checks.mjs';
 import { checkTimingHandoff } from './timing-handoff-checks.mjs';
 import { prepareHandoffFixture } from './timing-handoff-fixture.mjs';
 import { checkFirefoxPrivateHandoff } from './timing-private-checks.mjs';
@@ -135,6 +139,9 @@ report.pageErrorComparisonFixture = await preparePageErrorComparisonFixture(
   errorComparisonDirectory,
   'firefox',
 );
+const clipboardFixtures = await prepareClipboardFixtures(
+  join(work, 'clipboard-fixtures'),
+);
 const timing = timingFixtures();
 const server = createServer((request, response) => {
   if (pageErrorFixtureHandler(request, response)) return;
@@ -147,6 +154,7 @@ const server = createServer((request, response) => {
 await new Promise((accept) => server.listen(0, '127.0.0.1', accept));
 const localUrl = `http://127.0.0.1:${server.address().port}/`;
 let driver;
+let clipboard;
 
 function passed(name, details = {}) {
   report.checks.push({ name, status: 'passed', ...details });
@@ -155,7 +163,6 @@ function passed(name, details = {}) {
 
 try {
   const options = new firefox.Options()
-    .addArguments('-headless')
     // Fixture-only download settings; the product does not control save dialogs.
     .setPreference('browser.download.folderList', 2)
     .setPreference('browser.download.dir', reportDirectory)
@@ -168,6 +175,7 @@ try {
       'browser.helperApps.neverAsk.saveToDisk',
       'text/markdown,text/plain',
     );
+  if (process.env.HEADFUL !== '1') options.addArguments('-headless');
   if (requestedVersion) options.setBrowserVersion(requestedVersion);
   driver = await new Builder()
     .forBrowser('firefox')
@@ -195,6 +203,8 @@ try {
     handoffDirectory,
     pageErrorDirectory,
     errorComparisonDirectory,
+    clipboardFixtures.reader,
+    clipboardFixtures.writer,
   ]) {
     await installTemporaryExtension(driver, extension);
   }
@@ -213,6 +223,17 @@ try {
   const productUrl = await extensionUrl(productId, 'popup.html');
   const investigationUrl = await extensionUrl(productId, 'investigation.html');
   const harnessUrl = await extensionUrl(harnessId, 'probe.html');
+  clipboard = createClipboardSession({
+    driver,
+    readerUrl: await extensionUrl(clipboardFixtures.readerId, 'reader.html'),
+    writerUrl: await extensionUrl(clipboardFixtures.writerId, 'writer.html'),
+  });
+  report.clipboardAuthority = {
+    reader: 'test-only clipboardRead; generated in ignored scratch space',
+    writer:
+      'test-only copy of the preexisting clipboard; no clipboard permission',
+    productManifest: 'activeTab only; no clipboard permission',
+  };
   await driver.get(productUrl);
   await driver.wait(until.elementLocated(By.css('h1')), 10000);
   assert.equal(await driver.findElement(By.css('h1')).getText(), 'AddonRay');
@@ -564,6 +585,7 @@ try {
     authority: 'Unmodified Firefox product with approved optional management',
     passed,
     privateSavedId: productId,
+    clipboard,
   });
   await driver.get(harnessUrl);
 
@@ -805,6 +827,19 @@ try {
   console.error(String(error));
 } finally {
   timing.release();
+  if (driver && clipboard) {
+    try {
+      const handle = await driver.getWindowHandle();
+      if (!clipboard.isRestored())
+        report.clipboardRestore = await clipboard.restore(handle);
+      await clipboard.close(handle);
+    } catch (clipboardError) {
+      report.clipboardRestore = {
+        restored: false,
+        reason: String(clipboardError),
+      };
+    }
+  }
   if (driver) {
     try {
       await driver.quit();

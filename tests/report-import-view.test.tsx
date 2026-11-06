@@ -47,9 +47,35 @@ it('renders an accepted file as a read-only Imported report with escaped text', 
   expect(markup).toContain('7 days');
   expect(markup).toContain('30 days');
   expect(markup).toContain('90 days');
-  expect(markup).toContain('Printable report');
-  expect(markup).toContain('id="imported-html-prepare"');
+  expect(markup).toContain('Report output');
+  expect(markup).toContain('Printable HTML');
+  expect(markup).toContain('id="imported-output-prepare"');
   expect(markup).not.toContain('id="imported-html-download"');
+});
+
+it('offers a copy-only imported Markdown clipboard review with the destination disclosure', () => {
+  const markup = renderToStaticMarkup(
+    <ImportReportSection
+      importer={importer({
+        report: report(),
+        claimedProvenance: 'captured',
+        importedAt: 1_800_000_000_000,
+        saveable: true,
+      })}
+      output={importOutputStub({
+        format: 'markdown',
+        preview: '# AddonRay investigation report\n',
+      })}
+    />,
+  );
+  expect(markup).toMatch(/id="imported-format-markdown"[^>]*checked/);
+  expect(markup).toContain('Exact Markdown clipboard review');
+  expect(markup).toContain('Copy Markdown');
+  expect(markup).toContain('system clipboard');
+  expect(markup).toContain('cannot recall or erase copied content');
+  expect(markup).toContain('keeps the imported provenance');
+  expect(markup).not.toContain('id="imported-html-download"');
+  expect(markup).not.toContain('id="imported-html-print"');
 });
 
 it('renders the exact imported printable document in an inert preview with download and print', () => {

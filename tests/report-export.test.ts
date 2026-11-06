@@ -4,6 +4,10 @@ import { browser } from './browser';
 import { firefoxContext } from '../lib/browser-target';
 import { createInvestigation } from '../lib/investigation';
 import { createReportExport, type ReportBrowser } from '../lib/report-export';
+import {
+  CLIPBOARD_ERROR_MESSAGE,
+  type ClipboardOutcome,
+} from '../lib/report-clipboard';
 
 const cleanup: Array<() => void> = [];
 let onRemoved:
@@ -57,9 +61,16 @@ async function fixture({
   const printHandoff = vi.fn(
     (_text: string, _format: 'markdown' | 'json' | 'html') => {},
   );
+  const copyHandoff = vi.fn(
+    async (_text: string): Promise<ClipboardOutcome> => ({
+      status: 'success',
+      message: 'Copied the exact Markdown report.',
+    }),
+  );
   const exporter = createReportExport(api, model, {
     download: handoff,
     print: printHandoff,
+    copy: copyHandoff,
   });
   const unsubscribe = exporter.subscribe(() => {});
   cleanup.push(() => {
@@ -90,7 +101,16 @@ async function fixture({
     if (afterEntries) getAll.mockResolvedValue(afterEntries);
     await model.captureAfter();
   }
-  return { api, model, handoff, printHandoff, exporter, request, unsubscribe };
+  return {
+    api,
+    model,
+    handoff,
+    printHandoff,
+    copyHandoff,
+    exporter,
+    request,
+    unsubscribe,
+  };
 }
 
 it('starts empty without inspecting context or requesting a download', async () => {
@@ -214,6 +234,81 @@ it('discards a Markdown preview when the selected format changes', async () => {
   exporter.setFormat('markdown');
   await exporter.prepare();
   expect(exporter.getSnapshot().preview).toContain('# AddonRay');
+});
+
+it('copies exact reviewed Markdown and reports success only after the write resolves', async () => {
+  const { exporter, copyHandoff } = await fixture();
+  const write = Promise.withResolvers<ClipboardOutcome>();
+  copyHandoff.mockImplementation(() => write.promise);
+  await exporter.prepare();
+  const reviewed = exporter.getSnapshot().preview;
+  if (reviewed === null) throw new Error('Missing Markdown preview');
+  expect(copyHandoff).not.toHaveBeenCalled();
+  const pending = exporter.copy();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(copyHandoff.mock.calls).toEqual([[reviewed]]);
+  expect(exporter.getSnapshot().busy).toBe(true);
+  expect(exporter.getSnapshot().message).toBeNull();
+  write.resolve({
+    status: 'success',
+    message: 'Copied the exact Markdown report.',
+  });
+  await pending;
+  expect(exporter.getSnapshot()).toEqual({
+    format: 'markdown',
+    preview: reviewed,
+    busy: false,
+    message: 'Copied the exact Markdown report.',
+  });
+});
+
+it('reports clipboard denial explicitly and preserves the reviewed Markdown', async () => {
+  const { exporter, copyHandoff } = await fixture();
+  copyHandoff.mockResolvedValueOnce({
+    status: 'denied',
+    message: 'Clipboard access was denied by the browser.',
+  });
+  await exporter.prepare();
+  const reviewed = exporter.getSnapshot().preview;
+  await exporter.copy();
+  expect(exporter.getSnapshot()).toMatchObject({
+    preview: reviewed,
+    busy: false,
+    message: 'Clipboard access was denied by the browser.',
+  });
+});
+
+it('does not copy a JSON preview and reports a thrown write as failure', async () => {
+  const { exporter, copyHandoff } = await fixture();
+  exporter.setFormat('json');
+  await exporter.prepare();
+  await exporter.copy();
+  expect(copyHandoff).not.toHaveBeenCalled();
+  exporter.setFormat('markdown');
+  await exporter.prepare();
+  const reviewed = exporter.getSnapshot().preview;
+  copyHandoff.mockRejectedValueOnce(new Error('platform detail'));
+  await exporter.copy();
+  expect(exporter.getSnapshot()).toMatchObject({
+    preview: reviewed,
+    busy: false,
+    message: CLIPBOARD_ERROR_MESSAGE,
+  });
+});
+
+it('suppresses success and preview restoration when the investigation resets during a write', async () => {
+  const { exporter, model, copyHandoff } = await fixture();
+  const write = Promise.withResolvers<ClipboardOutcome>();
+  copyHandoff.mockImplementation(() => write.promise);
+  await exporter.prepare();
+  const pending = exporter.copy();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(exporter.getSnapshot().busy).toBe(true);
+  model.startOver();
+  write.resolve({ status: 'success', message: 'Copied the exact Markdown.' });
+  await pending;
+  expect(exporter.getSnapshot().preview).toBeNull();
+  expect(exporter.getSnapshot().message).not.toContain('Copied');
 });
 
 it('refuses over-limit JSON without truncation and keeps the live pair', async () => {

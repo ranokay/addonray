@@ -54,6 +54,7 @@ function exporter(): SavedExport {
     prepare: vi.fn(async () => {}),
     download: vi.fn(async () => {}),
     print: vi.fn(async () => {}),
+    copy: vi.fn(async () => {}),
     cancel: vi.fn(),
     dispose: vi.fn(),
   };

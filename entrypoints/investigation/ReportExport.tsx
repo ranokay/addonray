@@ -1,4 +1,5 @@
 import { useEffect, useRef, useSyncExternalStore, type Ref } from 'react';
+import { CLIPBOARD_DISCLOSURE } from '../../lib/report-clipboard';
 import type { ReportExport } from '../../lib/report-export';
 import type { ReportFormat } from '../../lib/report-download';
 
@@ -10,6 +11,7 @@ export function ReportExportView({
   onPrepare,
   onDownload,
   onPrint,
+  onCopy,
   onCancel,
   onFormat,
   previewRef,
@@ -19,6 +21,7 @@ export function ReportExportView({
   onPrepare: () => Promise<void>;
   onDownload: () => Promise<void>;
   onPrint: () => Promise<void>;
+  onCopy: () => Promise<void>;
   onCancel: () => void;
   onFormat(format: ReportFormat): void;
   previewRef?: Ref<HTMLTextAreaElement>;
@@ -29,7 +32,7 @@ export function ReportExportView({
     ? 'Review a self-contained printable HTML page containing both extension inventories, their changes, your assessment and any attached diagnostics. It uses inline styling only and loads no scripts, images, fonts or remote resources. It includes extension names and versions, which can reveal your extension choices. No report is sent automatically.'
     : json
       ? 'Review a schema version 1 JSON file containing both extension inventories, their changes, your assessment and any attached diagnostics. It omits extension IDs, local record IDs, save times and browser context. Extension names and versions are included and can reveal your extension choices. No report is sent automatically.'
-      : 'Review a Markdown file containing both extension inventories, their changes, your assessment and any attached diagnostics. Extension names and versions are included and can reveal your extension choices. No report is sent automatically.';
+      : 'Review exact Markdown containing both extension inventories, their changes, your assessment and any attached diagnostics. You can download it or copy it to the system clipboard. Extension names and versions are included and can reveal your extension choices. No report is sent automatically.';
   return (
     <section aria-labelledby="report-heading" aria-busy={state.busy}>
       <h2 id="report-heading">Investigation report</h2>
@@ -123,7 +126,9 @@ export function ReportExportView({
           ) : (
             <>
               <label htmlFor="report-text">
-                {json ? 'Exact JSON preview' : 'Exact Markdown preview'}
+                {json
+                  ? 'Exact JSON preview'
+                  : 'Exact Markdown clipboard review'}
               </label>
               <textarea
                 id="report-text"
@@ -132,8 +137,17 @@ export function ReportExportView({
                 spellCheck={false}
                 rows={18}
                 value={state.preview}
-                aria-describedby="report-disclosure report-download-help"
+                aria-describedby={
+                  json
+                    ? 'report-disclosure report-download-help'
+                    : 'report-disclosure report-download-help report-copy-help'
+                }
               />
+              {!json && (
+                <p className="metadata" id="report-copy-help">
+                  {CLIPBOARD_DISCLOSURE}
+                </p>
+              )}
             </>
           )}
           <div className="report-actions">
@@ -149,6 +163,16 @@ export function ReportExportView({
                   ? 'Download JSON report'
                   : 'Download report'}
             </button>
+            {!json && !html && (
+              <button
+                id="report-copy"
+                disabled={state.busy}
+                aria-describedby="report-copy-help"
+                onClick={() => void onCopy()}
+              >
+                Copy Markdown
+              </button>
+            )}
             {html && (
               <button
                 id="report-print"
@@ -189,6 +213,7 @@ export function ReportExportSection({
       onPrepare={exporter.prepare}
       onDownload={exporter.download}
       onPrint={() => exporter.print()}
+      onCopy={() => exporter.copy()}
       onCancel={exporter.cancel}
       onFormat={exporter.setFormat}
       previewRef={previewRef}
