@@ -388,7 +388,9 @@ do not create or verify any key, account or artifact.
   the public verification key fingerprint. The public verification key and
   fingerprint are obtained through an authenticated owner-controlled path before
   verification. A key published only beside the artifact it verifies cannot
-  establish that artifact's authenticity by itself.
+  establish that artifact's authenticity by itself. The release record may repeat
+  the fingerprint, but the trusted source is the authenticated path, not the
+  release asset.
 - **Verification before execution.** The installation or update path verifies the
   checksum and detached signature against the previously trusted public key
   before it registers or executes the host. A host binary does not run before

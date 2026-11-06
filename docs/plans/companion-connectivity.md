@@ -192,8 +192,10 @@ companion artifact, its SHA-256 checksum, a detached minisign signature and the
 public verification key fingerprint. The public verification key and fingerprint
 are obtained through an authenticated owner-controlled path before verification;
 a key bundled only beside the artifact cannot establish that artifact's
-authenticity. The exact public key value, fingerprint and private signing
-credentials remain unknown and outside source and tickets. No separate companion
+authenticity. The release record may repeat the fingerprint, but the trusted
+source is the authenticated path, not the release asset. The exact public key
+value, fingerprint and private signing credentials remain unknown and outside
+source and tickets. No separate companion
 store or account is selected.
 
 ## Signature and integrity verification
