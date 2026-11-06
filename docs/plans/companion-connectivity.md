@@ -16,7 +16,9 @@ read-only check: DNS resolution, a TCP connection and, for HTTPS, a TLS
 handshake to the selected page's exact host and port. It does not send an HTTP
 request. The result helps the user compare the machine's OS network path with the
 browser's failed request, without claiming that a network path, extension or
-server caused the page problem.
+server caused the page problem. DNS may return multiple addresses; the check
+tests one resolved address and one TCP/TLS path. Its UI says so explicitly, and
+a failure does not imply that the host is unreachable.
 
 ## Approved operation
 
@@ -92,7 +94,9 @@ required. `errorClass` is one fixed value: `dns-not-found`, `dns-timeout`,
 `tls-hostname`, `tls-timeout` or `other`. The result never contains an IP
 address, certificate subject/issuer/serial, DNS answer, HTTP status, response
 body, header, URL path, timestamp beyond the stage duration, or free-form native
-error text.
+error text. The UI states that the check tested one resolved address, not every
+address the hostname may resolve to, and that failure does not prove the host is
+unreachable.
 
 The result is display-only in v1. It is not saved, attached to an investigation,
 exported, copied, added to a report or sent to any other service. It lives in the
@@ -183,7 +187,9 @@ warning does not identify an extension or a browser policy cause.
 
 #21–#23 must prove, on each intended OS and exact architecture:
 
-- DNS success, NXDOMAIN and resolver timeout;
+- DNS success, NXDOMAIN and resolver timeout, including a multi-address hostname
+  where only one resolved address is tested and the UI does not generalize the
+  result;
 - TCP success, connection refused and connect timeout;
 - TLS success, expired/untrusted certificate, hostname mismatch and handshake
   timeout;

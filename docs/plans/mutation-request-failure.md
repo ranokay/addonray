@@ -216,14 +216,15 @@ Ordering:
    summary and seals it.
 4. The owner shows the sealed result with the status “temporary access cleanup
    pending,” but attachment stays disabled. It sends the in-memory
-   expected-cleanup marker to participating receiver views and waits for their
-   acknowledgements. The marker contains the attempt ID and the exact
-   API/origin permissions recorded as newly granted. Pre-existing permissions
-   are never included. A view that does not acknowledge is not eligible to
-   attach until cleanup completes.
-5. Once acknowledgements are complete, the owner arms the expected-cleanup marker
-   and removes only the newly granted permissions recorded in it. Before that
-   arming point, every removal is external.
+   expected-cleanup marker to participating receiver views and waits at most a
+   bounded acknowledgement deadline (proposed: 2 seconds; #17 must prove it).
+   The marker contains the attempt ID and the exact API/origin permissions
+   recorded as newly granted. Pre-existing permissions are never included. On
+   deadline expiry, views that did not acknowledge are excluded from attachment
+   and cleanup proceeds; they do not block the temporary grant.
+5. Once acknowledgements are complete or the deadline expires, the owner arms
+   the expected-cleanup marker and removes only the newly granted permissions
+   recorded in it. Before that arming point, every removal is external.
 6. The owner waits for the matching `permissions.onRemoved` event, or a bounded
    timeout. If it observes the event, it reports that temporary access was
    removed. The result and any independent attached copy remain. If it does not
@@ -252,10 +253,16 @@ Abrupt loss is explicit:
 
 - a background worker/event-page restart interrupts collection; the still-live
   check owner retains cleanup bookkeeping and may clean up;
-- if the check owner is also lost, no result is published and no memory snapshot
-  is claimed to survive. The extension does not silently remove a grant whose
-  ownership is unknown. Cleanup is unverified; any retained grant can be reviewed
-  and revoked through the browser's extension permission controls;
+- if the check owner is lost before result publication, no result is published
+  and no memory snapshot is claimed to survive;
+- if it is lost after publication but before attachment, the standalone result
+  disappears with the owner and no attachment exists; cleanup is unverified;
+- if an independent attached copy already exists, that copy remains under the
+  donor-close rule unless an external revocation or investigation lifecycle
+  clears it; cleanup is still unverified;
+- in every owner-loss case, the extension does not silently remove a grant whose
+  ownership is unknown. Any retained grant can be reviewed and revoked through
+  the browser's extension permission controls;
 - #17 must prove the agreed temporary-access and cleanup behavior before product
   wiring. If reliable cleanup requires durable origin metadata or a changed
   revocation policy, it returns for a user-approved contract revision. Best-effort
@@ -331,7 +338,6 @@ mechanism.
     "font": 0,
     "script": 0,
     "xhrFetch": 0,
-    "websocket": 0,
     "other": 0
   },
   "finish": "stop",
@@ -354,6 +360,9 @@ Rules:
 - `byType.xhrFetch` combines XHR and fetch requests because Firefox reports both
   as `xmlhttprequest` and Chrome exposes no separate fetch resource type. The UI
   label is “XHR or fetch.”
+- WebSocket (`ws`/`wss`) requests are excluded from this contract because the
+  request filter covers only `http`/`https`. They are not counted or presented as
+  a failure bucket.
 - `finish` is `stop`, `timeout` or `limit`.
 - `observedMs` is finite, from 0 through 30,000.
 - `finish: "limit"` requires `observed = 500`.
@@ -509,11 +518,15 @@ Request cleanup and revocation proof must cover:
   the click handler calls `permissions.request` directly and the browser grants
   without losing activation; a failed activation leaves the check unavailable;
 - normal completion: stop counting, seal, show the result with cleanup pending
-  and attachment disabled, send the in-memory expected-cleanup marker, wait for
-  acknowledgement, remove only newly granted permissions, and observe the
-  matching `onRemoved` or a bounded timeout. The result becomes attachment-eligible
-  after acknowledgement, subject to the other attachment rules; a view that does
-  not acknowledge remains ineligible until cleanup completes;
+  and attachment disabled, send the in-memory expected-cleanup marker, wait until
+  all participating views acknowledge or the bounded deadline expires, remove
+  only newly granted permissions, and observe the matching `onRemoved` or the
+  Step 6 timeout. The result becomes attachment-eligible after acknowledgement,
+  subject to the other attachment rules; a view that misses the acknowledgement
+  deadline remains ineligible until cleanup completes;
+- acknowledgement timeout: an unresponsive view cannot indefinitely delay
+  cleanup; after the deadline it is excluded from attachment and the newly
+  granted permissions are removed;
 - late `permissions.onRemoved`: a matching event while the marker and owner
   channel are live does not clear the result or attached copy; a removal outside
   a matching marker, or after the owner channel disconnects, is external;
@@ -527,10 +540,11 @@ Request cleanup and revocation proof must cover:
   marker is cleared or replaced by the retry, and a later external removal
   clears;
 - worker restart with the live check owner: no result, cleanup still possible;
-- owner-tab loss before/after sealing: no result is published and cleanup is
-  unverified; no persistent origin metadata is available, no unknown grant is
-  silently removed, and retained grants are reviewed through browser permission
-  controls;
+- owner-tab loss before publication: no result is published; owner loss after
+  publication but before attachment: no copy remains; owner loss after attachment:
+  the independent copy survives donor close. Cleanup is unverified in every case;
+  no persistent origin metadata is available, no unknown grant is silently
+  removed, and retained grants are reviewed through browser permission controls;
 - no IndexedDB or other persistent write of an origin pattern, attempt ID or
   cleanup record.
 

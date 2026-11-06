@@ -654,10 +654,12 @@ product rejects v2 without downgrading or dropping fields.
 
 The [guided-trial contract](plans/v1-guided-trials.md) was approved on 2026-11-06.
 Future tests cover the five-step guide, one live pair, explicit Save, unsaved
-Start-over warning with Save/Discard/Cancel, an ordinary save failure preserving
-the trial, reset or permission removal clearing the live trial and cancelling the
-save, denied access recovery, popup independence and no automatic settings change
-or causal claim. Browser and native evidence remain separate.
+Start-over warning with Save/Discard/Cancel, a successful Save archiving the
+trial and clearing the live trial, an ordinary save failure preserving the trial,
+a cancelled save leaving it unchanged, reset or permission removal clearing the
+live trial and cancelling the save, denied access recovery, popup independence and
+no automatic settings change or causal claim. Browser and native evidence remain
+separate.
 
 ## Approved future companion checks
 

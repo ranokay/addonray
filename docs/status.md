@@ -31,8 +31,9 @@ change no current permission. In particular:
 - the current build still has no mutation or request-failure collector, no
   background request observer, no live request cleanup ownership, no schema
   version 2 and no native host;
-- the request check's optional `webRequest` and exact-origin host grant are future
-  permissions, not current ones;
+- the request check's optional `webRequest` and scheme+host grant are future
+  permissions, not current ones. The grant may cover all ports on the selected
+  host; the runtime filter limits collection to the selected origin and port;
 - the companion remains display-only and optional; its host identity, distribution
   channel, platform signing and release authorization remain open with #4 and
   #25–#28;

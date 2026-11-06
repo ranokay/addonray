@@ -451,7 +451,8 @@ The optional companion is approved v1 scope under #20 to #28, not an implemented
 capability. The approved NET-1 capability is a display-only connectivity check for
 the selected page's actual host and port: DNS resolution, one TCP connection and,
 for HTTPS, one TLS handshake with certificate and hostname validation. The
-hostname and port cross the native-messaging boundary. The host sends no HTTP
+hostname and port cross the native-messaging boundary. Only one resolved address
+is tested; the result does not prove the host is unreachable. The host sends no HTTP
 request and receives no URL path, query, cookie, credential, header or page
 content. The result contains stage outcomes, durations and a coarse error class,
 at most 1 KiB, and is not saved, attached or exported.

@@ -113,8 +113,8 @@ A browser mutation record delivered to an observer. One notification can describ
 _Avoid_: DOM operation, confirmed page change.
 
 **Request-failure check**:
-A deliberate, bounded summary of terminal request outcomes for one selected page's exact origin during an approved observation window. It distinguishes observed requests, HTTP error responses and network failures without retaining request details or attributing failure to an extension.
-_Avoid_: Network log, complete request audit, culprit evidence.
+A deliberate, bounded summary of terminal request outcomes for one selected page's exact origin during an approved observation window. It distinguishes observed requests, HTTP error responses and terminal failures without retaining request details or attributing failure to an extension. It cannot reliably distinguish browser-blocked requests from network failures.
+_Avoid_: Network log, complete request audit, network-failure proof, culprit evidence.
 
 **Collector work**:
 The elapsed time AddonRay's own setup, event handling and finalization spend during a bounded check. It is not a CPU measurement unless separately profiled.

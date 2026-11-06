@@ -47,7 +47,8 @@ occurred under controlled conditions.
   remains and Start over does not proceed automatically. Reset or permission
   removal keeps its existing behavior: the live investigation clears and the
   pending save is cancelled. If the save succeeds, the archive remains and the
-  live trial may be cleared.
+  live trial is cleared as part of Start over. A cancelled save leaves the live
+  trial unchanged.
 - **Discard and start over** clears the live trial without creating an archive.
 - **Cancel** leaves the live trial unchanged.
 - An incomplete trial keeps the existing Start over behavior; the new warning is
