@@ -43,8 +43,9 @@ change no current permission. In particular:
   `addonray-companion-<version>-<os>-<arch>` and GitHub Releases in
   `ranokay/addonray`. Q8 selects detached minisign signatures plus SHA-256
   checksums, verified against a previously trusted public key before execution,
-  and requires Gatekeeper/SmartScreen warning qualification on downloaded
-  artifacts with quarantine or Mark-of-the-Web intact;
+  and requires macOS Gatekeeper or Windows SmartScreen warning qualification on
+  downloaded artifacts with the applicable marker intact, plus Linux
+  downloaded-artifact verification and install/update/removal evidence;
 - companion public-key/fingerprint values remain unestablished; private signing
   credentials, signing and publication remain unauthorized and unknown. Detached
   signatures do not supply Developer ID, notarization or Authenticode trust;

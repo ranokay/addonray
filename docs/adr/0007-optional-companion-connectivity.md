@@ -41,11 +41,12 @@ route on every OS and supersedes the earlier native-platform-signing
 recommendation. It gives one owner-controlled authenticity and integrity path
 without Developer ID, notarization or Authenticode accounts, but it does not
 provide OS code-signing identity, reputation or a Gatekeeper/SmartScreen bypass.
-Downloaded artifacts with quarantine or Mark-of-the-Web intact must qualify the
-warning, allow and cancel flows; local builds and removed quarantine are not
-distribution evidence. A warning-free installation is not promised. Exact public
-key values, private credentials, installer layout and release authorization
-remain open. A public verification key is not a secret and may be distributed
+On macOS and Windows, downloaded artifacts with the applicable quarantine or
+Mark-of-the-Web marker intact must qualify warning, allow and cancel flows; Linux
+uses a downloaded artifact with the same verification plus install, update and
+removal evidence. Local builds and removed download markers are not distribution
+evidence. A warning-free installation is not promised. Exact public key values,
+private credentials, installer layout and release authorization remain open. A public verification key is not a secret and may be distributed
 through an authenticated owner-controlled path; bundling it only with the artifact
 does not establish that artifact's authenticity.
 

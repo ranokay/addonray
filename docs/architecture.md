@@ -321,9 +321,11 @@ establish its own authenticity. Detached-only signing is the v1 route on every O
 and does not provide Developer ID, notarization, Windows Authenticode or OS
 reputation.
 A failed checksum or signature check installs, registers and executes nothing; an
-update keeps the last verified installation. Gatekeeper and SmartScreen warning
-flows are qualified from downloaded artifacts with quarantine or Mark-of-the-Web
-intact. Installer layout and exact archive formats remain #25–#28 engineering
+update keeps the last verified installation. On macOS and Windows, Gatekeeper or
+SmartScreen warning flows are qualified from downloaded artifacts with the
+applicable quarantine or Mark-of-the-Web marker intact. On Linux, a downloaded
+artifact gets the same checksum and signature verification plus install, update
+and removal evidence. Installer layout and exact archive formats remain #25–#28 engineering
 choices. Public-key/fingerprint and private credential ownership, signing and
 publication remain owner gates. #21 to #23 prove the operation per intended OS.
 #24 to #28 deliver, install, remove and upgrade it.

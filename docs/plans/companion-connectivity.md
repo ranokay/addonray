@@ -210,18 +210,21 @@ previously trusted public key before registering or executing the host. No host
 binary runs before that check, and an update verifies the replacement before
 replacing or executing it. On failure, the artifact is not installed, registered
 or executed. There is no unsigned fallback, no instruction to disable OS security
-and no quarantine removal. A failed first install leaves no host registration; a
-failed update keeps the last verified installation and reports the failure; the
-artifact is discarded or left quarantined.
+and no download-marker removal. A failed first install leaves no host
+registration; a failed update keeps the last verified installation and reports the
+failure; the artifact is discarded or left where the OS download flow placed it.
 
 The signature establishes authenticity and integrity relative to the trusted
 public key. It does not provide Developer ID or Authenticode identity,
-notarization, OS reputation or a Gatekeeper/SmartScreen bypass. Gatekeeper and
-SmartScreen warning, allow and cancel flows, plus install, update and removal, are
-qualified from actual downloaded artifacts with quarantine or Mark-of-the-Web
-intact. Local developer builds, removed quarantine and browser or harness results
-are not native distribution evidence. A warning-free installation is not promised.
-Missing minimum macOS 14 and suitable Windows/Linux environments remain explicit
+notarization, OS reputation or a Gatekeeper/SmartScreen bypass. On macOS and
+Windows, Gatekeeper or SmartScreen warning, allow and cancel flows, plus install,
+update and removal, are qualified from actual downloaded artifacts with the
+applicable quarantine or Mark-of-the-Web marker intact. On Linux, a downloaded
+artifact gets the same checksum and signature verification plus install, update
+and removal evidence; macOS and Windows markers are not required. Local developer
+builds, removed quarantine and browser or harness results are not native
+distribution evidence. A warning-free installation is not promised. Missing
+minimum macOS 14 and suitable Windows/Linux environments remain explicit
 blockers; candidate-current versions remain separate.
 
 ## Trust and TLS validation
@@ -278,8 +281,8 @@ plan. These release items remain open:
 - installer/update/removal mechanism and exact supported archive/installer
   formats (#25–#28);
 - publisher account access and concrete release authorization (#43);
-- actual downloaded/quarantined-artifact qualification on each supported OS and
-  architecture.
+- actual downloaded-artifact qualification on each supported OS and architecture,
+  including macOS/Windows warning flows and Linux install/update/removal evidence.
 
 These remain with #4, #39 and #43. No key generation, key access, upload,
 signature, publication or account access is authorized by this contract.
