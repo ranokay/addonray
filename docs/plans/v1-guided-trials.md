@@ -2,11 +2,10 @@
 
 ## Status
 
-Approved by the user on 2026-11-06 as the #12 product contract. This document
-authorizes no runtime implementation or qualification. The current investigation
-still holds one Before/After pair and has no guided step UI. [The v1 contract](../v1-contract.md)
-keeps the existing comparison, save and permission limits effective until the
-implementation and qualification gates pass.
+Approved by the user on 2026-11-06 as the #12 product contract. The runtime
+implements the one-pair guide and unsaved-trial warning described below. Local
+browser evidence and remaining qualification gaps are recorded in
+[guided-trial evidence](../evidence/2026-11-11-guided-trials.md).
 
 ## Problem and result
 
@@ -96,6 +95,8 @@ occurred under controlled conditions.
 
 ## Current runtime
 
-The current investigation has no guided checklist, no unsaved-trial warning and
-no automatic preservation. Its existing one-pair lifetime, explicit Save and
-Start over behavior remain unchanged.
+The investigation shows the five instructions and a warning for a completed
+unsaved trial. It keeps one live pair and preserves it only by explicit Save.
+Start over waits for an in-flight Save and checks that a matching local archive
+is still available before clearing a saved trial. A cancelled or failed Save
+keeps the live trial, and unavailable or deleted archives require the warning.

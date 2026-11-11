@@ -16,8 +16,12 @@ function saver(
   };
   return {
     getSnapshot: () => state,
+    isPreserved: () => false,
+    getSuccessfulSaves: () => 0,
+    confirmPreserved: vi.fn(async () => false),
+    cancelPending: vi.fn(),
     subscribe: () => () => {},
-    save: vi.fn(async () => {}),
+    save: vi.fn(async () => undefined),
     retryStorage: vi.fn(async () => {}),
     setRetentionDays: vi.fn(),
     dispose: vi.fn(),

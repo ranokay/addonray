@@ -23,7 +23,7 @@ export function SavedInvestigationSection({
   const disabled = !eligible || state.busy || !state.ready;
   return (
     <section aria-labelledby="save-heading" aria-busy={state.busy}>
-      <p className="step">5 · Save</p>
+      <p className="step">Save</p>
       <h2 id="save-heading">Save this investigation</h2>
       <p id="save-disclosure">
         Save creates one new read-only archive from this completed comparison.
