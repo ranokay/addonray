@@ -261,3 +261,31 @@ untrusted-provenance label and hostile names shown as literal code-span text.
 - Reviewed product code: `lib/report-clipboard.ts`, `lib/report-markdown.ts`,
   `lib/report-export.ts`, `lib/saved-export.ts`, `lib/import-output.ts` and the
   three report views.
+
+## Feasibility probe review correction (2026-11-11)
+
+The Codacy complexity finding prompted extraction of fixture generation, browser
+session setup, clipboard read/restore helpers and evidence serialization into
+`clipboard-feasibility-{fixtures,session,io,evidence}.mjs`. The existing CLI,
+assertions, report names and schema remain the same. Session setup transfers
+driver ownership immediately after launch so the caller still quits the browser
+if installation or navigation fails. All six generated fixture files compare
+byte-for-byte equal with the previous implementation.
+
+Before committing this refactor, the shared quality gate passed. Headless
+feasibility runs on macOS arm64 passed all six checks each on Chrome for Testing
+156.0.8078.47 and Firefox 140.0, 153.5.1esr and 158.0.1, including immediate,
+guarded and exact 1 MiB writes. Each report records successful text-only
+restoration. These iteration reports record `sourceDirty:true` at parent
+`f1f7e56c66ac2d2f49e97d6abce28ab4d981f7f0`; they are not final-head evidence.
+The PR records the subsequent committed-head gate and browser matrix separately.
+No headful host-clipboard run was repeated.
+
+The live and saved pre-write activation findings are false positives for the
+qualified targets. Awaiting eligibility checks does not itself consume transient
+activation, as the guarded feasibility and production copy probes demonstrate.
+Moving the write before these checks would permit copying a revoked live report
+or a deleted, expired or replaced archive. Post-write checks cannot undo that
+write. An unusually delayed guard can still exhaust activation, in which case
+the existing adapter reports denial honestly and preserves the review. This
+does not claim support for unqualified browsers or platforms.
