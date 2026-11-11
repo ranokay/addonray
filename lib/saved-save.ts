@@ -69,7 +69,8 @@ export function createSavedSave(
   let live = true;
   let operation = 0;
   let activeController: AbortController | null = null;
-  let preserved: InvestigationState | null = null;
+  // The marker must never extend the lifetime of a cleared investigation.
+  let preserved: WeakRef<InvestigationState> | null = null;
   const subscribers = new Set<() => void>();
   const publish = (next: SaveSnapshot) => {
     state = next;
@@ -118,7 +119,7 @@ export function createSavedSave(
   return {
     getSnapshot: () => state,
     isPreserved: () =>
-      preserved !== null && preserved === investigation.getSnapshot(),
+      live && preserved?.deref() === investigation.getSnapshot(),
     cancelPending() {
       if (!state.busy) return;
       operation += 1;
@@ -276,7 +277,11 @@ export function createSavedSave(
         const result = await store.save(record, expected, controller.signal);
         if (!live || ticket !== operation) return;
         if (result === 'saved') {
-          preserved = snapshot;
+          preserved =
+            snapshot === investigation.getSnapshot() &&
+            generation === investigation.getGeneration()
+              ? new WeakRef(snapshot)
+              : null;
           const label = recordLabel(record);
           try {
             notifier?.notify();
@@ -376,6 +381,7 @@ export function createSavedSave(
     },
     dispose() {
       live = false;
+      preserved = null;
       operation += 1;
       activeController?.abort();
       activeController = null;

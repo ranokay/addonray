@@ -18,6 +18,12 @@ does not make or verify that change. Model tests cover pending-save cancellation
 reset, revocation, stale permission results and attachment changes. The quota
 error is simulated, not an observed engine quota.
 
+The review fix for the preservation marker uses a non-owning reference to the
+exact saved snapshot. A reset, revocation, edit or disposal cannot leave the
+marker owning old observations, and a late save cannot mark a replacement trial.
+Focused model tests cover those transitions. The reference does not replace the
+existing cancellation or storage guards.
+
 These are local automation results. The investigation launcher is rendered as
 a browser tab, and Chrome's UI fixture has pre-granted access. They do not prove
 native toolbar-popup or permission-prompt usability, retail installation,

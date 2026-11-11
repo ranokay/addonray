@@ -181,6 +181,52 @@ it('preserves only the exact saved observations', async () => {
   expect(saver.isPreserved()).toBe(false);
 });
 
+it('forgets a preserved trial after reset or saver disposal', async () => {
+  const { model, saver } = await fixture();
+  await saver.save();
+  expect(saver.isPreserved()).toBe(true);
+  model.startOver();
+  expect(saver.isPreserved()).toBe(false);
+  await model.captureBefore();
+  await model.captureAfter();
+  await saver.save();
+  expect(saver.isPreserved()).toBe(true);
+  saver.dispose();
+  expect(saver.isPreserved()).toBe(false);
+});
+
+it('forgets a preserved trial when management access is revoked', async () => {
+  let listener:
+    Parameters<typeof browser.permissions.onRemoved.addListener>[0] | undefined;
+  vi.spyOn(browser.permissions.onRemoved, 'addListener').mockImplementation(
+    (callback) => {
+      listener = callback;
+    },
+  );
+  const { model, saver } = await fixture();
+  model.subscribe(() => {});
+  await saver.save();
+  expect(saver.isPreserved()).toBe(true);
+  listener?.({ permissions: ['management'] });
+  expect(model.getSnapshot().before).toBeNull();
+  expect(saver.isPreserved()).toBe(false);
+});
+
+it('does not preserve a replacement after a late committed save', async () => {
+  const { model, store, saver } = await fixture();
+  const pending = Promise.withResolvers<SavedStoreSaveResult>();
+  store.pending = pending.promise;
+  const saving = saver.save();
+  await store.started.promise;
+  model.startOver();
+  pending.resolve('saved');
+  await saving;
+  expect(saver.isPreserved()).toBe(false);
+  await model.captureBefore();
+  await model.captureAfter();
+  expect(saver.isPreserved()).toBe(false);
+});
+
 it('marks later timing attachments unsaved and keeps the earlier archive across trials', async () => {
   const { model, saver, store } = await fixture({ timing: true });
   await saver.save();
