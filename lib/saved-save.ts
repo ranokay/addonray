@@ -69,6 +69,7 @@ export function createSavedSave(
   let live = true;
   let operation = 0;
   let activeController: AbortController | null = null;
+  let preserved: InvestigationState | null = null;
   const subscribers = new Set<() => void>();
   const publish = (next: SaveSnapshot) => {
     state = next;
@@ -116,6 +117,14 @@ export function createSavedSave(
 
   return {
     getSnapshot: () => state,
+    isPreserved: () =>
+      preserved !== null && preserved === investigation.getSnapshot(),
+    cancelPending() {
+      if (!state.busy) return;
+      operation += 1;
+      activeController?.abort();
+      message('Save cancelled. The live investigation was kept.');
+    },
     subscribe(subscriber: () => void) {
       if (!live) return () => {};
       subscribers.add(subscriber);
@@ -184,11 +193,6 @@ export function createSavedSave(
             ? ['management', 'scripting']
             : ['management'],
         });
-        if (!granted) {
-          investigation.startOver();
-          message('Access changed. The investigation was cleared.');
-          return;
-        }
         if (
           !live ||
           ticket !== operation ||
@@ -196,6 +200,11 @@ export function createSavedSave(
           generation !== investigation.getGeneration()
         )
           throw new Error('cancelled');
+        if (!granted) {
+          investigation.startOver();
+          message('Access changed. The investigation was cleared.');
+          return;
+        }
         if (!(await normalContext(api))) {
           message('Save is available only in verified normal windows.');
           return;
@@ -267,6 +276,7 @@ export function createSavedSave(
         const result = await store.save(record, expected, controller.signal);
         if (!live || ticket !== operation) return;
         if (result === 'saved') {
+          preserved = snapshot;
           const label = recordLabel(record);
           try {
             notifier?.notify();
@@ -279,7 +289,7 @@ export function createSavedSave(
             message: `Saved locally. ${label}`,
             lastLabel: label,
           });
-          return;
+          return true;
         }
         if (
           snapshot !== investigation.getSnapshot() ||

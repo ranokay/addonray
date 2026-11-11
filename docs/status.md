@@ -12,6 +12,13 @@ The license portion of #4 is decided; its other release responsibilities remain.
 
 ## Expanded v1 target
 
+The #12 guided-trial slice adds five ordered instructions and an unsaved-trial
+Start over warning to the existing one-pair investigation. Explicit Save keeps
+each archive immutable; changes to the live observations require another Save.
+The local browser checks and their authority limits are recorded in
+[guided-trial evidence](evidence/2026-11-11-guided-trials.md). Native desktop
+journeys and the release matrix remain separate qualification work.
+
 The user approved the private milestone [`v1.0.0`](https://github.com/ranokay/addonray/milestone/1) as the finite expanded v1 target on 2026-10-29. It contains tickets #2 through #46: saved investigations and report exchange, guided comparisons, mutation and request-failure diagnostics, an optional Rust companion, brand assets, qualification and release work. [The v1 contract](v1-contract.md) records the dated scope snapshot, intended support, existing evidence, supersession map, release acceptance and exclusions.
 
 The implemented runtime below remains the current product. No full-v1 implementation or qualification exists. Current session, one-pair, report and permission limits stay effective until a future contract is approved, recorded, its applicable feasibility gates pass and its implementation is qualified. #4 remains an open owner/release gate. #5 is approved and recorded; its bounded #6 save/list/reopen/delete, #7 retention/bulk-delete, #8 JSON export, #9 import and #10 printable HTML slices are implemented and locally qualified with explicit release gaps. Backlog approval does not authorize signing, publication, licensing or visibility changes.
@@ -640,6 +647,7 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Implement and locally qualify #9 explicit untrusted import, read-only inspection and separate imported save. See [the #9 evidence](evidence/2026-11-05-json-report-import.md).
 - [x] Implement and locally qualify #10 self-contained printable HTML for live, saved and unsaved imported reports, with browser print/Save-as-PDF and request-only outcomes. See [the #10 evidence](evidence/2026-11-06-printable-report.md).
 - [ ] Implement and qualify #11 clipboard.
+- [x] Implement the #12 guided-trial flow; local browser authority and gaps are recorded in [the evidence](evidence/2026-11-11-guided-trials.md).
 - [ ] Qualify private and unknown contexts, multi-view deletion, expiry, storage failure and the exact browser and OS matrix for the exchange outputs.
 - [ ] Reassess the Firefox declaration and Chrome Web Store privacy disclosure before publication.
 
@@ -745,8 +753,8 @@ Before the expanded v1 approval, the items below were recorded as unresolved fut
 
 #5 was closed on 2026-10-30. #13, #12 and #20 were answered on 2026-11-06, and
 Q7/Q8 record the companion release and signing plan; their contracts are recorded
-in this documentation commit. These answers authorize no storage, permission,
-format, runtime or native implementation, and no key, signature or release.
+in the planning record. Those answers alone did not implement storage, permissions,
+formats, runtime or native code, and did not create a key, signature or release.
 
 These are approval gates inside the approved backlog, not open scope questions.
 Current runtime limits remain effective until each contract and its applicable

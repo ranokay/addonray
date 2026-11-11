@@ -172,6 +172,90 @@ it('saves a completed investigation and keeps the live pair', async () => {
   });
 });
 
+it('preserves only the exact saved observations', async () => {
+  const { model, saver } = await fixture();
+  expect(saver.isPreserved()).toBe(false);
+  await saver.save();
+  expect(saver.isPreserved()).toBe(true);
+  model.setAssessment('better');
+  expect(saver.isPreserved()).toBe(false);
+});
+
+it('marks later timing attachments unsaved and keeps the earlier archive across trials', async () => {
+  const { model, saver, store } = await fixture({ timing: true });
+  await saver.save();
+  const first = [...store.records.values()][0]!;
+  expect(saver.isPreserved()).toBe(true);
+  expect(
+    model.attachTiming('after', 42, timings, model.getGeneration()).status,
+  ).toBe('success');
+  expect(saver.isPreserved()).toBe(false);
+  model.startOver();
+  await model.captureBefore();
+  await model.captureAfter();
+  await saver.save();
+  expect(store.records.size).toBe(2);
+  expect([...store.records.values()]).toContain(first);
+});
+
+it('cancels a pending save without clearing the live pair', async () => {
+  const { model, store, saver } = await fixture();
+  const original = model.getSnapshot();
+  const pending = Promise.withResolvers<SavedStoreSaveResult>();
+  store.pending = pending.promise;
+  const saving = saver.save();
+  await store.started.promise;
+  saver.cancelPending();
+  pending.resolve('cancelled');
+  await saving;
+  expect(model.getSnapshot()).toBe(original);
+  expect(store.records.size).toBe(0);
+  expect(saver.isPreserved()).toBe(false);
+});
+
+it('revocation aborts a pending save and clears the live trial', async () => {
+  let listener:
+    Parameters<typeof browser.permissions.onRemoved.addListener>[0] | undefined;
+  vi.spyOn(browser.permissions.onRemoved, 'addListener').mockImplementation(
+    (callback) => {
+      listener = callback;
+    },
+  );
+  const { model, store, saver } = await fixture();
+  model.subscribe(() => {});
+  expect(listener).toBeDefined();
+  const pending = Promise.withResolvers<SavedStoreSaveResult>();
+  store.pending = pending.promise;
+  const saving = saver.save();
+  await store.started.promise;
+  listener?.({ permissions: ['management'] });
+  pending.resolve('cancelled');
+  await saving;
+  expect(model.getSnapshot().before).toBeNull();
+  expect(store.records.size).toBe(0);
+  expect(saver.isPreserved()).toBe(false);
+});
+
+it('does not clear a replacement trial when an old permission check denies access', async () => {
+  const currentApi = api();
+  const { model, saver } = await fixture({ currentApi });
+  const permission = Promise.withResolvers<boolean>();
+  const started = Promise.withResolvers<void>();
+  vi.spyOn(currentApi.permissions, 'contains').mockImplementation(async () => {
+    started.resolve();
+    return permission.promise;
+  });
+  const saving = saver.save();
+  await started.promise;
+  model.startOver();
+  await model.captureBefore();
+  const replacement = model.getSnapshot();
+  permission.resolve(false);
+  await saving;
+  expect(model.getSnapshot()).toBe(replacement);
+  expect(saver.isPreserved()).toBe(false);
+});
+
 it('applies the chosen retention to a new archive without changing defaults', async () => {
   const { store, saver } = await fixture();
   expect(saver.getSnapshot().retentionDays).toBe(30);
@@ -308,6 +392,15 @@ it('creates a separate record for each explicit save', async () => {
   await saver.save();
   expect(store.records.size).toBe(2);
   expect(new Set([...store.records.keys()]).size).toBe(2);
+});
+
+it('reports each save outcome even when this exact state was saved earlier', async () => {
+  const { store, saver } = await fixture();
+  expect(await saver.save()).toBe(true);
+  store.result = 'quota';
+  expect(await saver.save()).toBeUndefined();
+  expect(saver.isPreserved()).toBe(true);
+  expect(store.records.size).toBe(1);
 });
 
 it('refuses to overlap a pending capture, attachment or report action', async () => {

@@ -490,6 +490,13 @@ export async function checkTimingHandoff({
 
     await driver.switchTo().window(first);
     await driver.findElement(By.id('start-over')).click();
+    const warning = await driver.findElements(By.css('dialog[open]'));
+    if (warning.length)
+      await warning[0]
+        .findElement(
+          By.xpath('.//button[normalize-space(.)="Discard and start over"]'),
+        )
+        .click();
     await captureInventory(first, 'before');
     await openPopup(`${localUrl}timing-comparison-source`);
     await pageCapture();
@@ -580,6 +587,13 @@ export async function checkTimingHandoff({
     if (revokeScripting) {
       await driver.switchTo().window(first);
       await driver.findElement(By.id('start-over')).click();
+      const warning = await driver.findElements(By.css('dialog[open]'));
+      if (warning.length)
+        await warning[0]
+          .findElement(
+            By.xpath('.//button[normalize-space(.)="Discard and start over"]'),
+          )
+          .click();
       await captureInventory(first, 'before');
       await openPopup(`${localUrl}timing-comparison-source`);
       await pageCapture();

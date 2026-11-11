@@ -1,4 +1,10 @@
-import { useSyncExternalStore, type ReactNode } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import type { BrowserContext } from '../../lib/browser-target';
 import {
   compareInventories,
@@ -151,6 +157,36 @@ export function InvestigationView({
         extension names, IDs, versions and enabled states. {context.name} may
         remember the permission you grant.
       </p>
+      <section aria-labelledby="guide-heading">
+        <h2 id="guide-heading">Guide to a manual comparison</h2>
+        <ol>
+          <li>
+            Capture the Before baseline.{' '}
+            {before !== null ? 'Captured.' : 'Not captured.'}
+          </li>
+          <li>
+            Manually change one browser extension setting. AddonRay cannot
+            verify this step.
+          </li>
+          <li>
+            Manually reproduce the problem on the same page. AddonRay cannot
+            verify this step.
+          </li>
+          <li>
+            Capture After. {after !== null ? 'Captured.' : 'Not captured.'}
+          </li>
+          <li>
+            Record your page assessment.{' '}
+            {state.assessment === null
+              ? 'No assessment selected.'
+              : `Selected: ${assessmentLabels[state.assessment]}.`}
+          </li>
+        </ol>
+        <p>
+          Assessment is optional for saving. A matching tab does not prove the
+          same page or controlled conditions.
+        </p>
+      </section>
       {context.target === 'chrome' && (
         <p className="metadata">
           Chrome groups inventory and extension controls under one permission.
@@ -205,7 +241,7 @@ export function InvestigationView({
           aria-labelledby="after-heading"
           aria-busy={state.busy === 'after'}
         >
-          <p className="step">3 · Capture</p>
+          <p className="step">4 · Capture</p>
           <h2 id="after-heading">After</h2>
           <p>
             Return here after changing settings and retesting the same page.
@@ -240,7 +276,7 @@ export function InvestigationView({
 
       {changes !== null && (
         <section aria-labelledby="changes-heading">
-          <p className="step">4 · Review</p>
+          <p className="step">5 · Assess</p>
           <h2 id="changes-heading">Reported inventory changes</h2>
           <div data-testid="comparison-changes">
             {changes.length === 0 ? (
@@ -329,27 +365,125 @@ export function App({
     investigation.subscribe,
     investigation.getSnapshot,
   );
+  const saveState = useSyncExternalStore(saver.subscribe, saver.getSnapshot);
+  const [warning, setWarning] = useState<InvestigationState | null>(null);
+  const [warningAttempted, setWarningAttempted] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const cancelButton = useRef<HTMLButtonElement>(null);
+  const warningTicket = useRef(0);
+  const warningSave = useRef<number | null>(null);
+  useEffect(() => {
+    if (!warning) return;
+    const element = dialog.current;
+    element?.showModal();
+    cancelButton.current?.focus();
+    return () => {
+      warningTicket.current += 1;
+      element?.close();
+      document.getElementById('start-over')?.focus();
+    };
+  }, [warning]);
+  useEffect(() => {
+    if (warning && warning !== state) setWarning(null);
+  }, [state, warning]);
   const eligible =
     state.busy === null &&
     state.before?.status === 'success' &&
     state.after?.status === 'success';
+  const startOver = () => {
+    if (eligible && !saver.isPreserved()) {
+      setWarningAttempted(false);
+      setWarning(state);
+    } else investigation.startOver();
+  };
+  const saveAndStartOver = async () => {
+    const expected = warning;
+    const ticket = warningTicket.current;
+    setWarningAttempted(true);
+    warningSave.current = ticket;
+    const saved = await saver.save();
+    if (warningSave.current === ticket) warningSave.current = null;
+    if (
+      saved &&
+      expected &&
+      ticket === warningTicket.current &&
+      investigation.getSnapshot() === expected &&
+      saver.isPreserved()
+    ) {
+      setWarning(null);
+      investigation.startOver();
+    }
+  };
+  const cancelWarning = () => {
+    warningTicket.current += 1;
+    if (warningSave.current !== null) saver.cancelPending();
+    warningSave.current = null;
+    setWarning(null);
+  };
   return (
-    <InvestigationView
-      state={state}
-      context={investigation.context}
-      label={investigation.label}
-      onCaptureBefore={investigation.captureBefore}
-      onCaptureAfter={investigation.captureAfter}
-      onStartOver={investigation.startOver}
-      onAssessment={investigation.setAssessment}
-      saved={
-        <SavedInvestigationSection
-          saver={saver}
-          eligible={eligible}
-          libraryUrl={libraryUrl}
-        />
-      }
-      report={<ReportExportSection exporter={exporter} eligible={eligible} />}
-    />
+    <>
+      <InvestigationView
+        state={state}
+        context={investigation.context}
+        label={investigation.label}
+        onCaptureBefore={investigation.captureBefore}
+        onCaptureAfter={investigation.captureAfter}
+        onStartOver={startOver}
+        onAssessment={investigation.setAssessment}
+        saved={
+          <SavedInvestigationSection
+            saver={saver}
+            eligible={eligible}
+            libraryUrl={libraryUrl}
+          />
+        }
+        report={<ReportExportSection exporter={exporter} eligible={eligible} />}
+      />
+      {warning && (
+        <dialog
+          ref={dialog}
+          className="start-over-dialog"
+          aria-labelledby="start-over-title"
+          aria-busy={saveState.busy}
+          onCancel={(event) => {
+            event.preventDefault();
+            cancelWarning();
+          }}
+        >
+          <h2 id="start-over-title">Save this trial before starting over?</h2>
+          <p>
+            Starting over clears the live trial. Save creates a new local
+            archive kept for {saveState.retentionDays} days.
+          </p>
+          <div className="report-actions">
+            <button
+              disabled={saveState.busy}
+              onClick={() => void saveAndStartOver()}
+            >
+              Save
+            </button>
+            <button
+              disabled={saveState.busy}
+              onClick={() => {
+                setWarning(null);
+                investigation.startOver();
+              }}
+            >
+              Discard and start over
+            </button>
+            <button ref={cancelButton} onClick={cancelWarning}>
+              Cancel
+            </button>
+          </div>
+          <p role="status">
+            {saveState.busy
+              ? 'Saving…'
+              : warningAttempted
+                ? saveState.message
+                : null}
+          </p>
+        </dialog>
+      )}
+    </>
   );
 }
