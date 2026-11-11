@@ -288,6 +288,17 @@ it('releases the save lease on cancellation while a permission check remains pen
   expect(model.getSnapshot().before?.status).toBe('success');
 });
 
+it('does not start storage work if the trial resets while Save is announced', async () => {
+  const { model, store, saver } = await fixture();
+  saver.subscribe(() => {
+    if (saver.getSnapshot().busy) model.startOver();
+  });
+  await saver.save();
+  expect(store.readStateCalls).toBe(0);
+  expect(store.records.size).toBe(0);
+  expect(model.getSnapshot().before).toBeNull();
+});
+
 it.each(['cancel', 'reset'] as const)(
   'settles a held permission check promptly after %s',
   async (action) => {

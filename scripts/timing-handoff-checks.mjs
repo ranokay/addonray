@@ -179,8 +179,18 @@ export async function checkTimingHandoff({
   async function captureInventory(handle, side) {
     evidence.stage = `inventory:${side}`;
     await driver.switchTo().window(handle);
-    await driver.findElement(By.id(`capture-${side}`)).click();
     try {
+      await driver.wait(
+        () => driver.executeScript(() => document.readyState === 'complete'),
+        10000,
+      );
+      const button = await driver.wait(
+        until.elementLocated(By.id(`capture-${side}`)),
+        10000,
+      );
+      await driver.wait(until.elementIsVisible(button), 10000);
+      await driver.wait(() => button.isEnabled(), 10000);
+      await button.click();
       await driver.wait(
         until.elementLocated(By.css(side === 'before' ? before : after)),
         10000,
@@ -584,6 +594,22 @@ export async function checkTimingHandoff({
       await closePopup();
       if (change !== 'close') {
         await driver.switchTo().window(second);
+        if (change === 'reload') {
+          await driver.wait(
+            () =>
+              driver.executeScript((oldLabel) => {
+                const label = document.querySelector(
+                  '#investigation-label',
+                )?.textContent;
+                return (
+                  document.readyState === 'complete' &&
+                  Boolean(label) &&
+                  label !== oldLabel
+                );
+              }, currentLabel),
+            10000,
+          );
+        }
         await driver.wait(until.elementLocated(By.id('capture-before')), 10000);
         assert.equal((await driver.findElements(By.css(before))).length, 0);
         await emptyTimings();

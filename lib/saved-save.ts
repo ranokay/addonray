@@ -253,6 +253,13 @@ export function createSavedSave(
         }
       });
       try {
+        if (
+          !live ||
+          ticket !== operation ||
+          snapshot !== investigation.getSnapshot() ||
+          generation !== investigation.getGeneration()
+        )
+          throw new Error('cancelled');
         // Bind the pending write to the current store identity and deletion
         // epoch before any asynchronous context or permission checks.
         const expected: SavedStoreState = await untilAbort(
@@ -408,9 +415,7 @@ export function createSavedSave(
           snapshot !== investigation.getSnapshot() ||
           generation !== investigation.getGeneration()
         ) {
-          message(
-            'The investigation changed before the save completed. The live investigation was kept.',
-          );
+          message('The investigation changed before the save completed.');
           return;
         }
         if (result === 'stale' || result === 'stale-store') {
@@ -462,9 +467,7 @@ export function createSavedSave(
       } catch (error) {
         if (live && ticket === operation) {
           if (investigation.getSnapshot() !== snapshot)
-            message(
-              'The investigation changed before the save completed. The live investigation was kept.',
-            );
+            message('The investigation changed before the save completed.');
           else if (error instanceof SavedStoreError) {
             if (error.code === 'unavailable')
               publish({

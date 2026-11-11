@@ -41,6 +41,12 @@ of saved archives before Start over. Chrome for Testing and ChromeDriver
 permission, context and quota failure were test instrumentation; they do not
 establish native prompt or natural engine-quota behavior.
 
+The `4fc4ead` local matrix failed on Firefox 158.0.1 during the timing-handoff
+reload sequence when a capture button was not interactable. The probe now
+waits for the replacement investigation label and the visible, enabled button.
+A working-tree rerun on Firefox 158.0.1 with geckodriver 0.37.1 passed 117
+checks on macOS 27.2 arm64; it does not establish native popup usability.
+
 These are local automation results. The investigation launcher is rendered as
 a browser tab, and Chrome's UI fixture has pre-granted access. They do not prove
 native toolbar-popup or permission-prompt usability, retail installation,
