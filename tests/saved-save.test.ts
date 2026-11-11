@@ -33,6 +33,7 @@ class MemoryStore implements SavedStore {
   result: SavedStoreSaveResult | null = null;
   pending: Promise<SavedStoreSaveResult> | null = null;
   started = Promise.withResolvers<void>();
+  lastSignal: AbortSignal | undefined;
 
   async ready() {
     this.readyCalls += 1;
@@ -55,6 +56,7 @@ class MemoryStore implements SavedStore {
     signal?: AbortSignal,
   ) {
     this.saveCalls += 1;
+    this.lastSignal = signal;
     this.started.resolve();
     if (this.pending) {
       signal?.addEventListener(
@@ -252,6 +254,7 @@ it('cancels a pending save without clearing the live pair', async () => {
   const saving = saver.save();
   await store.started.promise;
   saver.cancelPending();
+  expect(store.lastSignal?.aborted).toBe(true);
   pending.resolve('cancelled');
   await saving;
   expect(model.getSnapshot()).toBe(original);
@@ -275,6 +278,7 @@ it('revocation aborts a pending save and clears the live trial', async () => {
   const saving = saver.save();
   await store.started.promise;
   listener?.({ permissions: ['management'] });
+  expect(store.lastSignal?.aborted).toBe(true);
   pending.resolve('cancelled');
   await saving;
   expect(model.getSnapshot().before).toBeNull();

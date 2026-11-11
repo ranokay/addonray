@@ -546,6 +546,52 @@ export async function checkInvestigation({
     );
     assert.equal((await driver.findElements(By.css(beforeSelector))).length, 1);
     assert.equal((await driver.findElements(By.css(afterSelector))).length, 1);
+    const archivesBeforeChange = await storedRecords(driver);
+    await driver.findElement(By.id('start-over')).click();
+    warning = await driver.wait(
+      until.elementLocated(By.css('dialog[open]')),
+      10000,
+    );
+    await warning
+      .findElement(By.xpath('.//button[normalize-space(.)="Save"]'))
+      .click();
+    await driver.wait(
+      () =>
+        driver.executeScript(
+          () => typeof window.__guidedResolve === 'function',
+        ),
+      10000,
+    );
+    // Test-only programmatic input simulates an external live-state change while
+    // the modal makes the assessment controls unavailable to ordinary input.
+    await driver.executeScript(() => {
+      document
+        .querySelector('input[name="page-assessment"][value="worse"]')
+        .click();
+    });
+    await driver.wait(
+      async () =>
+        (await driver.findElements(By.css('dialog[open]'))).length === 0,
+      10000,
+    );
+    await driver.wait(
+      async () => driver.findElement(By.id('save-investigation')).isEnabled(),
+      10000,
+    );
+    assert.equal(
+      await driver
+        .findElement(By.css(assessmentSelector))
+        .getAttribute('value'),
+      'worse',
+    );
+    await driver.executeScript(() => {
+      window.__guidedResolve(true);
+      delete window.__guidedResolve;
+    });
+    assert.deepEqual(await storedRecords(driver), archivesBeforeChange);
+    passed(
+      `${authority}: a live assessment change closes the warning and cancels its held Save without an archive`,
+    );
     await driver.findElement(By.id('start-over')).click();
     warning = await driver.wait(
       until.elementLocated(By.css('dialog[open]')),

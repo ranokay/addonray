@@ -24,6 +24,14 @@ marker owning old observations, and a late save cannot mark a replacement trial.
 Focused model tests cover those transitions. The reference does not replace the
 existing cancellation or storage guards.
 
+The later dialog-cleanup correction was reviewed locally from the working tree
+based on `51f9498`. Firefox 160.0 with geckodriver 0.37.1 passed 113 checks on
+the unmodified product route. A test-only programmatic assessment change while
+Save was held at a permission check closed the warning, cancelled the Save and
+left archives unchanged. Chrome for Testing and ChromeDriver 156.0.8078.47
+passed 103 checks using the pre-granted UI fixture. These were macOS 27.2 arm64
+runs; the Chrome run did not exercise that Firefox-only state-change probe.
+
 These are local automation results. The investigation launcher is rendered as
 a browser tab, and Chrome's UI fixture has pre-granted access. They do not prove
 native toolbar-popup or permission-prompt usability, retail installation,

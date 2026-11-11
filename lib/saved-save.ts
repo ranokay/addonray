@@ -124,9 +124,9 @@ export function createSavedSave(
       if (!state.busy) return;
       operation += 1;
       activeController?.abort();
-      message('Save cancelled. The live investigation was kept.');
+      message('Save cancelled.');
     },
-    subscribe(subscriber: () => void) {
+    subscribe: (subscriber: () => void) => {
       if (!live) return () => {};
       subscribers.add(subscriber);
       return () => subscribers.delete(subscriber);

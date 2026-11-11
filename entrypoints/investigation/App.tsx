@@ -379,10 +379,14 @@ export function App({
     cancelButton.current?.focus();
     return () => {
       warningTicket.current += 1;
+      if (warningSave.current !== null) {
+        warningSave.current = null;
+        saver.cancelPending();
+      }
       element?.close();
       document.getElementById('start-over')?.focus();
     };
-  }, [warning]);
+  }, [saver, warning]);
   useEffect(() => {
     if (warning && warning !== state) setWarning(null);
   }, [state, warning]);
@@ -400,8 +404,10 @@ export function App({
     const expected = warning;
     const ticket = warningTicket.current;
     setWarningAttempted(true);
-    warningSave.current = ticket;
-    const saved = await saver.save();
+    if (saver.getSnapshot().busy) return;
+    const saving = saver.save();
+    if (saver.getSnapshot().busy) warningSave.current = ticket;
+    const saved = await saving;
     if (warningSave.current === ticket) warningSave.current = null;
     if (
       saved &&
