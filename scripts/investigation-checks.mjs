@@ -345,7 +345,63 @@ export async function checkInvestigation({
   assert.equal(firstArchive.records.length, 1);
   await capture('before');
   await capture('after');
+  if (revokeManagement) {
+    await driver.executeScript(() => {
+      window.__guidedContains = globalThis.browser.permissions.contains;
+      globalThis.browser.permissions.contains = () =>
+        new Promise((resolve) => {
+          window.__guidedResolve = resolve;
+        });
+    });
+  }
   await driver.findElement(By.id('save-investigation')).click();
+  if (revokeManagement) {
+    await driver.wait(
+      () =>
+        driver.executeScript(
+          () => typeof window.__guidedResolve === 'function',
+        ),
+      10000,
+    );
+    await driver.findElement(By.id('start-over')).click();
+    await driver.wait(
+      until.elementLocated(
+        By.xpath('//button[normalize-space(.)="Cancel start over"]'),
+      ),
+      10000,
+    );
+    assert.equal((await driver.findElements(By.css('dialog[open]'))).length, 0);
+    await writeFile(
+      '.scratch/guided-pending-save.png',
+      await driver.takeScreenshot(),
+      'base64',
+    );
+    await driver
+      .findElement(By.xpath('//button[normalize-space(.)="Cancel start over"]'))
+      .click();
+    assert.equal((await driver.findElements(By.css(beforeSelector))).length, 1);
+    await driver.findElement(By.id('start-over')).click();
+    await driver.wait(
+      until.elementLocated(
+        By.xpath('//button[normalize-space(.)="Cancel start over"]'),
+      ),
+      10000,
+    );
+    await driver.executeScript(() => {
+      window.__guidedResolve(true);
+      globalThis.browser.permissions.contains = window.__guidedContains;
+      delete window.__guidedResolve;
+      delete window.__guidedContains;
+    });
+    await driver.wait(
+      async () =>
+        (await driver.findElements(By.css(beforeSelector))).length === 0,
+      10000,
+    );
+    passed(
+      `${authority}: Start over waits for a pending ordinary Save and starts the next trial without a duplicate archive`,
+    );
+  }
   await driver.wait(
     async () => (await storedRecords(driver)).records.length === 2,
     10000,
@@ -356,21 +412,107 @@ export async function checkInvestigation({
       (record) => record.recordId === firstArchive.records[0].recordId,
     ),
   );
-  await driver
-    .findElement(By.css('input[name="page-assessment"][value="better"]'))
-    .click();
-  await driver.findElement(By.id('start-over')).click();
-  warning = await driver.wait(
-    until.elementLocated(By.css('dialog[open]')),
+  if (revokeManagement) {
+    await capture('before');
+    await capture('after');
+    await driver.findElement(By.id('save-investigation')).click();
+    await driver.wait(
+      async () => (await storedRecords(driver)).records.length === 3,
+      10000,
+    );
+    await driver.wait(
+      async () => driver.findElement(By.id('save-investigation')).isEnabled(),
+      10000,
+    );
+    await driver.executeScript(() => {
+      window.__guidedContains = globalThis.browser.permissions.contains;
+      window.__guidedOriginalPut = IDBObjectStore.prototype.put;
+      window.__guidedOriginalAdd = IDBObjectStore.prototype.add;
+      globalThis.browser.permissions.contains = () =>
+        new Promise((resolve) => {
+          window.__guidedResolve = resolve;
+        });
+      const fail = () => {
+        throw new DOMException('simulated quota', 'QuotaExceededError');
+      };
+      IDBObjectStore.prototype.put = fail;
+      IDBObjectStore.prototype.add = fail;
+    });
+    await driver.findElement(By.id('save-investigation')).click();
+    await driver.wait(
+      () =>
+        driver.executeScript(
+          () => typeof window.__guidedResolve === 'function',
+        ),
+      10000,
+    );
+    await driver.findElement(By.id('start-over')).click();
+    await driver.wait(
+      until.elementLocated(
+        By.xpath('//button[normalize-space(.)="Cancel start over"]'),
+      ),
+      10000,
+    );
+    await driver.executeScript(() => {
+      window.__guidedResolve(true);
+      globalThis.browser.permissions.contains = window.__guidedContains;
+      delete window.__guidedResolve;
+      delete window.__guidedContains;
+    });
+    warning = await driver.wait(
+      until.elementLocated(By.css('dialog[open]')),
+      10000,
+    );
+    assert.match(await warning.getText(), /quota was exceeded/);
+    await warning
+      .findElement(By.xpath('.//button[normalize-space(.)="Cancel"]'))
+      .click();
+    await driver.executeScript(() => {
+      IDBObjectStore.prototype.put = window.__guidedOriginalPut;
+      IDBObjectStore.prototype.add = window.__guidedOriginalAdd;
+      delete window.__guidedOriginalPut;
+      delete window.__guidedOriginalAdd;
+    });
+    assert.equal((await storedRecords(driver)).records.length, 3);
+    passed(
+      `${authority}: a pending ordinary Save failure keeps the live trial even after an earlier Save`,
+    );
+  }
+  await driver.wait(
+    async () => driver.findElement(By.id('save-investigation')).isEnabled(),
     10000,
   );
-  assert.doesNotMatch(await warning.getText(), /Saved locally/);
-  await warning
-    .findElement(
-      By.xpath('.//button[normalize-space(.)="Discard and start over"]'),
-    )
-    .click();
-  await empty();
+  if (revokeManagement) {
+    await driver.executeScript(() => {
+      window.__guidedGetCurrent = globalThis.browser.tabs.getCurrent;
+      globalThis.browser.tabs.getCurrent = () =>
+        new Promise((resolve) => {
+          window.__guidedResolveContext = resolve;
+        });
+    });
+    await driver.findElement(By.id('start-over')).click();
+    await driver.wait(
+      () =>
+        driver.executeScript(
+          () => typeof window.__guidedResolveContext === 'function',
+        ),
+      10000,
+    );
+    await driver
+      .findElement(By.xpath('//button[normalize-space(.)="Cancel start over"]'))
+      .click();
+    await driver.executeScript(() => {
+      window.__guidedResolveContext({ incognito: false });
+      globalThis.browser.tabs.getCurrent = window.__guidedGetCurrent;
+      delete window.__guidedResolveContext;
+      delete window.__guidedGetCurrent;
+    });
+    assert.equal((await driver.findElements(By.css(beforeSelector))).length, 1);
+    assert.equal((await driver.findElements(By.css(afterSelector))).length, 1);
+    passed(
+      `${authority}: cancelling an archive check keeps the live trial after a late context result`,
+    );
+  }
   const currentWindow = await driver.getWindowHandle();
   await driver.switchTo().newWindow('tab');
   await driver.get(
@@ -400,6 +542,34 @@ export async function checkInvestigation({
   );
   await driver.close();
   await driver.switchTo().window(currentWindow);
+  await driver.findElement(By.id('start-over')).click();
+  warning = await driver.wait(
+    until.elementLocated(By.css('dialog[open]')),
+    10000,
+  );
+  await warning
+    .findElement(By.xpath('.//button[normalize-space(.)="Cancel"]'))
+    .click();
+  assert.equal((await driver.findElements(By.css(beforeSelector))).length, 1);
+  assert.equal((await driver.findElements(By.css(afterSelector))).length, 1);
+  passed(
+    `${authority}: deleting the saved archives makes Start over warn and Cancel keeps the live trial`,
+  );
+  await driver
+    .findElement(By.css('input[name="page-assessment"][value="better"]'))
+    .click();
+  await driver.findElement(By.id('start-over')).click();
+  warning = await driver.wait(
+    until.elementLocated(By.css('dialog[open]')),
+    10000,
+  );
+  assert.doesNotMatch(await warning.getText(), /Saved locally/);
+  await warning
+    .findElement(
+      By.xpath('.//button[normalize-space(.)="Discard and start over"]'),
+    )
+    .click();
+  await empty();
   passed(
     `${authority}: warning Save starts a new trial, later Save preserves both archives, and assessment edits trigger the warning again`,
   );
@@ -480,6 +650,11 @@ export async function checkInvestigation({
   await driver.wait(until.elementLocated(By.id('report-text')), 10000);
 
   await driver.findElement(By.id('start-over')).click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.css(beforeSelector))).length === 0,
+    10000,
+  );
   await verifyRetainedReport('after-investigation-reset');
   await empty();
   reportEvidence.completedFilePreservedAfterReset = true;

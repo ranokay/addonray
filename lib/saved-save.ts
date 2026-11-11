@@ -1,10 +1,12 @@
 import type { Browser } from 'wxt/browser';
 import type { BrowserContext } from './browser-target';
 import type { Investigation } from './investigation';
+import type { LiveActivityLease } from './live-activity';
 import {
   createSavedRecord,
   exchangeBytes,
   inspectStoredRecord,
+  isExpired,
   isRetentionDays,
   recordLabel,
   SAVED_DEFAULT_RETENTION_DAYS,
@@ -52,6 +54,18 @@ function pageData(state: InvestigationState) {
   );
 }
 
+function untilAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  let onAbort = () => {};
+  const cancelled = new Promise<never>((_resolve, reject) => {
+    onAbort = () => reject(new Error('cancelled'));
+    if (signal.aborted) onAbort();
+    else signal.addEventListener('abort', onAbort, { once: true });
+  });
+  return Promise.race([promise, cancelled]).finally(() =>
+    signal.removeEventListener('abort', onAbort),
+  );
+}
+
 export function createSavedSave(
   api: SavedSaveBrowser,
   investigation: Investigation,
@@ -68,9 +82,18 @@ export function createSavedSave(
   };
   let live = true;
   let operation = 0;
+  let successfulSaves = 0;
   let activeController: AbortController | null = null;
+  let activeLease: LiveActivityLease | null = null;
   // The marker must never extend the lifetime of a cleared investigation.
   let preserved: WeakRef<InvestigationState> | null = null;
+  let preservedIds: string[] = [];
+  const unwatchPreserved = investigation.watch(() => {
+    if (preserved && preserved.deref() !== investigation.getSnapshot()) {
+      preserved = null;
+      preservedIds = [];
+    }
+  });
   const subscribers = new Set<() => void>();
   const publish = (next: SaveSnapshot) => {
     state = next;
@@ -78,6 +101,14 @@ export function createSavedSave(
   };
   const message = (text: string | null, lastLabel = state.lastLabel) =>
     publish({ ...state, busy: false, message: text, lastLabel });
+  const cancelPending = (reason = 'Save cancelled.') => {
+    if (!state.busy) return;
+    operation += 1;
+    activeController?.abort();
+    activeLease?.release();
+    activeLease = null;
+    message(reason);
+  };
 
   let checking: Promise<void> | null = null;
   function checkReady(): Promise<void> {
@@ -118,14 +149,54 @@ export function createSavedSave(
 
   return {
     getSnapshot: () => state,
+    getSuccessfulSaves: () => successfulSaves,
     isPreserved: () =>
       live && preserved?.deref() === investigation.getSnapshot(),
-    cancelPending() {
-      if (!state.busy) return;
-      operation += 1;
-      activeController?.abort();
-      message('Save cancelled.');
+    async confirmPreserved(signal?: AbortSignal) {
+      const marker = preserved;
+      const generation = investigation.getGeneration();
+      const wait = <T>(promise: Promise<T>) =>
+        signal ? untilAbort(promise, signal) : promise;
+      const current = () =>
+        live &&
+        !signal?.aborted &&
+        marker !== null &&
+        preserved === marker &&
+        marker.deref() === investigation.getSnapshot() &&
+        generation === investigation.getGeneration();
+      if (!current()) return false;
+      try {
+        if (!(await wait(normalContext(api))) || !current()) return false;
+        const before = await wait(store.readState());
+        if (!current()) return false;
+        let expiresAt = 0;
+        for (const id of [...preservedIds].reverse()) {
+          const raw = await wait(store.get(id));
+          if (!current()) return false;
+          const inspection = inspectStoredRecord(raw);
+          if (
+            inspection.status === 'valid' &&
+            inspection.record.recordId === id &&
+            !isExpired(inspection.record, Date.now())
+          ) {
+            expiresAt = inspection.record.expiresAt;
+            break;
+          }
+        }
+        if (!expiresAt || !(await wait(normalContext(api))) || !current())
+          return false;
+        const after = await wait(store.readState());
+        return (
+          current() &&
+          before.storeId === after.storeId &&
+          before.epoch === after.epoch &&
+          expiresAt > Date.now()
+        );
+      } catch {
+        return false;
+      }
     },
+    cancelPending,
     subscribe: (subscriber: () => void) => {
       if (!live) return () => {};
       subscribers.add(subscriber);
@@ -167,12 +238,27 @@ export function createSavedSave(
       const ticket = ++operation;
       const controller = new AbortController();
       activeController = controller;
+      activeLease = lease;
       publish({ ...state, busy: true, message: null });
-      let unwatch: (() => void) | null = null;
+      const unwatch = investigation.watch(() => {
+        if (
+          snapshot !== investigation.getSnapshot() ||
+          generation !== investigation.getGeneration()
+        ) {
+          if (live && ticket === operation)
+            cancelPending(
+              'The investigation changed before the save completed.',
+            );
+          else controller.abort();
+        }
+      });
       try {
         // Bind the pending write to the current store identity and deletion
         // epoch before any asynchronous context or permission checks.
-        const expected: SavedStoreState = await store.readState();
+        const expected: SavedStoreState = await untilAbort(
+          store.readState(),
+          controller.signal,
+        );
         if (
           !live ||
           ticket !== operation ||
@@ -180,20 +266,29 @@ export function createSavedSave(
           generation !== investigation.getGeneration()
         )
           throw new Error('cancelled');
-        if (!(await normalContext(api))) {
-          message('Save is available only in verified normal windows.');
-          return;
-        }
+        const firstNormal = await untilAbort(
+          normalContext(api),
+          controller.signal,
+        );
         if (
+          !live ||
+          ticket !== operation ||
           snapshot !== investigation.getSnapshot() ||
           generation !== investigation.getGeneration()
         )
           throw new Error('cancelled');
-        const granted = await api.permissions.contains({
-          permissions: pageData(snapshot)
-            ? ['management', 'scripting']
-            : ['management'],
-        });
+        if (!firstNormal) {
+          message('Save is available only in verified normal windows.');
+          return;
+        }
+        const granted = await untilAbort(
+          api.permissions.contains({
+            permissions: pageData(snapshot)
+              ? ['management', 'scripting']
+              : ['management'],
+          }),
+          controller.signal,
+        );
         if (
           !live ||
           ticket !== operation ||
@@ -206,10 +301,10 @@ export function createSavedSave(
           message('Access changed. The investigation was cleared.');
           return;
         }
-        if (!(await normalContext(api))) {
-          message('Save is available only in verified normal windows.');
-          return;
-        }
+        const secondNormal = await untilAbort(
+          normalContext(api),
+          controller.signal,
+        );
         if (
           !live ||
           ticket !== operation ||
@@ -217,6 +312,10 @@ export function createSavedSave(
           generation !== investigation.getGeneration()
         )
           throw new Error('cancelled');
+        if (!secondNormal) {
+          message('Save is available only in verified normal windows.');
+          return;
+        }
         const recordResult = createSavedRecord(snapshot, {
           now: Date.now(),
           recordId: crypto.randomUUID(),
@@ -240,13 +339,6 @@ export function createSavedSave(
           message('The saved record could not be validated.');
           return;
         }
-        unwatch = investigation.watch(() => {
-          if (
-            investigation.getSnapshot() !== snapshot ||
-            investigation.getGeneration() !== generation
-          )
-            controller.abort();
-        });
         if (
           !live ||
           ticket !== operation ||
@@ -259,10 +351,10 @@ export function createSavedSave(
         // Last abortable context check. The adapter creates its readwrite
         // transaction synchronously after this await, so no context change can
         // slip between this check and the enqueued write.
-        if (!(await normalContext(api))) {
-          message('Save is available only in verified normal windows.');
-          return;
-        }
+        const finalNormal = await untilAbort(
+          normalContext(api),
+          controller.signal,
+        );
         if (
           !live ||
           ticket !== operation ||
@@ -272,16 +364,32 @@ export function createSavedSave(
           controller.abort();
           throw new Error('cancelled');
         }
+        if (!finalNormal) {
+          message('Save is available only in verified normal windows.');
+          return;
+        }
         // The store rechecks the store identity, epoch and bounds inside one
         // readwrite transaction and resolves only after it commits.
-        const result = await store.save(record, expected, controller.signal);
+        const result = await untilAbort(
+          store.save(record, expected, controller.signal),
+          controller.signal,
+        );
         if (!live || ticket !== operation) return;
         if (result === 'saved') {
-          preserved =
+          successfulSaves += 1;
+          if (
             snapshot === investigation.getSnapshot() &&
             generation === investigation.getGeneration()
-              ? new WeakRef(snapshot)
-              : null;
+          ) {
+            if (preserved?.deref() !== snapshot) preservedIds = [];
+            preserved = new WeakRef(snapshot);
+            preservedIds = [...preservedIds, record.recordId].slice(
+              -SAVED_LIMITS.records,
+            );
+          } else {
+            preserved = null;
+            preservedIds = [];
+          }
           const label = recordLabel(record);
           try {
             notifier?.notify();
@@ -372,8 +480,9 @@ export function createSavedSave(
             );
         }
       } finally {
-        unwatch?.();
+        unwatch();
         if (activeController === controller) activeController = null;
+        if (activeLease === lease) activeLease = null;
         lease.release();
         if (live && ticket === operation && state.busy)
           publish({ ...state, busy: false });
@@ -382,9 +491,13 @@ export function createSavedSave(
     dispose() {
       live = false;
       preserved = null;
+      preservedIds = [];
+      unwatchPreserved();
       operation += 1;
       activeController?.abort();
       activeController = null;
+      activeLease?.release();
+      activeLease = null;
       subscribers.clear();
       store.close();
     },

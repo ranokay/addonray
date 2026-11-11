@@ -661,8 +661,9 @@ slice, the #9 untrusted import slice and the #10 printable HTML slice are
 implemented and locally qualified with explicit gaps; product restart, production-adapter regressions and the
 simulated lifecycle path pass, and the local frozen gate passed, while the final
 release matrix and independent review remain. The #13, #12 and #20 contracts and
-the Q7/Q8 companion release and signing plan were approved on 2026-11-06 and
-recorded in this documentation commit; dependent labels wait for merge. #4 remains
+the Q7/Q8 companion release and signing plan were approved on 2026-11-06. The #12
+guided-trial runtime is implemented with local evidence and the remaining gaps
+recorded in [its evidence](evidence/2026-11-11-guided-trials.md). #4 remains
 open for final Chrome ID, verified accounts, companion public-key/credential
 ownership, candidate signing/limited-test routes and concrete release
 authorization. Q7/Q8 settle the host ID, artifact naming, GitHub Releases channel
@@ -672,7 +673,7 @@ from clean `6cb1634`; it is not merged or pushed. #11 remains readiness-labelled
 from already-merged decisions and may start under its approved contract. #31
 remains readiness-labelled but still needs #10 merged and its own qualification;
 no #31 evidence is claimed here. This implementation task adds no other runtime
-claim. This implementation task authorizes no push or PR. #32 is
+claim. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and
 current main includes the change at `a708fb5`. #33's bounded collector-budget
 investigation is in PR #50. Study evidence is at `031ebff`; test-only

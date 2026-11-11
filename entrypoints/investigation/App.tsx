@@ -100,6 +100,9 @@ export function InvestigationView({
   onCaptureBefore,
   onCaptureAfter,
   onStartOver,
+  startOverPending = false,
+  startOverMessage = 'Checking the saved trial…',
+  onCancelStartOver,
   onAssessment,
   report,
   saved,
@@ -110,6 +113,9 @@ export function InvestigationView({
   onCaptureBefore: () => Promise<void>;
   onCaptureAfter: () => Promise<void>;
   onStartOver: () => void;
+  startOverPending?: boolean;
+  startOverMessage?: string;
+  onCancelStartOver?: () => void;
   onAssessment: (value: PageAssessment) => void;
   report?: ReactNode;
   saved?: ReactNode;
@@ -135,9 +141,24 @@ export function InvestigationView({
             manually.
           </p>
         </div>
-        <button id="start-over" className="quiet" onClick={onStartOver}>
-          Start over
-        </button>
+        <div>
+          <button
+            id="start-over"
+            className="quiet"
+            disabled={startOverPending}
+            onClick={onStartOver}
+          >
+            Start over
+          </button>
+          {startOverPending && (
+            <p role="status">
+              {startOverMessage}{' '}
+              <button className="quiet" onClick={onCancelStartOver}>
+                Cancel start over
+              </button>
+            </p>
+          )}
+        </div>
       </header>
 
       <aside className="privacy" aria-label="Investigation lifetime">
@@ -368,10 +389,21 @@ export function App({
   const saveState = useSyncExternalStore(saver.subscribe, saver.getSnapshot);
   const [warning, setWarning] = useState<InvestigationState | null>(null);
   const [warningAttempted, setWarningAttempted] = useState(false);
+  const [warningChecking, setWarningChecking] = useState(false);
+  const [warningError, setWarningError] = useState<string | null>(null);
+  const [startRequest, setStartRequest] = useState<{
+    snapshot: WeakRef<InvestigationState>;
+    generation: number;
+    waitedForSave: boolean;
+    successfulSaves: number;
+    ticket: number;
+  } | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const cancelButton = useRef<HTMLButtonElement>(null);
   const warningTicket = useRef(0);
   const warningSave = useRef<number | null>(null);
+  const warningConfirmation = useRef<AbortController | null>(null);
+  const startTicket = useRef(0);
   useEffect(() => {
     if (!warning) return;
     const element = dialog.current;
@@ -379,6 +411,8 @@ export function App({
     cancelButton.current?.focus();
     return () => {
       warningTicket.current += 1;
+      warningConfirmation.current?.abort();
+      warningConfirmation.current = null;
       if (warningSave.current !== null) {
         warningSave.current = null;
         saver.cancelPending();
@@ -390,40 +424,117 @@ export function App({
   useEffect(() => {
     if (warning && warning !== state) setWarning(null);
   }, [state, warning]);
+  useEffect(() => {
+    if (!startRequest) return;
+    const current = () =>
+      startRequest.ticket === startTicket.current &&
+      startRequest.snapshot.deref() === investigation.getSnapshot() &&
+      startRequest.generation === investigation.getGeneration();
+    if (!current()) {
+      setStartRequest(null);
+      return;
+    }
+    if (saveState.busy || saver.getSnapshot().busy) return;
+    let active = true;
+    const controller = new AbortController();
+    void (async () => {
+      const wasSaved = saver.isPreserved();
+      const saveSucceeded =
+        !startRequest.waitedForSave ||
+        saver.getSuccessfulSaves() > startRequest.successfulSaves;
+      const preserved =
+        saveSucceeded &&
+        wasSaved &&
+        (await saver.confirmPreserved(controller.signal));
+      if (!active || !current() || saver.getSnapshot().busy) return;
+      setStartRequest(null);
+      if (preserved) investigation.startOver();
+      else {
+        const snapshot = startRequest.snapshot.deref();
+        if (!snapshot) return;
+        setWarningAttempted(startRequest.waitedForSave || wasSaved);
+        setWarningChecking(false);
+        setWarningError(
+          saveSucceeded && wasSaved
+            ? 'The saved archive could not be confirmed. The live trial was kept.'
+            : null,
+        );
+        setWarning(snapshot);
+      }
+    })();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [investigation, saver, saveState, startRequest, state]);
   const eligible =
     state.busy === null &&
     state.before?.status === 'success' &&
     state.after?.status === 'success';
   const startOver = () => {
-    if (eligible && !saver.isPreserved()) {
-      setWarningAttempted(false);
-      setWarning(state);
+    const snapshot = investigation.getSnapshot();
+    if (
+      snapshot.busy === null &&
+      snapshot.before?.status === 'success' &&
+      snapshot.after?.status === 'success'
+    ) {
+      setStartRequest({
+        snapshot: new WeakRef(snapshot),
+        generation: investigation.getGeneration(),
+        waitedForSave: saver.getSnapshot().busy,
+        successfulSaves: saver.getSuccessfulSaves(),
+        ticket: ++startTicket.current,
+      });
     } else investigation.startOver();
   };
   const saveAndStartOver = async () => {
-    const expected = warning;
+    const expected = warning ? new WeakRef(warning) : null;
+    const generation = investigation.getGeneration();
     const ticket = warningTicket.current;
     setWarningAttempted(true);
+    setWarningError(null);
     if (saver.getSnapshot().busy) return;
     const saving = saver.save();
     if (saver.getSnapshot().busy) warningSave.current = ticket;
     const saved = await saving;
     if (warningSave.current === ticket) warningSave.current = null;
     if (
-      saved &&
-      expected &&
-      ticket === warningTicket.current &&
-      investigation.getSnapshot() === expected &&
-      saver.isPreserved()
-    ) {
-      setWarning(null);
-      investigation.startOver();
+      !saved ||
+      !expected ||
+      ticket !== warningTicket.current ||
+      expected.deref() !== investigation.getSnapshot() ||
+      generation !== investigation.getGeneration()
+    )
+      return;
+    setWarningChecking(true);
+    const controller = new AbortController();
+    warningConfirmation.current = controller;
+    const confirmed = await saver.confirmPreserved(controller.signal);
+    if (warningConfirmation.current === controller)
+      warningConfirmation.current = null;
+    if (
+      ticket !== warningTicket.current ||
+      expected.deref() !== investigation.getSnapshot() ||
+      generation !== investigation.getGeneration()
+    )
+      return;
+    setWarningChecking(false);
+    if (!confirmed) {
+      setWarningError(
+        'The saved archive could not be confirmed. The live trial was kept.',
+      );
+      return;
     }
+    setWarning(null);
+    investigation.startOver();
   };
   const cancelWarning = () => {
     warningTicket.current += 1;
+    warningConfirmation.current?.abort();
+    warningConfirmation.current = null;
     if (warningSave.current !== null) saver.cancelPending();
     warningSave.current = null;
+    setWarningChecking(false);
     setWarning(null);
   };
   return (
@@ -435,11 +546,21 @@ export function App({
         onCaptureBefore={investigation.captureBefore}
         onCaptureAfter={investigation.captureAfter}
         onStartOver={startOver}
+        startOverPending={startRequest !== null}
+        startOverMessage={
+          saveState.busy
+            ? 'Waiting for Save to finish…'
+            : 'Checking the saved trial…'
+        }
+        onCancelStartOver={() => {
+          startTicket.current += 1;
+          setStartRequest(null);
+        }}
         onAssessment={investigation.setAssessment}
         saved={
           <SavedInvestigationSection
             saver={saver}
-            eligible={eligible}
+            eligible={eligible && startRequest === null}
             libraryUrl={libraryUrl}
           />
         }
@@ -450,7 +571,7 @@ export function App({
           ref={dialog}
           className="start-over-dialog"
           aria-labelledby="start-over-title"
-          aria-busy={saveState.busy}
+          aria-busy={saveState.busy || warningChecking}
           onCancel={(event) => {
             event.preventDefault();
             cancelWarning();
@@ -463,13 +584,13 @@ export function App({
           </p>
           <div className="report-actions">
             <button
-              disabled={saveState.busy}
+              disabled={saveState.busy || warningChecking}
               onClick={() => void saveAndStartOver()}
             >
               Save
             </button>
             <button
-              disabled={saveState.busy}
+              disabled={saveState.busy || warningChecking}
               onClick={() => {
                 setWarning(null);
                 investigation.startOver();
@@ -482,10 +603,10 @@ export function App({
             </button>
           </div>
           <p role="status">
-            {saveState.busy
+            {saveState.busy || warningChecking
               ? 'Saving…'
               : warningAttempted
-                ? saveState.message
+                ? (warningError ?? saveState.message)
                 : null}
           </p>
         </dialog>

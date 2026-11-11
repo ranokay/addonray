@@ -97,3 +97,6 @@ occurred under controlled conditions.
 
 The investigation shows the five instructions and a warning for a completed
 unsaved trial. It keeps one live pair and preserves it only by explicit Save.
+Start over waits for an in-flight Save and checks that a matching local archive
+is still available before clearing a saved trial. A cancelled or failed Save
+keeps the live trial, and unavailable or deleted archives require the warning.

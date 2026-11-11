@@ -32,6 +32,15 @@ left archives unchanged. Chrome for Testing and ChromeDriver 156.0.8078.47
 passed 103 checks using the pre-granted UI fixture. These were macOS 27.2 arm64
 runs; the Chrome run did not exercise that Firefox-only state-change probe.
 
+The subsequent preservation and cancellation fixes were exercised on the
+working tree based on `2455c6b`: Firefox 160.0 and geckodriver 0.37.1 passed
+117 checks on macOS 27.2 arm64. These included an instrumented held Save,
+its success and quota-failure paths, a cancelled archive check, and deletion
+of saved archives before Start over. Chrome for Testing and ChromeDriver
+156.0.8078.47 passed 104 checks with the pre-granted UI fixture. The held
+permission, context and quota failure were test instrumentation; they do not
+establish native prompt or natural engine-quota behavior.
+
 These are local automation results. The investigation launcher is rendered as
 a browser tab, and Chrome's UI fixture has pre-granted access. They do not prove
 native toolbar-popup or permission-prompt usability, retail installation,

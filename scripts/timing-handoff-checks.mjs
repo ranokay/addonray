@@ -192,6 +192,20 @@ export async function checkTimingHandoff({
       throw error;
     }
   }
+  async function discardOrWaitForStartOver() {
+    await driver.wait(async () => {
+      const warning = await driver.findElements(By.css('dialog[open]'));
+      if (warning.length) {
+        await warning[0]
+          .findElement(
+            By.xpath('.//button[normalize-space(.)="Discard and start over"]'),
+          )
+          .click();
+        return true;
+      }
+      return (await driver.findElements(By.css(before))).length === 0;
+    }, 10000);
+  }
   async function label(handle) {
     await driver.switchTo().window(handle);
     return driver.findElement(By.id('investigation-label')).getText();
@@ -490,13 +504,7 @@ export async function checkTimingHandoff({
 
     await driver.switchTo().window(first);
     await driver.findElement(By.id('start-over')).click();
-    const warning = await driver.findElements(By.css('dialog[open]'));
-    if (warning.length)
-      await warning[0]
-        .findElement(
-          By.xpath('.//button[normalize-space(.)="Discard and start over"]'),
-        )
-        .click();
+    await discardOrWaitForStartOver();
     await captureInventory(first, 'before');
     await openPopup(`${localUrl}timing-comparison-source`);
     await pageCapture();
@@ -587,13 +595,7 @@ export async function checkTimingHandoff({
     if (revokeScripting) {
       await driver.switchTo().window(first);
       await driver.findElement(By.id('start-over')).click();
-      const warning = await driver.findElements(By.css('dialog[open]'));
-      if (warning.length)
-        await warning[0]
-          .findElement(
-            By.xpath('.//button[normalize-space(.)="Discard and start over"]'),
-          )
-          .click();
+      await discardOrWaitForStartOver();
       await captureInventory(first, 'before');
       await openPopup(`${localUrl}timing-comparison-source`);
       await pageCapture();
