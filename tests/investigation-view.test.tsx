@@ -81,6 +81,23 @@ it.each(['firefox', 'chrome'] as const)(
   },
 );
 
+it('orders the guide and leaves manual steps unverified', () => {
+  const { markup } = view();
+  const steps = [
+    'Capture the Before baseline.',
+    'Manually change one browser extension setting.',
+    'Manually reproduce the problem on the same page.',
+    'Capture After.',
+    'Record your page assessment.',
+  ];
+  const positions = steps.map((step) => markup.indexOf(step));
+  expect(positions.every((position) => position >= 0)).toBe(true);
+  expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  expect(markup.match(/AddonRay cannot verify this step/g)).toHaveLength(2);
+  expect(markup).toContain('No assessment selected.');
+  expect(markup).toContain('A matching tab does not prove the');
+});
+
 it('keeps Start over available while disabling both pending capture actions', () => {
   const { markup } = view({ busy: 'before' });
   expect(button(markup, 'capture-before')).toContain('disabled');
