@@ -289,3 +289,26 @@ or a deleted, expired or replaced archive. Post-write checks cannot undo that
 write. An unusually delayed guard can still exhaust activation, in which case
 the existing adapter reports denial honestly and preserves the review. This
 does not claim support for unqualified browsers or platforms.
+
+The subsequent Codacy annotation on `clipboard-checks.mjs` identified its
+518 non-comment lines. Its generated fixtures and clipboard session ownership
+now live in `clipboard-fixtures.mjs` and `clipboard-session.mjs`, with the
+existing exports retained by re-export. The constant-key environment read in
+`clipboard-guard.ts` is a false positive for object injection: the key is a
+module constant, the operation only reads a string, and no property is written
+or evaluated. The fail-closed isolation guard remains in effect. The PR records
+validation of this follow-up on its final candidate head.
+
+CodeRabbit's next review found additional feasibility-probe defects. Durable
+evidence now strips all reader text and prefix/suffix fields, including failed
+write readback. The reader keeps full large clipboard text only in memory and
+redacts its visible result. Restoration uses a multiline control and passes the
+exact retained value separately so CRLF and large text survive form-control
+normalization. An unreadable or unrestorable initial snapshot stops before the
+first write, and restoration failure now fails the probe. Firefox evidence
+filenames include every validated requested version. Git uses fixed system
+installation paths, including the standard Windows Git installation under
+`C:\Program Files\Git\cmd`; nonstandard installations fail before browser
+launch. Windows feasibility remains unobserved locally. Four regression tests
+cover failed-write evidence redaction, version-specific files, large multiline
+readback and exact restoration.

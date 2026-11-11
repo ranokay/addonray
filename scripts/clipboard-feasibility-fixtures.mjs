@@ -12,7 +12,7 @@ const writerPage = `<!doctype html>
 <button id="write-guarded">Write after guards</button>
 <button id="write-mib">Write 1 MiB</button>
 <button id="write-exec">execCommand copy</button>
-<input id="restore-text" aria-label="Clipboard text to restore">
+<textarea id="restore-text" aria-label="Clipboard text to restore"></textarea>
 <button id="restore">Restore clipboard</button>
 <pre id="result">idle</pre>
 <script src="writer.js"></script>
@@ -98,7 +98,7 @@ document.getElementById('write-exec').addEventListener('click', () => {
   record('exec', { status: copied ? 'resolved' : 'rejected', before });
 });
 document.getElementById('restore').addEventListener('click', () => {
-  void write('restore', document.getElementById('restore-text').value);
+  void write('restore', window.__clipboardRestoreText ?? document.getElementById('restore-text').value);
 });
 window.__writeWithoutActivation = async () => {
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -128,12 +128,10 @@ const readerScript = `window.__clipboardRead = async () => {
       length: text.length,
       bytes: bytes.length,
       hash,
-      text: text.length <= 65536 ? text : null,
-      prefix: text.slice(0, 64),
-      suffix: text.slice(-64),
+      text,
     };
     window.__clipboardReadResult = result;
-    document.getElementById('result').textContent = JSON.stringify(result);
+    document.getElementById('result').textContent = JSON.stringify({ ...result, text: null });
     return result;
   } catch (error) {
     const result = {
@@ -141,7 +139,7 @@ const readerScript = `window.__clipboardRead = async () => {
       error: { name: error?.name ?? null, message: String(error?.message ?? error) },
     };
     window.__clipboardReadResult = result;
-    document.getElementById('result').textContent = JSON.stringify(result);
+    document.getElementById('result').textContent = JSON.stringify({ ...result, text: null });
     return result;
   }
 };

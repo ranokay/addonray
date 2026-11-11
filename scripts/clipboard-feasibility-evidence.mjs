@@ -4,17 +4,22 @@ import { resolve } from 'node:path';
 import { writeFile } from 'node:fs/promises';
 import { writerId, readerId } from './clipboard-feasibility-fixtures.mjs';
 
-// Use the platform Git binary by absolute path, never a PATH lookup.
+// Fixed system installation paths avoid an unverified PATH executable.
+// Nonstandard installations fail before any browser or clipboard work.
 export function createEvidence(target, requestedVersion) {
+  const gitExecutable =
+    platform() === 'win32'
+      ? 'C:\\Program Files\\Git\\cmd\\git.exe'
+      : '/usr/bin/git';
   return {
     target,
     timestamp: new Date().toISOString(),
     os: `${platform()} ${arch()}`,
-    sourceCommit: execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], {
+    sourceCommit: execFileSync(gitExecutable, ['rev-parse', 'HEAD'], {
       encoding: 'utf8',
     }).trim(),
     sourceDirty: Boolean(
-      execFileSync('/usr/bin/git', ['status', '--porcelain'], {
+      execFileSync(gitExecutable, ['status', '--porcelain'], {
         encoding: 'utf8',
       }).trim(),
     ),
@@ -46,16 +51,19 @@ export function createEvidence(target, requestedVersion) {
 export async function writeEvidence(report, target, requestedVersion) {
   const failures = report.checks.filter((check) => check.status === 'failed');
   report.result = failures.length === 0 ? 'passed' : 'failed';
-  let reportName = 'clipboard-feasibility-firefox.json';
-  if (target === 'chrome') reportName = 'clipboard-feasibility-chrome.json';
-  else if (requestedVersion === '140.0')
-    reportName = 'clipboard-feasibility-firefox-140.0.json';
-  else if (requestedVersion === '153.5.1esr')
-    reportName = 'clipboard-feasibility-firefox-153.5.1esr.json';
-  else if (requestedVersion === '158.0.1')
-    reportName = 'clipboard-feasibility-firefox-158.0.1.json';
+  const suffix =
+    target === 'firefox' && requestedVersion ? `-${requestedVersion}` : '';
+  const reportName = `clipboard-feasibility-${target}${suffix}.json`;
   const reportPath = resolve('.scratch', reportName);
-  await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+  await writeFile(
+    reportPath,
+    `${JSON.stringify(
+      report,
+      (key, value) =>
+        ['text', 'prefix', 'suffix'].includes(key) ? undefined : value,
+      2,
+    )}\n`,
+  );
   console.log(`Report: ${reportPath}`);
   return failures.length === 0;
 }

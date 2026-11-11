@@ -103,8 +103,18 @@ try {
     initial.status === 'resolved'
       ? { status: initial.status, bytes: initial.bytes, hash: initial.hash }
       : initial;
-  initialClipboardText = initial.text ?? '';
-  restore = initial.status === 'resolved';
+  assert.equal(
+    initial.status,
+    'resolved',
+    'Initial clipboard must be readable before any write',
+  );
+  assert.equal(
+    typeof initial.text,
+    'string',
+    'Initial clipboard must be retained for restoration',
+  );
+  initialClipboardText = initial.text;
+  restore = true;
 
   await driver.switchTo().window(writerHandle);
   await driver.findElement(By.id('write-now')).click();
@@ -222,10 +232,16 @@ try {
       report.restoredScope = CLIPBOARD_RESTORE_SCOPE;
       report.restoredClipboard =
         restored.read.status === 'resolved' &&
+        restored.write.status === 'resolved' &&
         restored.read.hash === report.initialClipboard.hash;
+      checked(
+        report.restoredClipboard,
+        'Initial clipboard text restored exactly',
+      );
     } catch (error) {
       report.restoredClipboard = false;
       report.restoreError = String(error?.message ?? error);
+      failed('Initial clipboard text restored exactly');
     }
   }
   try {
