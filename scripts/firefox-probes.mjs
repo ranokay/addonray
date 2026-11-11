@@ -9,6 +9,7 @@ import { Builder, By, until } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
 import { installTemporaryExtension } from './firefox-install.mjs';
 import { extensionArchive } from './package-paths.mjs';
+import { assertHeadfulClipboardAllowed } from './clipboard-guard.ts';
 import { sha256 } from './check-package.mjs';
 import { checkInvestigation } from './investigation-checks.mjs';
 import {
@@ -41,6 +42,8 @@ const usePackage = process.argv.includes('--package');
 const productArtifact = usePackage
   ? extensionArchive
   : resolve('.output/firefox-mv3');
+// Refuse headful/native host-clipboard runs before any browser or clipboard work.
+assertHeadfulClipboardAllowed();
 const requestedVersion = process.env.FIREFOX_VERSION;
 if (requestedVersion) {
   assert.match(requestedVersion, /^\d+\.\d+(?:\.\d+)?(?:esr)?$/);

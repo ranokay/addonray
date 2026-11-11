@@ -668,7 +668,7 @@ export async function checkReportImport({
     assert.equal(restore.restored, true, JSON.stringify(restore));
     await clipboard.close(handle);
     passed(
-      `${authority}: the preexisting system clipboard was restored after clipboard checks`,
+      `${authority}: the preexisting clipboard text was restored after clipboard checks (text-only; other clipboard formats are not captured)`,
       {
         clipboardRestore: restore,
       },

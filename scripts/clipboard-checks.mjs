@@ -10,11 +10,16 @@ import {
   CLIPBOARD_SUCCESS_MESSAGE,
   CLIPBOARD_UNAVAILABLE_MESSAGE,
 } from '../lib/report-clipboard.ts';
+import {
+  assertHeadfulClipboardAllowed,
+  CLIPBOARD_RESTORE_SCOPE,
+} from './clipboard-guard.ts';
 
 // Test-only clipboard readback. The reader and writer fixtures are generated in
 // ignored scratch space and are never included in the product or source ZIP.
 // The reader declares clipboardRead only for verification; the writer declares
-// no clipboard permission and exists only to preserve the preexisting clipboard.
+// no clipboard permission and exists only to restore the preexisting clipboard
+// as text. Other clipboard formats are not captured and are never claimed.
 const readerId = 'clipboard-reader@addonray.test';
 const writerId = 'clipboard-writer@addonray.test';
 
@@ -105,6 +110,7 @@ export function clipboardMetadata(result) {
   return result?.status === 'resolved'
     ? {
         status: result.status,
+        scope: CLIPBOARD_RESTORE_SCOPE,
         bytes: result.bytes,
         hash: result.hash,
       }
@@ -114,6 +120,8 @@ export function clipboardMetadata(result) {
 // The caller passes the product window it expects to return to. All reader and
 // writer tabs are owned by this session and closed by close().
 export function createClipboardSession({ driver, readerUrl, writerUrl }) {
+  // Refuse headful/native host-clipboard runs before any read or write.
+  assertHeadfulClipboardAllowed();
   let readerHandle = null;
   let writerHandle = null;
   let initial = null;
@@ -238,6 +246,7 @@ export function createClipboardSession({ driver, readerUrl, writerUrl }) {
         const read = await readRaw();
         await driver.switchTo().window(productHandle);
         const result = {
+          scope: CLIPBOARD_RESTORE_SCOPE,
           restored:
             write.status === 'resolved' &&
             read.status === 'resolved' &&

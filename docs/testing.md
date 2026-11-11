@@ -664,11 +664,19 @@ implementation and qualification tickets are authorized.
 - `scripts/clipboard-checks.mjs` adds the packaged-product checks. It generates
   the test-only reader/writer fixtures, captures the preexisting clipboard once,
   reads exact text/bytes/SHA-256 after each trusted click, restores the original
-  clipboard, and runs real or deterministic denial plus injected unavailable as
+  clipboard as text only, and runs real or deterministic denial plus injected unavailable as
   the final clipboard action in a document. `scripts/report-export-checks.mjs`,
   `scripts/saved-checks.mjs` and `scripts/report-import-checks.mjs` invoke it for
   live, saved, saved-after-management-removal and unsaved imported reports.
-- Headful runs set `HEADFUL=1 ADDONRAY_NATIVE_CLIPBOARD=1` and an
+- Headful and native clipboard runs refuse to start, before any browser or
+  clipboard work, unless the operator sets `ADDONRAY_CLIPBOARD_DISPOSABLE=1`.
+  That variable is an operator assertion only: set it after you have isolated
+  the host clipboard yourself, for example in a dedicated VM or user session
+  that no one else copies from. The harness does not detect or create that
+  isolation, no script or mise task sets it, and it must never be enabled on a
+  shared host. Clipboard restoration in these runs is text-only.
+- Headful runs set `HEADFUL=1 ADDONRAY_NATIVE_CLIPBOARD=1
+ADDONRAY_CLIPBOARD_DISPOSABLE=1` and an
   `ADDONRAY_SCREENSHOT_DIR`, then read the host clipboard with `pbpaste` and save
   success/denial/unavailable screenshots. Headless and headful evidence are
   recorded separately.

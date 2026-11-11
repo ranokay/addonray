@@ -17,6 +17,7 @@ import {
   prepareClipboardFixtures,
 } from './clipboard-checks.mjs';
 import { checkTimingHandoff } from './timing-handoff-checks.mjs';
+import { assertHeadfulClipboardAllowed } from './clipboard-guard.ts';
 import {
   preparePageErrorFixture,
   pageErrorFixtureHandler,
@@ -146,6 +147,8 @@ const passed = (name, detail) => {
   report.checks.push({ name, status: 'passed', ...(detail ? { detail } : {}) });
   console.log(`Passed: ${name}`);
 };
+// Refuse headful/native host-clipboard runs before any browser or clipboard work.
+assertHeadfulClipboardAllowed();
 let session;
 let clipboard;
 try {

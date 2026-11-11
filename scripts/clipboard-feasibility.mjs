@@ -9,6 +9,7 @@ import { Builder, By, until } from 'selenium-webdriver';
 import firefox from 'selenium-webdriver/firefox.js';
 import { installTemporaryExtension } from './firefox-install.mjs';
 import { launchChrome, installChromeExtension } from './chrome-session.mjs';
+import { CLIPBOARD_RESTORE_SCOPE } from './clipboard-guard.ts';
 
 // Permission-free clipboard feasibility for #11. This probe is test-only: the
 // writer fixture declares no clipboard permission and the separate reader
@@ -508,6 +509,7 @@ try {
   if (driver && restore && report.initialClipboard.status === 'resolved') {
     try {
       const restored = await restoreClipboard(initialClipboardText);
+      report.restoredScope = CLIPBOARD_RESTORE_SCOPE;
       report.restoredClipboard =
         restored.read.status === 'resolved' &&
         restored.read.hash === report.initialClipboard.hash;
