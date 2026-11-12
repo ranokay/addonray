@@ -42,7 +42,7 @@ const writerPage = `<!doctype html>
 const writerScript = `window.__clipboardWriteResult = null;
 document.getElementById('restore').addEventListener('click', async () => {
   try {
-    await navigator.clipboard.writeText(document.getElementById('restore-text').value);
+    await navigator.clipboard.writeText(window.__clipboardRestoreText ?? document.getElementById('restore-text').value);
     window.__clipboardWriteResult = { status: 'resolved' };
   } catch (error) {
     window.__clipboardWriteResult = { status: 'rejected', error: { name: error?.name ?? null, message: String(error?.message ?? error) } };

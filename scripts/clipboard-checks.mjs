@@ -144,6 +144,11 @@ export async function verifyClipboardOutcomes({
 }) {
   const productHandle = await driver.getWindowHandle();
   const initial = await clipboard.snapshot(productHandle);
+  assert.equal(
+    initial.status,
+    'resolved',
+    'Copy checks require a readable clipboard backup',
+  );
   const preview = await driver.findElement(By.id(previewId));
   assert.equal(await preview.getProperty('readOnly'), true);
   assert.equal(await preview.getProperty('value'), expected);

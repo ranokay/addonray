@@ -101,6 +101,16 @@ export function createClipboardSession({ driver, readerUrl, writerUrl }) {
         initial = await readRaw();
         if (productHandle) await driver.switchTo().window(productHandle);
       }
+      assert.equal(
+        initial.status,
+        'resolved',
+        'Initial clipboard must be readable before any copy',
+      );
+      assert.equal(
+        typeof initial.text,
+        'string',
+        'Initial clipboard text must be retained for restoration',
+      );
       return clipboardMetadata(initial);
     },
     async read(productHandle) {
@@ -129,6 +139,7 @@ export function createClipboardSession({ driver, readerUrl, writerUrl }) {
         await ensureWriter();
         await driver.switchTo().window(writerHandle);
         await driver.executeScript((value) => {
+          globalThis.__clipboardRestoreText = value;
           document.getElementById('restore-text').value = value;
           globalThis.__clipboardWriteResult = null;
           return true;

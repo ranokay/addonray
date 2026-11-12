@@ -312,3 +312,16 @@ installation paths, including the standard Windows Git installation under
 launch. Windows feasibility remains unobserved locally. Four regression tests
 cover failed-write evidence redaction, version-specific files, large multiline
 readback and exact restoration.
+
+## Product-probe restoration correction (2026-11-12)
+
+The next completed CodeRabbit round identified the same restoration boundaries
+in the separate product-test clipboard helper. The session now requires a
+resolved initial snapshot with retained text, and the Copy check refuses an
+unreadable backup before locating or clicking the product controls. Restoration
+passes the retained string directly to the trusted-click handler, preserving
+CRLF even when the textarea normalizes its displayed value. Regression tests
+exercise the rejected-snapshot stop and the generated writer with a different
+normalized textarea value. The product clipboard controllers and permission
+budget are unchanged. Final candidate gate and browser results are recorded
+separately in PR #61.
