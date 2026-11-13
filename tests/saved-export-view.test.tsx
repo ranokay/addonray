@@ -11,11 +11,12 @@ function view({
   preview?: string | null;
   busy?: boolean;
   message?: string | null;
-  format?: 'json' | 'html';
+  format?: 'markdown' | 'json' | 'html';
 } = {}) {
   const onPrepare = vi.fn(async () => {});
   const onDownload = vi.fn(async () => {});
   const onPrint = vi.fn(async () => {});
+  const onCopy = vi.fn(async () => {});
   const onCancel = vi.fn();
   const onFormat = vi.fn();
   const markup = renderToStaticMarkup(
@@ -24,12 +25,36 @@ function view({
       onPrepare={onPrepare}
       onDownload={onDownload}
       onPrint={onPrint}
+      onCopy={onCopy}
       onCancel={onCancel}
       onFormat={onFormat}
     />,
   );
-  return { markup, onPrepare, onDownload, onPrint, onCancel, onFormat };
+  return {
+    markup,
+    onPrepare,
+    onDownload,
+    onPrint,
+    onCopy,
+    onCancel,
+    onFormat,
+  };
 }
+
+it('offers a copy-only Markdown clipboard review with the destination disclosure', () => {
+  const { markup } = view({
+    format: 'markdown',
+    preview: '# AddonRay investigation report\n',
+  });
+  expect(markup).toMatch(/id="saved-format-markdown"[^>]*checked/);
+  expect(markup).toContain('Exact Markdown clipboard review');
+  expect(markup).toContain('Copy Markdown');
+  expect(markup).toContain('system clipboard');
+  expect(markup).toContain('cannot recall or erase copied content');
+  expect(markup).toContain('omits extension IDs, record IDs, save times');
+  expect(markup).not.toContain('id="saved-json-download"');
+  expect(markup).not.toContain('id="saved-print"');
+});
 
 it('discloses the archive JSON boundary and request lifetime before preparation', () => {
   const { markup, onPrepare, onDownload, onPrint } = view();

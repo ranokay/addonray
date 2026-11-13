@@ -18,6 +18,7 @@ function view({
   const onPrepare = vi.fn(async () => {});
   const onDownload = vi.fn(async () => {});
   const onPrint = vi.fn(async () => {});
+  const onCopy = vi.fn(async () => {});
   const onFormat = vi.fn();
   const markup = renderToStaticMarkup(
     <ReportExportView
@@ -26,11 +27,12 @@ function view({
       onPrepare={onPrepare}
       onDownload={onDownload}
       onPrint={onPrint}
+      onCopy={onCopy}
       onCancel={vi.fn()}
       onFormat={onFormat}
     />,
   );
-  return { markup, onPrepare, onDownload, onPrint, onFormat };
+  return { markup, onPrepare, onDownload, onPrint, onCopy, onFormat };
 }
 
 it('explains disclosure, missing-data eligibility and the accepted download lifetime before preparation', () => {
@@ -107,11 +109,25 @@ it('renders the exact printable document in an inert iframe preview with downloa
   expect(onPrint).not.toHaveBeenCalled();
 });
 
-it('marks the Markdown format as the preserved default', () => {
+it('marks the Markdown format as the preserved default with a clipboard review', () => {
   const { markup } = view({ preview: '# Report\n' });
   expect(markup).toMatch(/id="report-format-markdown"[^>]*checked/);
-  expect(markup).toContain('Exact Markdown preview');
+  expect(markup).toContain('Exact Markdown clipboard review');
   expect(markup).not.toContain('Exact JSON preview');
+  expect(markup).toContain('id="report-copy"');
+  expect(markup).toContain('Copy Markdown');
+  expect(markup).toContain('system clipboard');
+  expect(markup).toContain('cannot recall or erase copied content');
+  expect(markup).not.toContain('id="report-print"');
+});
+
+it('offers clipboard copy only for Markdown, never for JSON or printable HTML', () => {
+  for (const format of ['json', 'html'] as const) {
+    const { markup } = view({ format, preview: 'reviewed' });
+    expect(markup).not.toContain('id="report-copy"');
+    expect(markup).not.toContain('Copy Markdown');
+    expect(markup).not.toContain('system clipboard');
+  }
 });
 
 it('disables duplicate actions during checks while keeping Cancel available', () => {

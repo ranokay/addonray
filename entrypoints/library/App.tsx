@@ -285,10 +285,10 @@ function Disclosures() {
       </p>
       <p>
         This build can export an open saved report as JSON or printable HTML,
-        and can import a JSON report for read-only review with its own printable
-        output. It cannot copy saved reports to the clipboard. Exported files
-        and prints remain outside AddonRay&rsquo;s control, and import alone
-        stores nothing.
+        and can copy reviewed Markdown to the system clipboard. It can import a
+        JSON report for read-only review with its own printable output. Exported
+        files, prints and copied content remain outside AddonRay&rsquo;s
+        control, and import alone stores nothing.
       </p>
     </aside>
   );

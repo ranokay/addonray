@@ -16,6 +16,7 @@ import {
   snapshotHtmlDownloads,
 } from './html-export-checks.mjs';
 import { checkReportImport } from './report-import-checks.mjs';
+import { verifyClipboardOutcomes } from './clipboard-checks.mjs';
 import {
   databaseName,
   deleteShownRecord,
@@ -275,6 +276,7 @@ async function checkSavedJsonExport({
   authority,
   passed,
   stage,
+  clipboard,
 }) {
   assert.equal(
     (await driver.findElements(By.id('saved-json-prepare'))).length,
@@ -454,10 +456,49 @@ async function checkSavedJsonExport({
       (await driver.findElements(By.id('saved-html-preview'))).length === 0,
     10000,
   );
+
+  await driver.findElement(By.id('saved-format-markdown')).click();
+  await driver.findElement(By.id('saved-json-prepare')).click();
+  const markdownPreview = await driver.wait(
+    until.elementLocated(By.id('saved-json-text')),
+    10000,
+  );
+  const reviewedMarkdown = await markdownPreview.getProperty('value');
+  assert.equal(typeof reviewedMarkdown, 'string');
+  assert(reviewedMarkdown.startsWith('# AddonRay investigation report\n\n'));
+  assert(reviewedMarkdown.includes('Captured report.'));
+  assert(
+    reviewedMarkdown.includes(
+      'This list was computed from the extension-ID comparison',
+    ),
+  );
+  assert(!reviewedMarkdown.includes(fixtureId));
+  assert(!reviewedMarkdown.includes(investigationLabel));
+  assert(Buffer.byteLength(reviewedMarkdown, 'utf8') <= 1_048_576);
+  const markdownEvidence = await verifyClipboardOutcomes({
+    driver,
+    clipboard,
+    sectionSelector: 'section[aria-labelledby="saved-json-heading"]',
+    previewId: 'saved-json-text',
+    buttonId: 'saved-copy',
+    expected: reviewedMarkdown,
+    authority: `${authority}: ${stage}`,
+    passed,
+  });
+  await driver.findElement(By.id('saved-json-cancel')).click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.id('saved-json-text'))).length === 0,
+    10000,
+  );
   // Later library checks reuse this exporter expecting the JSON default.
   await driver.findElement(By.id('saved-format-json')).click();
   const htmlEvidenceFull = { ...htmlEvidence, print: printEvidence };
-  return { json: evidence, html: htmlEvidenceFull };
+  return {
+    json: evidence,
+    html: htmlEvidenceFull,
+    clipboard: markdownEvidence,
+  };
 }
 
 export async function checkSavedInvestigations({
@@ -472,6 +513,7 @@ export async function checkSavedInvestigations({
   passed,
   simulateQuota,
   reportDirectory,
+  clipboard,
 }) {
   const investigationWindow = await driver.getWindowHandle();
   await saveOnce(driver, 7);
@@ -524,6 +566,7 @@ export async function checkSavedInvestigations({
     authority,
     passed,
     stage: 'saved archive',
+    clipboard,
   });
   passed(
     `${authority}: the popup launcher opens the local library and the archive reopens read-only without extension IDs`,
@@ -887,6 +930,7 @@ export async function finishSavedInvestigations({
   changeKind,
   investigationLabel,
   reportDirectory,
+  clipboard,
 }) {
   const handle = await openDirectLibrary(driver, libraryUrl);
   await assertLibraryRecord({
@@ -926,6 +970,7 @@ export async function finishSavedInvestigations({
       authority,
       passed,
       stage: 'saved archive after management removal',
+      clipboard,
     });
     const stillGranted = await driver.executeAsyncScript((done) =>
       (globalThis.browser ?? globalThis.chrome).permissions
@@ -939,7 +984,13 @@ export async function finishSavedInvestigations({
     );
   }
   await deleteShownRecord(driver);
-  await checkReportImport({ driver, reportDirectory, authority, passed });
+  await checkReportImport({
+    driver,
+    reportDirectory,
+    authority,
+    passed,
+    clipboard,
+  });
   await driver.close();
   if ((await driver.getAllWindowHandles()).includes(returnWindow))
     await driver.switchTo().window(returnWindow);

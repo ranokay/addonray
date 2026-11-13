@@ -1,11 +1,20 @@
 import { createPrintableHtml } from './report-html';
+import {
+  CLIPBOARD_COMPLETED_STALE_MESSAGE,
+  CLIPBOARD_ERROR_MESSAGE,
+  type ClipboardOutcome,
+} from './report-clipboard';
+import { createReportMarkdown } from './report-markdown';
 import type { ReportFormat } from './report-download';
 import type { ImportedProvenance, ReportImport } from './report-import';
 import type { SavedReport } from './saved-record';
 import type { SavedBrowser } from './saved-context';
 import { normalContext } from './saved-context';
 
+export type ImportedOutputFormat = 'markdown' | 'html';
+
 export interface ImportedOutputSnapshot {
+  format: ImportedOutputFormat;
   preview: string | null;
   busy: boolean;
   message: string | null;
@@ -14,12 +23,14 @@ export interface ImportedOutputSnapshot {
 export interface ImportedOutputHandoffs {
   download(text: string, format: Extract<ReportFormat, 'html'>): void;
   print(text: string, format: Extract<ReportFormat, 'html'>): void;
+  copy(text: string): Promise<ClipboardOutcome>;
 }
 
 interface ImportedPermit {
   report: SavedReport;
   importedAt: number;
   claimedProvenance: ImportedProvenance | null;
+  format: ImportedOutputFormat;
   text: string | null;
 }
 
@@ -40,6 +51,7 @@ export function createImportOutput(
   handoffs: ImportedOutputHandoffs,
 ) {
   let state: ImportedOutputSnapshot = {
+    format: 'html',
     preview: null,
     busy: false,
     message: null,
@@ -56,7 +68,7 @@ export function createImportOutput(
     operation += 1;
     if (permit) permit.text = null;
     permit = null;
-    publish({ preview: null, busy: false, message });
+    publish({ ...state, preview: null, busy: false, message });
   };
   const matches = (candidate: ImportedPermit) => {
     const snapshot = source.getSnapshot();
@@ -65,33 +77,116 @@ export function createImportOutput(
       snapshot.importedAt === candidate.importedAt
     );
   };
+  const locallyCurrent = (ticket: number, candidate: ImportedPermit) =>
+    live && ticket === operation && permit === candidate;
   const current = (ticket: number, candidate: ImportedPermit) =>
-    live && ticket === operation && permit === candidate && matches(candidate);
+    locallyCurrent(ticket, candidate) && matches(candidate);
+  // A resolved platform write may outlive this view's eligibility. Recheck the
+  // authoritative normal-window state and held report identity before success.
+  async function postWriteEligible(
+    ticket: number,
+    candidate: ImportedPermit,
+  ): Promise<'valid' | 'stale' | 'cancelled'> {
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (!current(ticket, candidate)) return 'stale';
+    const normal = await normalContext(api);
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (!current(ticket, candidate) || !normal) return 'stale';
+    if (source.getSnapshot().busy) return 'stale';
+    return 'valid';
+  }
   const unsubscribe = source.subscribe(() => {
     if (live && permit && !matches(permit))
-      discard(
-        'The imported report changed. Prepare its printable report again.',
-      );
+      discard('The imported report changed. Prepare its report again.');
   });
 
   function output(candidate: ImportedPermit) {
-    const html = createPrintableHtml(candidate.report, {
-      provenance: 'imported',
+    const options = {
+      provenance: 'imported' as const,
       ...(candidate.claimedProvenance
         ? { claimedProvenance: candidate.claimedProvenance }
         : {}),
-    });
-    if (html.status === 'success') return html;
+    };
+    const value =
+      candidate.format === 'markdown'
+        ? createReportMarkdown(candidate.report, options)
+        : createPrintableHtml(candidate.report, options);
+    if (value.status === 'success') return value;
     return {
-      ...html,
-      reason: `${html.reason} The imported report remains available for inspection or saving.`,
+      ...value,
+      reason: `${value.reason} The imported report remains available for inspection or saving.`,
     };
   }
 
-  async function deliver(kind: 'download' | 'print') {
+  async function deliverCopy(
+    ticket: number,
+    candidate: ImportedPermit,
+    text: string,
+  ) {
+    let outcome: ClipboardOutcome;
+    try {
+      outcome = await handoffs.copy(text);
+    } catch {
+      if (current(ticket, candidate))
+        publish({
+          ...state,
+          preview: text,
+          busy: false,
+          message: CLIPBOARD_ERROR_MESSAGE,
+        });
+      return;
+    }
+    if (!locallyCurrent(ticket, candidate)) return;
+    if (outcome.status !== 'success') {
+      if (!current(ticket, candidate)) {
+        discard(outcome.message);
+        return;
+      }
+      publish({
+        ...state,
+        preview: text,
+        busy: false,
+        message: outcome.message,
+      });
+      return;
+    }
+    // The write may be irrevocable. A replacement, clear, suspension or context
+    // loss during it suppresses success and content restoration, but never
+    // claims the completed write did not happen.
+    if (!current(ticket, candidate)) {
+      discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+      return;
+    }
+    let eligibility: 'valid' | 'stale' | 'cancelled';
+    try {
+      eligibility = await postWriteEligible(ticket, candidate);
+    } catch {
+      if (locallyCurrent(ticket, candidate))
+        discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+      return;
+    }
+    if (eligibility === 'cancelled') return;
+    if (eligibility === 'stale') {
+      discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+      return;
+    }
+    publish({
+      ...state,
+      preview: text,
+      busy: false,
+      message: outcome.message,
+    });
+  }
+
+  async function deliver(kind: 'download' | 'print' | 'copy') {
     const candidate = permit;
     if (!live || state.busy || candidate === null || candidate.text === null)
       return;
+    if (kind === 'print' && candidate.format !== 'html') return;
+    if (kind === 'copy' && candidate.format !== 'markdown') return;
+    // Markdown is the reviewed clipboard representation in this slice. It does
+    // not add an imported Markdown download.
+    if (kind === 'download' && candidate.format !== 'html') return;
     const snapshot = source.getSnapshot();
     if (snapshot.busy) {
       publish({ ...state, busy: false, message: busyMessage });
@@ -121,12 +216,14 @@ export function createImportOutput(
         return;
       }
       if (fresh.value !== candidate.text) {
-        discard(
-          'The imported report changed. Prepare its printable report again.',
-        );
+        discard('The imported report changed. Prepare its report again.');
         return;
       }
       if (!current(ticket, candidate)) return;
+      if (kind === 'copy') {
+        await deliverCopy(ticket, candidate, fresh.value);
+        return;
+      }
       try {
         // No await separates the final validity check from browser handoff.
         const handoff =
@@ -154,7 +251,7 @@ export function createImportOutput(
       });
     } catch {
       if (current(ticket, candidate))
-        discard('The printable report could not be prepared. Try again.');
+        discard('The report could not be prepared. Try again.');
     }
   }
 
@@ -165,19 +262,24 @@ export function createImportOutput(
       subscribers.add(subscriber);
       return () => subscribers.delete(subscriber);
     },
+    setFormat(format: ImportedOutputFormat) {
+      if (!live || state.busy || format === state.format) return;
+      discard();
+      publish({ ...state, format });
+    },
     async prepare() {
       const snapshot = source.getSnapshot();
       if (!live || state.busy) return;
       if (snapshot.busy) {
-        publish({ preview: null, busy: false, message: busyMessage });
+        publish({ ...state, preview: null, busy: false, message: busyMessage });
         return;
       }
       if (!snapshot.report || snapshot.importedAt === null) {
         publish({
+          ...state,
           preview: null,
           busy: false,
-          message:
-            'Choose a report file before preparing its printable report.',
+          message: 'Choose a report file before preparing its report.',
         });
         return;
       }
@@ -186,10 +288,11 @@ export function createImportOutput(
         report: snapshot.report,
         importedAt: snapshot.importedAt,
         claimedProvenance: snapshot.claimedProvenance,
+        format: state.format,
         text: null,
       };
       permit = candidate;
-      publish({ preview: null, busy: true, message: null });
+      publish({ ...state, preview: null, busy: true, message: null });
       try {
         const normal = await normalContext(api);
         if (!current(ticket, candidate)) return;
@@ -218,16 +321,19 @@ export function createImportOutput(
           return;
         }
         if (finalOutput.value !== prepared.value) {
-          discard(
-            'The imported report changed. Prepare its printable report again.',
-          );
+          discard('The imported report changed. Prepare its report again.');
           return;
         }
         candidate.text = prepared.value;
-        publish({ preview: prepared.value, busy: false, message: null });
+        publish({
+          ...state,
+          preview: prepared.value,
+          busy: false,
+          message: null,
+        });
       } catch {
         if (current(ticket, candidate))
-          discard('The printable report could not be prepared. Try again.');
+          discard('The report could not be prepared. Try again.');
       }
     },
     async download() {
@@ -235,6 +341,9 @@ export function createImportOutput(
     },
     async print() {
       await deliver('print');
+    },
+    async copy() {
+      await deliver('copy');
     },
     cancel: () => discard(),
     dispose() {

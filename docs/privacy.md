@@ -148,9 +148,9 @@ can cancel an unaccepted request. The browser may save automatically according
 to its settings. AddonRay does not claim final disk completion, retry
 automatically or send the report to another person or service. Browser-accepted
 bytes or a file can remain on disk or pending after reset, revocation or close;
-AddonRay cannot recall them. No saved history, restoration, clipboard action,
-background owner, longer investigation lifetime, durable storage or additional
-permission is introduced.
+AddonRay cannot recall them. No saved history, restoration, automatic clipboard
+action, background owner, longer investigation lifetime, durable storage or
+additional permission is introduced by that download.
 
 Firefox's data declaration was reassessed on 2026-10-27. Mozilla's
 [policy FAQ](https://extensionworkshop.com/documentation/publish/add-on-policies-faq/)
@@ -172,9 +172,11 @@ Save, local list, read-only reopen and single-record delete. #7 adds a per-save
 schema version 1 JSON preview and download for the live investigation and the
 saved archive. #9 adds explicit strict import, read-only review and a separate
 imported save. #10 adds self-contained printable HTML and the browser
-Print/Save-as-PDF path. Clipboard (#11) remains future work. The current
-investigation stays in the owning view's memory, and Markdown, JSON and printable
-HTML are the implemented report outputs.
+Print/Save-as-PDF path. #11 adds explicit clipboard copy of the reviewed
+Markdown for live, saved and unsaved imported reports without a clipboard
+permission. The current investigation stays in the owning view's memory, and
+Markdown, JSON, printable HTML and clipboard text are the implemented report
+outputs.
 
 | Data                                                                                                         | Trigger                                          | Retention                                                                                                                                                   | Destination                                               |
 | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
@@ -186,7 +188,7 @@ HTML are the implemented report outputs.
 | JSON preview and download                                                                                    | Explicit format and download action              | Owning view or library-view memory                                                                                                                          | User-chosen local destination                             |
 | Printable HTML preview                                                                                       | Explicit prepare action                          | Owning view or library-view memory                                                                                                                          | View memory                                               |
 | Printable HTML download and print output                                                                     | Explicit download or print action                | Browser or filesystem controls; an accepted file or print is outside AddonRay's recall                                                                      | User-chosen local destination                             |
-| Clipboard text                                                                                               | Future #11                                       | Future contract                                                                                                                                             | Not implemented                                           |
+| Clipboard text: exact reviewed Markdown with the approved report fields and provenance                       | Explicit Copy Markdown after its own review      | System clipboard until it is overwritten; outside AddonRay's recall and control. No automatic, background or cross-view copy.                               | Host system clipboard                                     |
 
 The archive is immutable and read-only. Reopening collects no inventory or page
 data, prompts for no management or scripting permission, reattaches no source tab
@@ -390,8 +392,11 @@ The implemented report outputs are exact Markdown for the live investigation,
 exact schema version 1 JSON for the live investigation and saved archives, and
 self-contained printable HTML for the live investigation, saved archives and
 unsaved imported reports. Each has its own preview. Import is a separate explicit
-file-selection action and does not reuse the export preview. Clipboard copy (#11)
-remains future work; its preview, bounds and trust rules stay under this contract.
+file-selection action and does not reuse the export preview. Clipboard copy uses
+its own exact Markdown review for each entrypoint, names the system clipboard as
+the destination and states that copied content is outside AddonRay's recall.
+It requests no clipboard permission and performs no automatic or background
+copy. The complete copied text is capped at 1 MiB without truncation.
 JSON export and import share schema version 1 and the 1 MiB complete-document cap.
 The per-record stored cap also includes the local envelope, so a maximum-size
 import is view-only if the envelope would exceed it. The other shared bounds are

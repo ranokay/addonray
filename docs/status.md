@@ -133,8 +133,8 @@ route is currently policy-blocked), unmodified Chrome optional-permission
 consent, the native OS/architecture matrix, retail installation and release
 approval. The PR records the hosted matrix, independent review coverage and
 final frozen gate separately. #8 and #9 are implemented with local model, UI and
-browser evidence; #10 and #11 remain unimplemented. No permission, publication
-or durability claim is included.
+browser evidence. #10 printable HTML and #11 clipboard copy are implemented
+separately below. No permission, publication or durability claim is included.
 
 ## History retention and bulk deletion (#7)
 
@@ -199,8 +199,9 @@ assertions across 38 files and native type checking of 87 files pass. The shared
 product probes pass 95 checks on each Firefox pin and 88 on Chrome for Testing
 156.0.8078.47, including exact UTF-8 JSON preview/download before and, on
 Firefox, after actual management removal. Printable HTML (#10) is implemented
-separately; clipboard (#11), saved-archive Markdown output, the hosted exact-OS
-matrix and native human download/cancellation observation remain open. The #6
+separately; clipboard (#11) is implemented below. Saved-archive Markdown
+download, the hosted exact-OS matrix and native human download/cancellation
+observation remain open. The #6
 storage and private-context gaps and the #7 release gaps are unchanged.
 
 ## JSON report import (#9)
@@ -242,8 +243,8 @@ Implementation and qualification evidence is recorded in
 assertions across 40 files and native type checking of 94 files pass. The shared
 product probes pass 100 checks on each Firefox 140.0, 153.5.1esr and 158.0.1 pin
 and 93 on Chrome for Testing 156.0.8078.47, including five production file-input
-checks per target. Printable HTML (#10) is implemented separately; clipboard
-(#11), native human file-picker observation, the hosted exact-OS matrix and
+checks per target. Printable HTML (#10) and clipboard copy (#11) are implemented
+separately; native human file-picker observation, the hosted exact-OS matrix and
 signed distribution remain open. The authentic private import action is
 model-tested; the Chrome private main-frame library route remains policy-blocked.
 The #6 storage and private-context gaps and the #7 release gaps are unchanged.
@@ -294,9 +295,61 @@ and 101 on Chrome for Testing 156.0.8078.47. A disposable Chrome product run
 opened the exact 8-page preview, cancelled without a file, and saved an 8-page
 PDF. Firefox 158.0.1 opened the exact 8-page in-tab preview and cancelled without
 a file; completing Firefox's native Save-to-PDF dialog remains unobserved.
-Clipboard (#11), saved-archive Markdown, native Windows/Linux print/PDF, the
-hosted exact-OS matrix and retail installation remain open. The #6 storage and
+Clipboard copy (#11) is implemented separately below. Saved-archive Markdown
+download, native Windows/Linux print/PDF, the hosted exact-OS matrix and retail
+installation remain open. The #6 storage and
 private-context gaps and the #7 release gaps are unchanged.
+
+## Clipboard report (#11)
+
+The bounded #11 slice adds an explicit **Copy Markdown** action to the live
+investigation, an open saved archive and the unsaved imported report. The
+permission-free gate ran first on the four pinned local targets: a writer fixture
+with no clipboard permission and a separate test-only `clipboardRead` reader
+observed immediate and guarded `navigator.clipboard.writeText` success, an exact
+1 MiB UTF-8 copy, and restoration of the preexisting clipboard. Firefox denied a
+no-activation write with `NotAllowedError`; Chrome's focused extension page
+permitted it. The product requires no `clipboardWrite` permission, adds no
+manifest permission, dependency, automatic copy or background clipboard access.
+
+Each entrypoint has its own labelled exact Markdown review. Live copy reuses the
+existing reviewed Markdown; saved and imported reports use a provenance-aware
+Markdown renderer with the stored precomputed changes and minimized fields.
+Copying discloses the system clipboard destination and that copied content is
+outside AddonRay's recall. The complete UTF-8 text is capped at 1 MiB without
+truncation. Success is reported only after the platform write resolves; denial,
+unavailable and ordinary failure have separate explicit messages and preserve
+the review. Live copy keeps the existing snapshot, generation, activity,
+normal-window and current-permission checks. Saved copy re-reads IndexedDB after
+the final context check and rejects deleted, expired, unsupported, unreadable,
+replaced or busy records without a collection permission. Imported copy reads no
+storage and discards on replacement, clear, suspension or context loss. A write
+already in flight is not cancellable; stale success and preview restoration are
+suppressed after it resolves. After a successful write resolves, the controller
+revalidates authoritative saved storage/expiry and normal context, live normal
+context and current permissions, and imported normal context and held-report
+identity before publishing success. A completed write whose eligibility changed
+reports that the clipboard write completed and cannot be recalled; it never
+claims the copy did not happen.
+
+Implementation and qualification evidence is recorded in
+[the #11 evidence](evidence/2026-11-06-clipboard-report.md). At clean
+`db615b37e5a4bf99a787004bdbc16dd4f148fd7e`, 708 behavior tests with 2,023,448
+assertions across 45 files and native type checking of 106 files pass. The shared
+product probes pass 116 checks on Firefox 140.0 and 153.5.1esr at `eec3a2d`, and
+116 on Firefox 158.0.1 and 106 on Chrome for Testing 156.0.8078.47 at `8af95ae`. Headful runs on Firefox 158.0.1 and
+Chrome 156.0.8078.47 verified the live, saved and imported copied text against
+the host system clipboard byte for byte, plus real Firefox denial, deterministic
+Chrome denial and injected unavailable outcomes. Saved copy also passes after
+actual management removal. A real platform write delayed across a deletion, a
+maximum-size product copy, Windows/Linux, retail installation and the hosted
+exact-OS matrix remain unqualified. Hosted Windows Chrome normalizes clipboard
+LF to CRLF; the probe records that transformation rather than claiming byte
+equality. Saved-archive Markdown download is still not added; the new Markdown
+format is copy-only. Clipboard content remains outside
+AddonRay's recall after copying. A later documentation-only head requires its own
+frozen gate and browser matrix receipt. The #6 storage and private-context gaps
+and the #7 release gaps are unchanged.
 
 ## Brand asset kit
 
@@ -646,7 +699,7 @@ The current workflow status is available in [GitHub Actions](https://github.com/
 - [x] Implement and locally qualify #8 schema version 1 JSON preview and download for the live investigation and saved archives. See [the #8 evidence](evidence/2026-11-01-json-report-export.md).
 - [x] Implement and locally qualify #9 explicit untrusted import, read-only inspection and separate imported save. See [the #9 evidence](evidence/2026-11-05-json-report-import.md).
 - [x] Implement and locally qualify #10 self-contained printable HTML for live, saved and unsaved imported reports, with browser print/Save-as-PDF and request-only outcomes. See [the #10 evidence](evidence/2026-11-06-printable-report.md).
-- [ ] Implement and qualify #11 clipboard.
+- [x] Implement and locally qualify #11 explicit clipboard copy for live, saved and unsaved imported reports, with permission-free feasibility, exact reviewed Markdown, success after write, and explicit denial/unavailable results. See [the #11 evidence](evidence/2026-11-06-clipboard-report.md).
 - [x] Implement the #12 guided-trial flow; local browser authority and gaps are recorded in [the evidence](evidence/2026-11-11-guided-trials.md).
 - [ ] Qualify private and unknown contexts, multi-view deletion, expiry, storage failure and the exact browser and OS matrix for the exchange outputs.
 - [ ] Reassess the Firefox declaration and Chrome Web Store privacy disclosure before publication.
@@ -669,9 +722,9 @@ ownership, candidate signing/limited-test routes and concrete release
 authorization. Q7/Q8 settle the host ID, artifact naming, GitHub Releases channel
 and detached-signature method as a plan; keys remain unverified and this planning
 work creates no signature or release. #10 is implemented and locally qualified
-from clean `6cb1634`; it is not merged or pushed. #11 remains readiness-labelled
-from already-merged decisions and may start under its approved contract. #31
-remains readiness-labelled but still needs #10 merged and its own qualification;
+from clean `6cb1634`; it is not merged or pushed. #11 is implemented and locally
+qualified from clean `db615b3`; it is not merged or pushed. #31 remains
+readiness-labelled but still needs #10 and #11 merged and its own qualification;
 no #31 evidence is claimed here. This implementation task adds no other runtime
 claim. #32 is
 implemented at signed `88e2dda`; PR #49's hosted matrix passed at `85d0ae7`, and

@@ -10,11 +10,20 @@ import {
   type SavedRecord,
 } from './saved-record';
 import { createPrintableHtml } from './report-html';
+import {
+  CLIPBOARD_COMPLETED_STALE_MESSAGE,
+  CLIPBOARD_ERROR_MESSAGE,
+  type ClipboardOutcome,
+} from './report-clipboard';
+import { createReportMarkdown } from './report-markdown';
 import type { Result } from './inspector';
 import type { ReportFormat } from './report-download';
 import { SavedStoreError, type SavedStore } from './saved-store';
 
-export type SavedExportFormat = Extract<ReportFormat, 'json' | 'html'>;
+export type SavedExportFormat = Extract<
+  ReportFormat,
+  'markdown' | 'json' | 'html'
+>;
 
 export type SavedExportSelection = Pick<
   SavedLibrarySnapshot,
@@ -36,6 +45,7 @@ export interface SavedExportSnapshot {
 export interface SavedExportHandoffs {
   download(text: string, format: SavedExportFormat): void;
   print(text: string, format: SavedExportFormat): void;
+  copy(text: string): Promise<ClipboardOutcome>;
 }
 
 interface ExportPermit {
@@ -63,6 +73,8 @@ function createSavedOutput(
   record: SavedRecord,
   format: SavedExportFormat,
 ): Result<string> {
+  if (format === 'markdown')
+    return createReportMarkdown(record.report, { provenance: record.origin });
   if (format === 'html') {
     const html = createPrintableHtml(record.report, {
       provenance: record.origin,
@@ -159,11 +171,49 @@ export function createSavedExport(
     return inspection.record;
   };
 
-  async function deliver(kind: 'download' | 'print') {
+  const locallyCurrent = (ticket: number, candidate: ExportPermit) =>
+    live && ticket === operation && permit === candidate;
+
+  // The platform write can resolve after another view deletes, replaces or
+  // expires the record without a delivered notification. Re-read authoritative
+  // storage and normal context after the write, with the operation check after
+  // every await, before publishing success or restoring the review.
+  async function postWriteEligible(
+    ticket: number,
+    candidate: ExportPermit,
+    text: string,
+  ): Promise<'valid' | 'stale' | 'cancelled'> {
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (!current(ticket, candidate)) return 'stale';
+    const normal = await normalContext(api);
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (!current(ticket, candidate) || !normal) return 'stale';
+    await store.get(candidate.key);
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (!current(ticket, candidate)) return 'stale';
+    const finalContext = await normalContext(api);
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (!current(ticket, candidate) || !finalContext) return 'stale';
+    const raw = await store.get(candidate.key);
+    if (!locallyCurrent(ticket, candidate)) return 'cancelled';
+    if (source.getSnapshot().busy) return 'stale';
+    const checked = validate(raw, candidate);
+    if (typeof checked === 'string') return 'stale';
+    const fresh = createSavedOutput(checked, candidate.format);
+    if (fresh.status !== 'success' || fresh.value !== text) return 'stale';
+    if (!current(ticket, candidate)) return 'stale';
+    return 'valid';
+  }
+
+  async function deliver(kind: 'download' | 'print' | 'copy') {
     const candidate = permit;
     if (!live || state.busy || candidate === null || candidate.text === null)
       return;
     if (kind === 'print' && candidate.format !== 'html') return;
+    if (kind === 'copy' && candidate.format !== 'markdown') return;
+    // Markdown is the reviewed clipboard representation in this slice. It does
+    // not add a saved-archive Markdown download.
+    if (kind === 'download' && candidate.format === 'markdown') return;
     if (source.getSnapshot().busy) {
       publish({ ...state, busy: false, message: busyMessage });
       return;
@@ -215,6 +265,62 @@ export function createSavedExport(
         return;
       }
       if (!current(ticket, candidate)) return;
+      if (kind === 'copy') {
+        const text = fresh.value;
+        let outcome: ClipboardOutcome;
+        try {
+          outcome = await handoffs.copy(text);
+        } catch {
+          if (current(ticket, candidate))
+            publish({
+              ...state,
+              preview: text,
+              busy: false,
+              message: CLIPBOARD_ERROR_MESSAGE,
+            });
+          return;
+        }
+        if (!locallyCurrent(ticket, candidate)) return;
+        if (outcome.status !== 'success') {
+          if (!current(ticket, candidate)) {
+            discard(outcome.message);
+            return;
+          }
+          publish({
+            ...state,
+            preview: text,
+            busy: false,
+            message: outcome.message,
+          });
+          return;
+        }
+        // A resolved platform write may be irrevocable. Never restore content
+        // or report success if authoritative storage or context is now stale.
+        if (!current(ticket, candidate)) {
+          discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+          return;
+        }
+        let eligibility: 'valid' | 'stale' | 'cancelled';
+        try {
+          eligibility = await postWriteEligible(ticket, candidate, text);
+        } catch {
+          if (locallyCurrent(ticket, candidate))
+            discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+          return;
+        }
+        if (eligibility === 'cancelled') return;
+        if (eligibility === 'stale') {
+          discard(CLIPBOARD_COMPLETED_STALE_MESSAGE);
+          return;
+        }
+        publish({
+          ...state,
+          preview: text,
+          busy: false,
+          message: outcome.message,
+        });
+        return;
+      }
       try {
         // No await separates the final validity check from browser handoff.
         const handoff =
@@ -352,6 +458,9 @@ export function createSavedExport(
     },
     async print() {
       await deliver('print');
+    },
+    async copy() {
+      await deliver('copy');
     },
     cancel: () => discard(),
     dispose() {

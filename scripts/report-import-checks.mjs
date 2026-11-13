@@ -16,6 +16,10 @@ import {
   snapshotHtmlDownloads,
 } from './html-export-checks.mjs';
 import {
+  verifyClipboardFailures,
+  verifyClipboardOutcomes,
+} from './clipboard-checks.mjs';
+import {
   deleteShownRecord,
   dispatchPageTransition,
   storedRecords,
@@ -157,7 +161,7 @@ async function waitForImportedReport(driver) {
 
 async function htmlSectionText(driver) {
   return await driver
-    .findElement(By.css('section[aria-labelledby="imported-html-heading"]'))
+    .findElement(By.css('section[aria-labelledby="imported-output-heading"]'))
     .getText();
 }
 
@@ -166,6 +170,7 @@ export async function checkReportImport({
   reportDirectory,
   authority,
   passed,
+  clipboard,
 }) {
   const work = await mkdtemp(join(tmpdir(), 'addonray-import-'));
   const validPath = join(work, 'valid-report.json');
@@ -247,6 +252,45 @@ export async function checkReportImport({
       },
     },
   );
+
+  await driver.findElement(By.id('imported-format-markdown')).click();
+  await driver.findElement(By.id('imported-output-prepare')).click();
+  const markdownPreview = await driver.wait(
+    until.elementLocated(By.id('imported-markdown-text')),
+    10000,
+  );
+  const reviewedImportedMarkdown = await markdownPreview.getProperty('value');
+  assert.equal(typeof reviewedImportedMarkdown, 'string');
+  assert(
+    reviewedImportedMarkdown.startsWith('# AddonRay investigation report\n\n'),
+  );
+  assert(
+    reviewedImportedMarkdown.includes(
+      'Imported report — untrusted file content',
+    ),
+  );
+  assert(reviewedImportedMarkdown.includes('claims provenance captured'));
+  assert(reviewedImportedMarkdown.includes('not authenticated'));
+  assert(!reviewedImportedMarkdown.includes('valid-report.json'));
+  assert(!reviewedImportedMarkdown.includes('importedAt'));
+  assert(Buffer.byteLength(reviewedImportedMarkdown, 'utf8') <= limitBytes);
+  await verifyClipboardOutcomes({
+    driver,
+    clipboard,
+    sectionSelector: 'section[aria-labelledby="imported-output-heading"]',
+    previewId: 'imported-markdown-text',
+    buttonId: 'imported-copy',
+    expected: reviewedImportedMarkdown,
+    authority,
+    passed,
+  });
+  await driver.findElement(By.id('imported-output-cancel')).click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.id('imported-markdown-text'))).length === 0,
+    10000,
+  );
+  await driver.findElement(By.id('imported-format-html')).click();
 
   // Lifecycle suspension must clear imported content; a restored page must not
   // bring it back from memory.
@@ -408,7 +452,8 @@ export async function checkReportImport({
   await driver.findElement(By.id('saved-json-cancel')).click();
   await deleteShownRecord(driver);
 
-  await driver.findElement(By.id('imported-html-prepare')).click();
+  await driver.findElement(By.id('imported-format-html')).click();
+  await driver.findElement(By.id('imported-output-prepare')).click();
   const importedFrame = await driver.wait(
     until.elementLocated(By.id('imported-html-preview')),
     10000,
@@ -464,7 +509,7 @@ export async function checkReportImport({
   const importedPrintEvidence = await requestAndAssertPrint(driver, {
     buttonId: 'imported-html-print',
     frameId: 'imported-html-preview',
-    sectionSelector: 'section[aria-labelledby="imported-html-heading"]',
+    sectionSelector: 'section[aria-labelledby="imported-output-heading"]',
     reviewedHtml: reviewedImportedHtml,
   });
   passed(
@@ -477,13 +522,14 @@ export async function checkReportImport({
     },
   );
 
-  await driver.findElement(By.id('imported-html-cancel')).click();
+  await driver.findElement(By.id('imported-output-cancel')).click();
   await driver.wait(
     async () =>
       (await driver.findElements(By.id('imported-html-preview'))).length === 0,
     10000,
   );
-  await driver.findElement(By.id('imported-html-prepare')).click();
+  await driver.findElement(By.id('imported-format-html')).click();
+  await driver.findElement(By.id('imported-output-prepare')).click();
   await driver.wait(
     until.elementLocated(By.id('imported-html-preview')),
     10000,
@@ -541,7 +587,8 @@ export async function checkReportImport({
     false,
   );
   assert.equal((await storedRecords(driver)).records.length, 0);
-  await driver.findElement(By.id('imported-html-prepare')).click();
+  await driver.findElement(By.id('imported-format-html')).click();
+  await driver.findElement(By.id('imported-output-prepare')).click();
   await driver.wait(
     async () =>
       (await htmlSectionText(driver)).includes(
@@ -587,5 +634,45 @@ export async function checkReportImport({
     },
   );
   assert.equal((await storedRecords(driver)).records.length, 0);
+
+  // Final clipboard action in this document: unavailable is simulated after
+  // every other product clipboard flow has run.
+  await chooseFile(driver, validPath);
+  await waitForImportedReport(driver);
+  await driver.findElement(By.id('imported-format-markdown')).click();
+  await driver.findElement(By.id('imported-output-prepare')).click();
+  const unavailablePreview = await driver.wait(
+    until.elementLocated(By.id('imported-markdown-text')),
+    10000,
+  );
+  const unavailableText = await unavailablePreview.getProperty('value');
+  await verifyClipboardFailures({
+    driver,
+    sectionSelector: 'section[aria-labelledby="imported-output-heading"]',
+    previewId: 'imported-markdown-text',
+    buttonId: 'imported-copy',
+    expected: unavailableText,
+    authority,
+    passed,
+  });
+  await driver.findElement(By.id('clear-imported-report')).click();
+  await driver.wait(
+    async () =>
+      (await driver.findElements(By.id('imported-report-heading'))).length ===
+      0,
+    10000,
+  );
+  if (clipboard && !clipboard.isRestored()) {
+    const handle = await driver.getWindowHandle();
+    const restore = await clipboard.restore(handle);
+    assert.equal(restore.restored, true, JSON.stringify(restore));
+    await clipboard.close(handle);
+    passed(
+      `${authority}: the preexisting clipboard text was restored after clipboard checks (text-only; other clipboard formats are not captured)`,
+      {
+        clipboardRestore: restore,
+      },
+    );
+  }
   return { work, boundaryBytes: boundary.bytes };
 }

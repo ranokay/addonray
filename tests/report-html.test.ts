@@ -101,7 +101,7 @@ it('distinguishes a literal Unicode escape from a real control character', () =>
   expect(actual).toContain('actual \\u{202E} text');
   expect(literal).not.toContain('\\u{202E} ');
   expect(literal).not.toBe(actual);
-  expect(literal).toContain('Backslashes, invisible control');
+  expect(literal).toContain('Unicode escape notation represents backticks');
 });
 
 it('labels empty inventories, absent assessment and unattached diagnostics explicitly', () => {

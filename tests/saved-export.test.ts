@@ -2,6 +2,10 @@ import { beforeEach, expect, it, vi } from 'bun:test';
 import type { SavedBrowser } from '../lib/saved-context';
 import type { SavedExportSource } from '../lib/saved-export';
 import { createSavedExport } from '../lib/saved-export';
+import {
+  CLIPBOARD_COMPLETED_STALE_MESSAGE,
+  type ClipboardOutcome,
+} from '../lib/report-clipboard';
 import { pageErrorLimits } from '../lib/page-error-check';
 import {
   serializeExchange,
@@ -132,17 +136,27 @@ function fixture({ normal = true }: { normal?: boolean } = {}) {
       ),
     },
   };
-  const handoff = vi.fn<(text: string, format: 'json' | 'html') => void>();
-  const printHandoff = vi.fn<(text: string, format: 'json' | 'html') => void>();
+  const handoff =
+    vi.fn<(text: string, format: 'markdown' | 'json' | 'html') => void>();
+  const printHandoff =
+    vi.fn<(text: string, format: 'markdown' | 'json' | 'html') => void>();
+  const copyHandoff = vi.fn(
+    async (_text: string): Promise<ClipboardOutcome> => ({
+      status: 'success',
+      message: 'Copied the exact Markdown report.',
+    }),
+  );
   const exporter = createSavedExport(api, store, source, {
     download: handoff,
     print: printHandoff,
+    copy: copyHandoff,
   });
   return {
     store,
     api,
     handoff,
     printHandoff,
+    copyHandoff,
     exporter,
     context,
     publish,
@@ -153,6 +167,121 @@ function fixture({ normal = true }: { normal?: boolean } = {}) {
 }
 
 beforeEach(() => vi.restoreAllMocks());
+
+it('prepares an exact Markdown clipboard representation without offering a download', async () => {
+  const { store, exporter, handoff, copyHandoff } = fixture();
+  exporter.setFormat('markdown');
+  await exporter.prepare();
+  const reviewed = exporter.getSnapshot().preview;
+  if (reviewed === null) throw new Error('Missing Markdown preview');
+  expect(reviewed.startsWith('# AddonRay investigation report')).toBe(true);
+  expect(reviewed).toContain('Captured report.');
+  expect(reviewed).toContain('Example');
+  expect(reviewed).not.toContain('recordId');
+  expect(reviewed).not.toContain('savedAt');
+  expect(store.getCalls).toBe(2);
+  await exporter.download();
+  expect(handoff).not.toHaveBeenCalled();
+  expect(copyHandoff).not.toHaveBeenCalled();
+});
+
+it('copies exact Markdown only after the final storage read and write resolution', async () => {
+  const { exporter, copyHandoff } = fixture();
+  const write = Promise.withResolvers<ClipboardOutcome>();
+  copyHandoff.mockImplementation(() => write.promise);
+  exporter.setFormat('markdown');
+  await exporter.prepare();
+  const reviewed = exporter.getSnapshot().preview;
+  if (reviewed === null) throw new Error('Missing Markdown preview');
+  const calls = copyHandoff.mock.calls.length;
+  const pending = exporter.copy();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(copyHandoff.mock.calls).toHaveLength(calls + 1);
+  expect(copyHandoff.mock.calls.at(-1)).toEqual([reviewed]);
+  expect(exporter.getSnapshot().busy).toBe(true);
+  write.resolve({
+    status: 'success',
+    message: 'Copied the exact Markdown report.',
+  });
+  await pending;
+  expect(exporter.getSnapshot()).toEqual({
+    format: 'markdown',
+    preview: reviewed,
+    busy: false,
+    message: 'Copied the exact Markdown report.',
+  });
+});
+
+it('reports saved Markdown denial and suppresses a success that lost the deletion race', async () => {
+  const denied = fixture();
+  denied.exporter.setFormat('markdown');
+  await denied.exporter.prepare();
+  const reviewed = denied.exporter.getSnapshot().preview;
+  denied.copyHandoff.mockResolvedValueOnce({
+    status: 'denied',
+    message: 'Clipboard access was denied by the browser.',
+  });
+  await denied.exporter.copy();
+  expect(denied.exporter.getSnapshot()).toMatchObject({
+    preview: reviewed,
+    message: 'Clipboard access was denied by the browser.',
+  });
+
+  const stale = fixture();
+  const write = Promise.withResolvers<ClipboardOutcome>();
+  stale.copyHandoff.mockImplementation(() => write.promise);
+  stale.exporter.setFormat('markdown');
+  await stale.exporter.prepare();
+  const pending = stale.exporter.copy();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  stale.select(null, null);
+  write.resolve({ status: 'success', message: 'Copied the exact Markdown.' });
+  await pending;
+  expect(stale.exporter.getSnapshot().preview).toBeNull();
+  expect(stale.exporter.getSnapshot().message).not.toContain('Copied');
+});
+
+it.each([
+  [
+    'expiry',
+    (store: MemoryStore) =>
+      store.entries.set(key, record({ expiresAt: Date.now() - 1 })),
+  ],
+  ['deletion', (store: MemoryStore) => store.entries.delete(key)],
+  [
+    'replacement',
+    (store: MemoryStore) => {
+      const value = record();
+      value.report = { ...value.report, assessment: 'better' };
+      store.entries.set(key, value);
+    },
+  ],
+] as const)(
+  'revalidates saved storage after a resolved write without a notification: %s',
+  async (_case, mutate) => {
+    const { store, exporter, copyHandoff } = fixture();
+    const write = Promise.withResolvers<ClipboardOutcome>();
+    copyHandoff.mockImplementation(() => write.promise);
+    exporter.setFormat('markdown');
+    await exporter.prepare();
+    const reviewed = exporter.getSnapshot().preview;
+    if (reviewed === null) throw new Error('Missing Markdown preview');
+    const pending = exporter.copy();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    mutate(store);
+    write.resolve({
+      status: 'success',
+      message: 'Copied the exact Markdown report.',
+    });
+    await pending;
+    expect(exporter.getSnapshot().preview).toBeNull();
+    expect(exporter.getSnapshot().message).toBe(
+      CLIPBOARD_COMPLETED_STALE_MESSAGE,
+    );
+    expect(exporter.getSnapshot().message).not.toContain('was not copied');
+    expect(copyHandoff.mock.calls.at(-1)).toEqual([reviewed]);
+  },
+);
 
 it('prepares the exact stored JSON and hands it off only after a fresh read', async () => {
   const { store, api, handoff, exporter } = fixture();
