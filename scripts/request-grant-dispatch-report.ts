@@ -250,7 +250,10 @@ function registrationProblems(
     const successful = attempts.filter(
       (attempt) => attempt.filter === filter && attempt.result === 'ok',
     );
-    if (successful.length === 0) {
+    const ok = attempts.find(
+      (attempt) => attempt.filter === filter && attempt.result === 'ok',
+    );
+    if (!ok) {
       problems.push(`${label} never registered the ${filter} listener`);
       continue;
     }
@@ -260,8 +263,6 @@ function registrationProblems(
       );
       continue;
     }
-    const [ok] = successful;
-    if (!ok) continue;
     if (
       !Number.isFinite(phase.trafficStartedAt) ||
       ok.at > phase.trafficStartedAt
