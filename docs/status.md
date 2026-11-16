@@ -77,7 +77,7 @@ native runtime grant of optional `webRequest` plus the exact host did not produc
 terminal observations in the extension context that existed at grant time; a new
 worker in that context did not change that, while an identical browser restart
 with the persisted grant observed every controlled case. The tracked probe
-reproduces this from clean `a63616c` and records one report hash. No failed
+reproduces this from clean `83421ef` and records one report hash. No failed
 sub-case was replaced. See the [evidence](evidence/2026-11-16-request-grant-dispatch-chrome.md)
 and [test method](testing.md#request-failure-grant-dispatch-17).
 

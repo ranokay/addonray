@@ -332,14 +332,23 @@ report state `REQ-1 GATE FAILED` and `Reproduction SUCCEEDED`) or an unexpected
 first-grant dispatch was observed and classified as `gate-passed`, never as a
 failed-feasibility record. Exit 1 means a probe error or inconclusive evidence.
 The probe asserts a constant fixture path, matching computed and runtime
-extension IDs, fixture digests, headful command-line loading, one listener per
-filter, a new worker after the restart phase, and a complete browser-restart
-positive control matched by source tab, origin/initiator, path, status and
-resource type rather than total counts.
+extension IDs, fixture digests, headful command-line loading, and a complete
+browser-restart positive control matched by source tab, origin/initiator, path,
+status and resource type rather than total counts. A negative phase is accepted
+only after the full 5,000 ms window and at least 15 poll samples; a positive
+phase may stop at the first controlled match. Both filters must register exactly
+once before the recorded traffic boundary, with no failed registration after
+success, and every phase must record a pre-traffic readiness worker with its
+serial and registrations. The three controlled fetches must all return 200, and
+the bounded debug event list must stay below its 40-entry cap. A saturated
+capture, truncated window, missing or duplicate registration, failed fetch,
+malformed duration or sample value, or missing readiness record is inconclusive,
+not a negative conclusion.
 
 `tests/request-grant-dispatch.test.ts` covers the report evaluator's
-classifications and rejects missing phases, identity drift, duplicate
-registration and oversized debug event lists. The probe is not part of
+classifications and rejects missing phases, identity drift, duplicate or
+missing registration, failed fetches, truncated negative windows, malformed
+observation values, saturated capture and oversized debug event lists. The probe is not part of
 `mise run check`, and a passing shared gate does not qualify REQ-1. It uses no
 storage API and retains no origin, attempt or cleanup record in the fixture. The
 [dated evidence](evidence/2026-11-16-request-grant-dispatch-chrome.md) records the
