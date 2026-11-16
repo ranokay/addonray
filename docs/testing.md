@@ -309,6 +309,44 @@ measurement evidence; the shared operational change did not trigger another
 720-attempt study. The final documentation head requires its own hosted run
 before merge.
 
+## Request-failure grant dispatch (#17)
+
+The minimal #17 evidence isolates the Chrome first-grant dispatch question before
+any collector, cleanup or budget suite. `scripts/request-grant-dispatch.mjs`
+generates a test-only extension fixture (optional `webRequest`, optional
+`*://*/*`, service worker), loads it by command line in a disposable headful
+profile, approves the native optional-permission prompt, and compares three
+constant-input phases: the first grant in the live context, a new worker in that
+context, and a browser restart with the persisted grant. A fourth diagnostic-only
+case records a same-process extension self-reload; it is not a gate and supports
+no reload-UX claim.
+
+Run it with `mise exec -- bun scripts/request-grant-dispatch.mjs`. The operator
+must approve Chrome's native prompt within 90 seconds; the probe records
+activation and grant timing. It writes a raw report and a SHA-256 sidecar under a
+new ignored `.scratch/request-grant-dispatch-*` directory and retains every
+failed sub-case.
+
+Exit 0 means a decisive outcome: either the failure was reproduced (console and
+report state `REQ-1 GATE FAILED` and `Reproduction SUCCEEDED`) or an unexpected
+first-grant dispatch was observed and classified as `gate-passed`, never as a
+failed-feasibility record. Exit 1 means a probe error or inconclusive evidence.
+The probe asserts a constant fixture path, matching computed and runtime
+extension IDs, fixture digests, headful command-line loading, one listener per
+filter, a new worker after the restart phase, and a complete browser-restart
+positive control matched by source tab, origin/initiator, path, status and
+resource type rather than total counts.
+
+`tests/request-grant-dispatch.test.ts` covers the report evaluator's
+classifications and rejects missing phases, identity drift, duplicate
+registration and oversized debug event lists. The probe is not part of
+`mise run check`, and a passing shared gate does not qualify REQ-1. It uses no
+storage API and retains no origin, attempt or cleanup record in the fixture. The
+[dated evidence](evidence/2026-11-16-request-grant-dispatch-chrome.md) records the
+observed Chrome 156 limit, the preserved failures and the still-unproved
+Firefox/Chrome gates. Product inputs and the shared browser API matrix are
+untouched, so that matrix does not re-qualify this probe.
+
 ## Report export checks
 
 The export contract distinguishes request dispatch, browser acceptance and final

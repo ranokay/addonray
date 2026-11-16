@@ -173,6 +173,20 @@ Reviewed on 2026-11-06 for the approved [collector contract](plans/mutation-requ
 
 MUT-1 adds no permission. It uses the existing optional `scripting` access and a top-document observer; the observed metric is mutation notifications, not DOM operations.
 
+### #17 observed Chrome grant-dispatch limit
+
+On 2026-11-16 the #17 feasibility probe observed that, on Chrome for Testing
+156.0.8078.47/macOS 27.2 arm64 with a command-line-loaded unpacked diagnostic
+extension, a native runtime grant of optional `webRequest` plus an exact host was
+not honored for terminal dispatch in the extension context that existed at grant
+time; a new worker in that context also saw no events, while an identical
+browser restart with the persisted grant observed the controlled requests. This
+is an observed limit for that exact build, OS, loading mode and grant sequence,
+not a documented browser guarantee, a universal Chrome root cause, or retail or
+installed behavior. Chrome REQ-1 remains unapproved pending a user decision;
+Firefox REQ-1 is also unqualified. See the
+[evidence](evidence/2026-11-16-request-grant-dispatch-chrome.md).
+
 ## Primary Firefox references
 
 - [management.getAll](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/management/getAll)

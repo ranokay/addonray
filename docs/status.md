@@ -69,6 +69,26 @@ missing Windows/Linux environments; #39/#43 retain signing and publication
 prerequisites, and #4 stays open/human. No implementation, qualification,
 publication, permission or tracker-label claim follows from a readiness label.
 
+## Request-failure feasibility (#17)
+
+The minimal #17 evidence isolates one REQ-1 gate before any collector, cleanup,
+budget or product wiring. On Chrome for Testing 156.0.8078.47/macOS 27.2 arm64, a
+native runtime grant of optional `webRequest` plus the exact host did not produce
+terminal observations in the extension context that existed at grant time; a new
+worker in that context did not change that, while an identical browser restart
+with the persisted grant observed every controlled case. The tracked probe
+reproduces this from clean `a63616c` and records one report hash. No failed
+sub-case was replaced. See the [evidence](evidence/2026-11-16-request-grant-dispatch-chrome.md)
+and [test method](testing.md#request-failure-grant-dispatch-17).
+
+This is not a REQ-1 qualification. Firefox 140.0, 153.5.1esr and 158.0.1 remain
+unqualified for every #17 gate, Chrome remains unqualified beyond the grant
+dispatch observation, and #18/#19 are unimplemented. The approved contract text
+is unchanged. The evidence recommends deferring Chrome REQ-1 pending a user
+decision; a future retest on a later pinned Chrome is an option, and a first-run
+restart/reopen UX or target reduction are unapproved alternatives. No permission,
+product behavior or support claim changed.
+
 ## Saved investigations (#6)
 
 The bounded slice is delivered through private
