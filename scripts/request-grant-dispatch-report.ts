@@ -139,6 +139,27 @@ export function countControlledMatches(
   ).length;
 }
 
+export function controlledCoverage(
+  events: DispatchEvent[],
+  options: { cases: string[]; origin: string; tabId: number },
+): { complete: boolean; matched: number } {
+  let matched = 0;
+  for (const path of options.cases) {
+    const url = new URL(path, options.origin).href;
+    for (const filter of ['allUrls', 'exactHost'] as const) {
+      if (
+        events.some(
+          (event) =>
+            event.filter === filter &&
+            controlledEventMatches(event, url, options.origin, options.tabId),
+        )
+      )
+        matched++;
+    }
+  }
+  return { complete: matched === options.cases.length * 2, matched };
+}
+
 export function matchPositiveControl(
   phase: DispatchPhase | null,
   fixture: FixtureIdentity,
@@ -153,16 +174,19 @@ export function matchPositiveControl(
   let matchedEvents = 0;
   for (const entry of cases) {
     const url = new URL(entry.path, origin).href;
-    for (const filter of ['allUrls', 'exactHost'] as const) {
-      const matched = phase.events.some(
+    const matchesFilter = (filter: 'allUrls' | 'exactHost') =>
+      phase.events.some(
         (event) =>
           event.filter === filter &&
           controlledEventMatches(event, url, origin, phase.fetch.tabId),
       );
-      if (matched) {
-        entry[filter] = true;
-        matchedEvents++;
-      }
+    if (matchesFilter('allUrls')) {
+      entry.allUrls = true;
+      matchedEvents++;
+    }
+    if (matchesFilter('exactHost')) {
+      entry.exactHost = true;
+      matchedEvents++;
     }
   }
   return {
@@ -191,13 +215,13 @@ function identityProblems(fixture: FixtureIdentity): string[] {
     );
   if (fixture.extensionId !== fixture.runtimeId)
     problems.push('runtime ID does not match the fixture extension ID');
-  for (const key of [
-    'manifestSha256',
-    'backgroundSha256',
-    'ownerScriptSha256',
+  for (const [name, digest] of [
+    ['manifestSha256', fixture.manifestSha256],
+    ['backgroundSha256', fixture.backgroundSha256],
+    ['ownerScriptSha256', fixture.ownerScriptSha256],
   ] as const) {
-    if (!sha256Pattern.test(fixture[key]))
-      problems.push(`${key} is not a lowercase SHA-256 digest`);
+    if (!sha256Pattern.test(digest))
+      problems.push(`${name} is not a lowercase SHA-256 digest`);
   }
   if (new Set(fixture.cases).size !== fixture.cases.length)
     problems.push('controlled case paths are not unique');
@@ -236,7 +260,8 @@ function registrationProblems(
       );
       continue;
     }
-    const ok = successful[0]!;
+    const [ok] = successful;
+    if (!ok) continue;
     if (
       !Number.isFinite(phase.trafficStartedAt) ||
       ok.at > phase.trafficStartedAt

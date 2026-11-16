@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { join, resolve } from 'node:path';
 import { chromeExtensionId, launchChrome } from './chrome-session.mjs';
@@ -10,7 +10,7 @@ import {
   writeDispatchFixture,
 } from './request-grant-dispatch-fixtures.mjs';
 import {
-  countControlledMatches,
+  controlledCoverage,
   evaluateGrantDispatch,
 } from './request-grant-dispatch-report.ts';
 
@@ -30,6 +30,7 @@ const OBSERVATION_SECONDS = 5;
 const cases = ['/case/a', '/case/b', '/case/c'];
 const originPattern = 'http://127.0.0.1/*';
 const startedAt = new Date().toISOString();
+await mkdir(resolve('.scratch'), { recursive: true });
 const base = await mkdtemp(resolve('.scratch/request-grant-dispatch-'));
 const profile = join(base, 'profile');
 const extensionDir = join(base, 'extension');
@@ -155,12 +156,14 @@ async function observe(driver, fetch) {
   let last = (await readState(driver)).state;
   while (Date.now() - started < OBSERVATION_SECONDS * 1000) {
     samples++;
-    const matches = countControlledMatches(last.events, {
+    const coverage = controlledCoverage(last.events, {
       cases,
       origin: fetch.origin,
       tabId: fetch.tabId,
     });
-    if (matches > 0) break;
+    // Keep polling until both filters cover every controlled case, so events
+    // that arrive in separate batches are not reported as an incomplete control.
+    if (coverage.complete) break;
     await sleep(250);
     last = (await readState(driver)).state;
   }
@@ -422,49 +425,57 @@ try {
   }
 
   // Diagnostic-only sub-case: same-process extension self-reload. It is never
-  // used as a gate or as evidence for a reload UX.
-  const reloadSession = await launchChrome({
-    headless: false,
-    userDataDir: profile,
-    loadExtensions: [extensionDir],
-  });
+  // used as a gate or as evidence for a reload UX, and a failure here is
+  // recorded separately so it cannot invalidate the three gating phases.
   try {
-    const { driver } = reloadSession;
-    await openOwner(driver);
-    await driver.executeScript(() => window.__reload().catch(() => null));
-    await sleep(4000);
-    const attempts = [];
-    let opened = false;
-    for (let attempt = 0; attempt < 6 && !opened; attempt++) {
-      try {
-        await driver.switchTo().newWindow('tab');
-        await driver.get(`chrome-extension://${extensionId}/owner.html`);
-        opened = await driver.executeScript(
-          () => typeof window.__state === 'function',
-        );
-        attempts.push({ attempt, opened, url: await driver.getCurrentUrl() });
-      } catch (error) {
-        attempts.push({
-          attempt,
-          opened: false,
-          url: null,
-          error: String(error?.message ?? error).slice(0, 200),
-        });
+    const reloadSession = await launchChrome({
+      headless: false,
+      userDataDir: profile,
+      loadExtensions: [extensionDir],
+    });
+    try {
+      const { driver } = reloadSession;
+      await openOwner(driver);
+      await driver.executeScript(() => window.__reload().catch(() => null));
+      await sleep(4000);
+      const attempts = [];
+      let opened = false;
+      for (let attempt = 0; attempt < 6 && !opened; attempt++) {
+        try {
+          await driver.switchTo().newWindow('tab');
+          await driver.get(`chrome-extension://${extensionId}/owner.html`);
+          opened = await driver.executeScript(
+            () => typeof window.__state === 'function',
+          );
+          attempts.push({ attempt, opened, url: await driver.getCurrentUrl() });
+        } catch (error) {
+          attempts.push({
+            attempt,
+            opened: false,
+            url: null,
+            error: String(error?.message ?? error).slice(0, 200),
+          });
+        }
+        if (!opened) await sleep(1500);
       }
-      if (!opened) await sleep(1500);
+      report.phases.extensionReload = {
+        label:
+          'same-process extension self-reload (diagnostic only, no UX claim)',
+        opened,
+        attempts,
+        phase: opened
+          ? await recordPhase(driver, 'after extension self-reload')
+          : null,
+      };
+    } finally {
+      reloadSession.cdp.close();
+      await reloadSession.driver.quit();
     }
-    report.phases.extensionReload = {
-      label:
-        'same-process extension self-reload (diagnostic only, no UX claim)',
-      opened,
-      attempts,
-      phase: opened
-        ? await recordPhase(driver, 'after extension self-reload')
-        : null,
+  } catch (error) {
+    report.reloadSubcaseError = {
+      name: error?.name ?? null,
+      message: String(error?.message ?? error).slice(0, 500),
     };
-  } finally {
-    reloadSession.cdp.close();
-    await reloadSession.driver.quit();
   }
 } catch (error) {
   report.error = {

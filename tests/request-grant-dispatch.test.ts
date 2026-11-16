@@ -1,5 +1,6 @@
 import { expect, it } from 'bun:test';
 import {
+  controlledCoverage,
   countControlledMatches,
   duplicateRegistrationCount,
   evaluateGrantDispatch,
@@ -357,6 +358,46 @@ it('counts only controlled matches while polling', () => {
       tabId: 42,
     }),
   ).toBe(0);
+});
+
+it('requires both filters for every case before positive polling stops', () => {
+  const options = { cases, origin, tabId: 42 };
+  expect(controlledCoverage([], options)).toEqual({
+    complete: false,
+    matched: 0,
+  });
+  expect(controlledCoverage(controlledEvents('allUrls'), options)).toEqual({
+    complete: false,
+    matched: 3,
+  });
+  const full = controlledCoverage(
+    [...controlledEvents('allUrls'), ...controlledEvents('exactHost')],
+    options,
+  );
+  expect(full).toEqual({ complete: true, matched: 6 });
+  const duplicated = controlledCoverage(
+    [
+      ...controlledEvents('allUrls'),
+      ...controlledEvents('allUrls', { at: 11 }),
+    ],
+    options,
+  );
+  expect(duplicated.complete).toBe(false);
+  const unrelated = controlledCoverage(
+    [
+      {
+        filter: 'allUrls',
+        url: `${origin}/favicon.ico`,
+        statusCode: 200,
+        type: 'image',
+        tabId: 42,
+        initiator: origin,
+        at: 1,
+      },
+    ],
+    options,
+  );
+  expect(unrelated).toEqual({ complete: false, matched: 0 });
 });
 
 it('is inconclusive without a complete restarted positive control', () => {
