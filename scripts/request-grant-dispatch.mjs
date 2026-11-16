@@ -9,7 +9,10 @@ import {
   sourcePage,
   writeDispatchFixture,
 } from './request-grant-dispatch-fixtures.mjs';
-import { evaluateGrantDispatch } from './request-grant-dispatch-report.ts';
+import {
+  countControlledMatches,
+  evaluateGrantDispatch,
+} from './request-grant-dispatch-report.ts';
 
 // Bounded #17 diagnostic. It holds the fixture manifest, extension path and
 // ID, headful command-line launch, controlled cases and registration logic
@@ -141,17 +144,23 @@ async function fetchCases(driver) {
     tabId: created.tabId,
     origin,
     documentId,
+    startedAt: fetches[0]?.startedAt ?? 0,
     statuses: fetches.map((entry) => entry.status),
   };
 }
 
-async function observe(driver) {
+async function observe(driver, fetch) {
   const started = Date.now();
   let samples = 0;
   let last = (await readState(driver)).state;
   while (Date.now() - started < OBSERVATION_SECONDS * 1000) {
     samples++;
-    if (last.counters.allUrls + last.counters.exactHost > 0) break;
+    const matches = countControlledMatches(last.events, {
+      cases,
+      origin: fetch.origin,
+      tabId: fetch.tabId,
+    });
+    if (matches > 0) break;
     await sleep(250);
     last = (await readState(driver)).state;
   }
@@ -159,14 +168,26 @@ async function observe(driver) {
 }
 
 async function recordPhase(driver, label) {
+  // Wake and read the worker before any controlled traffic so readiness,
+  // registration and the traffic boundary are recorded in order.
+  const readinessState = await readState(driver);
+  const readiness = {
+    at: Date.now(),
+    loadSerial: readinessState.state.loadSerial,
+    namespaceAtLoad: readinessState.state.namespaceAtLoad,
+    attempts: readinessState.state.attempts,
+  };
+  const trafficStartedAt = Date.now();
   const fetch = await fetchCases(driver);
-  const observation = await observe(driver);
+  const observation = await observe(driver, fetch);
   const state = observation.state;
   return {
     label,
     loadSerial: state.loadSerial,
     namespaceAtLoad: state.namespaceAtLoad,
     attempts: state.attempts,
+    readiness,
+    trafficStartedAt,
     counters: state.counters,
     events: state.events,
     observedMs: observation.observedMs,
@@ -244,6 +265,7 @@ try {
     const startDisabledAtLoad = await driver.executeScript(
       () => window.__startDisabledAtLoad,
     );
+    const snapshot = await driver.executeScript(() => window.__snapshot);
     const snapshotReadyAt = await driver.executeScript(
       () => window.__snapshotReadyAt,
     );
@@ -255,26 +277,65 @@ try {
       `NATIVE PROMPT: approve the Chrome optional-permission prompt within ${PROMPT_WAIT_MS} ms`,
     );
     await driver.findElement({ id: 'start' }).click();
-    const activation = await driver.executeScript(() => window.__activation());
     await driver.wait(
       async () =>
         driver.executeScript(() => window.__results?.granted === true),
       PROMPT_WAIT_MS,
     );
+    // Activation is the value captured inside the click handler immediately
+    // before permissions.request, not a value read after the click returns.
     const request = await driver.executeScript(() => window.__results);
     const containsAfterGrant = await driver.executeScript(() =>
       window.__contains(),
     );
+    const afterGrant = (await readState(driver)).state;
+    const onAddedAt = afterGrant.grantEvents?.find(
+      (event) => event.kind === 'onAdded',
+    )?.at;
+    assert.equal(startDisabledAtLoad, true, 'Start was enabled before load');
+    assert.equal(snapshot.granted, false, 'Snapshot was not a pre-grant read');
+    assert.ok(Number.isFinite(snapshot.at), 'Snapshot has no finite timestamp');
+    assert.ok(
+      snapshot.at <= request.requestedAt,
+      'Snapshot was not ready before the Start click',
+    );
+    assert.ok(
+      Number.isFinite(snapshotReadyAt) &&
+        snapshotReadyAt <= request.requestedAt,
+      'Snapshot readiness was not recorded before the Start click',
+    );
     assert.equal(containsBefore, false, 'A grant was already present');
-    assert.equal(activation, true, 'Start lost user activation');
+    assert.equal(request.activation, true, 'Start lost user activation');
     assert.equal(request.granted, true, 'Native grant was not approved');
+    assert.ok(
+      Number.isFinite(request.requestedAt) &&
+        Number.isFinite(request.resolvedAt) &&
+        request.resolvedAt >= request.requestedAt,
+      'Grant request has no finite ordering',
+    );
+    assert.ok(
+      Number.isFinite(onAddedAt) && onAddedAt >= request.requestedAt,
+      'No permissions.onAdded event followed the request',
+    );
     assert.equal(containsAfterGrant, true, 'Grant is absent after approval');
+    for (const filter of ['allUrls', 'exactHost']) {
+      assert.ok(
+        afterGrant.attempts.some(
+          (attempt) => attempt.filter === filter && attempt.result === 'ok',
+        ),
+        `The ${filter} listener was not registered after the grant`,
+      );
+    }
     report.grantObservation = {
       startDisabledAtLoad,
+      snapshot,
       snapshotReadyAt,
       containsBefore,
-      activation,
       request,
+      onAddedAt,
+      registrationAfterGrant: afterGrant.attempts.filter(
+        (attempt) => attempt.result === 'ok',
+      ),
       containsAfterGrant,
     };
     report.phases.firstGrant = await recordPhase(
@@ -295,10 +356,38 @@ try {
       'Worker target did not close',
     );
     await sleep(1500);
-    report.phases.workerRestart = await recordPhase(
+    // Explicitly wake and read the new worker, and confirm a changed serial
+    // and both top-level registrations, before generating controlled traffic.
+    const wake = await readState(driver);
+    assert.notEqual(
+      wake.state.loadSerial,
+      report.phases.firstGrant.loadSerial,
+      'The worker target close did not produce a new worker',
+    );
+    for (const filter of ['allUrls', 'exactHost']) {
+      assert.ok(
+        wake.state.attempts.some(
+          (attempt) => attempt.filter === filter && attempt.result === 'ok',
+        ),
+        `The new worker did not register the ${filter} listener`,
+      );
+    }
+    report.workerRestartWake = {
+      at: Date.now(),
+      loadSerial: wake.state.loadSerial,
+      namespaceAtLoad: wake.state.namespaceAtLoad,
+      attempts: wake.state.attempts,
+    };
+    const workerRestart = await recordPhase(
       driver,
       'new worker in the same extension context',
     );
+    assert.equal(
+      workerRestart.readiness.loadSerial,
+      wake.state.loadSerial,
+      'A different worker served the restarted readiness or traffic',
+    );
+    report.phases.workerRestart = workerRestart;
   } finally {
     cdp.close();
     await driver.quit();

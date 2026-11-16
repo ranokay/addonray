@@ -21,6 +21,13 @@ export interface DispatchPhase {
   loadSerial: string;
   namespaceAtLoad: boolean;
   attempts: RegistrationAttempt[];
+  readiness: {
+    at: number;
+    loadSerial: string;
+    namespaceAtLoad: boolean;
+    attempts: RegistrationAttempt[];
+  } | null;
+  trafficStartedAt: number;
   counters: Record<'allUrls' | 'exactHost', number>;
   events: DispatchEvent[];
   observedMs: number;
@@ -28,6 +35,7 @@ export interface DispatchPhase {
   fetch: {
     tabId: number;
     origin: string;
+    startedAt: number;
     statuses: number[];
     documentId: string;
   };
@@ -95,8 +103,41 @@ export type GrantDispatchOutcome =
 // Event lists are bounded controlled-fixture debug data, never summary state.
 // Request URLs, tab IDs and initiators stay in the ignored raw report.
 export const MAX_DEBUG_EVENTS = 40;
+// A negative conclusion needs the full bounded window and polling density used
+// by the probe. A positive control can break early once a match arrives.
+export const MIN_NEGATIVE_OBSERVATION_MS = 5000;
+export const MIN_NEGATIVE_SAMPLES = 15;
 
 const sha256Pattern = /^[a-f0-9]{64}$/;
+
+function controlledEventMatches(
+  event: DispatchEvent,
+  url: string,
+  origin: string,
+  tabId: number,
+): boolean {
+  return (
+    event.url === url &&
+    event.statusCode === 200 &&
+    event.type === 'xmlhttprequest' &&
+    event.tabId === tabId &&
+    event.initiator === origin
+  );
+}
+
+export function countControlledMatches(
+  events: DispatchEvent[],
+  options: { cases: string[]; origin: string; tabId: number },
+): number {
+  const expected = options.cases.map(
+    (path) => new URL(path, options.origin).href,
+  );
+  return events.filter((event) =>
+    expected.some((url) =>
+      controlledEventMatches(event, url, options.origin, options.tabId),
+    ),
+  ).length;
+}
 
 export function matchPositiveControl(
   phase: DispatchPhase | null,
@@ -116,11 +157,7 @@ export function matchPositiveControl(
       const matched = phase.events.some(
         (event) =>
           event.filter === filter &&
-          event.url === url &&
-          event.statusCode === 200 &&
-          event.type === 'xmlhttprequest' &&
-          event.tabId === phase.fetch.tabId &&
-          event.initiator === origin,
+          controlledEventMatches(event, url, origin, phase.fetch.tabId),
       );
       if (matched) {
         entry[filter] = true;
@@ -175,16 +212,131 @@ function identityProblems(fixture: FixtureIdentity): string[] {
   return problems;
 }
 
-function phaseProblems(phase: DispatchPhase): string[] {
+function registrationProblems(
+  phase: DispatchPhase,
+  attempts: RegistrationAttempt[],
+  label: string,
+): string[] {
   const problems: string[] = [];
-  if (phase.events.length > MAX_DEBUG_EVENTS)
-    problems.push(
-      `${phase.label} retains more than ${MAX_DEBUG_EVENTS} events`,
+  for (const attempt of attempts) {
+    if (!Number.isFinite(attempt.at))
+      problems.push(`${label} registration attempt has no finite timestamp`);
+  }
+  for (const filter of ['allUrls', 'exactHost'] as const) {
+    const successful = attempts.filter(
+      (attempt) => attempt.filter === filter && attempt.result === 'ok',
     );
-  if (phase.samples < 1 || phase.observedMs < 0)
-    problems.push(`${phase.label} did not record an observation window`);
+    if (successful.length === 0) {
+      problems.push(`${label} never registered the ${filter} listener`);
+      continue;
+    }
+    if (successful.length > 1) {
+      problems.push(
+        `${label} registered the ${filter} listener more than once`,
+      );
+      continue;
+    }
+    const ok = successful[0]!;
+    if (
+      !Number.isFinite(phase.trafficStartedAt) ||
+      ok.at > phase.trafficStartedAt
+    )
+      problems.push(`${label} registered the ${filter} listener after traffic`);
+    if (
+      attempts.some(
+        (attempt) =>
+          attempt.filter === filter &&
+          attempt.at > ok.at &&
+          attempt.result !== 'already-registered',
+      )
+    )
+      problems.push(
+        `${label} reported a failed ${filter} registration after success`,
+      );
+  }
+  return problems;
+}
+
+function fetchProblems(phase: DispatchPhase): string[] {
+  const problems: string[] = [];
+  if (!Number.isInteger(phase.fetch.tabId) || phase.fetch.tabId <= 0)
+    problems.push(`${phase.label} has no positive source tab ID`);
+  if (
+    !Number.isFinite(phase.fetch.startedAt) ||
+    phase.fetch.startedAt <= 0 ||
+    !Number.isFinite(phase.trafficStartedAt) ||
+    phase.trafficStartedAt <= 0
+  )
+    problems.push(`${phase.label} has no finite traffic boundary`);
+  if (phase.fetch.statuses.length !== 3) {
+    problems.push(`${phase.label} did not record three controlled fetches`);
+  } else if (!phase.fetch.statuses.every((status) => status === 200)) {
+    problems.push(
+      `${phase.label} has a controlled fetch that did not return 200`,
+    );
+  }
+  try {
+    const origin = new URL(phase.fetch.origin);
+    if (
+      origin.origin !== phase.fetch.origin ||
+      !/^https?:$/.test(origin.protocol)
+    )
+      problems.push(`${phase.label} has a malformed source origin`);
+  } catch {
+    problems.push(`${phase.label} has an unparsable source origin`);
+  }
+  if (!phase.fetch.documentId)
+    problems.push(`${phase.label} has no source document identity`);
+  return problems;
+}
+
+function phaseProblems(
+  phase: DispatchPhase,
+  match: PositiveControlMatch,
+): string[] {
+  const problems: string[] = [];
+  if (phase.events.length >= MAX_DEBUG_EVENTS)
+    problems.push(
+      `${phase.label} reached the ${MAX_DEBUG_EVENTS}-event debug cap and may be truncated`,
+    );
+  if (!Number.isFinite(phase.observedMs) || phase.observedMs < 0)
+    problems.push(`${phase.label} has no finite observation duration`);
+  if (!Number.isInteger(phase.samples) || phase.samples < 1)
+    problems.push(`${phase.label} has no valid polling samples`);
   if (duplicateRegistrationCount(phase.attempts) > 0)
     problems.push(`${phase.label} registered a duplicate listener`);
+  if (!phase.readiness) {
+    problems.push(`${phase.label} has no pre-traffic readiness record`);
+  } else {
+    if (!Number.isFinite(phase.readiness.at))
+      problems.push(`${phase.label} readiness has no finite timestamp`);
+    if (phase.readiness.loadSerial !== phase.loadSerial)
+      problems.push(`${phase.label} readiness names a different worker`);
+    if (
+      Number.isFinite(phase.trafficStartedAt) &&
+      phase.readiness.at > phase.trafficStartedAt
+    )
+      problems.push(`${phase.label} readiness was recorded after traffic`);
+    problems.push(
+      ...registrationProblems(
+        phase,
+        phase.readiness.attempts,
+        `${phase.label} readiness`,
+      ),
+    );
+  }
+  problems.push(...registrationProblems(phase, phase.attempts, phase.label));
+  problems.push(...fetchProblems(phase));
+  if (match.matchedEvents === 0) {
+    if (phase.observedMs < MIN_NEGATIVE_OBSERVATION_MS)
+      problems.push(
+        `${phase.label} ended a negative window after ${phase.observedMs} ms`,
+      );
+    if (phase.samples < MIN_NEGATIVE_SAMPLES)
+      problems.push(
+        `${phase.label} ended a negative window after ${phase.samples} samples`,
+      );
+  }
   return problems;
 }
 
@@ -216,16 +368,16 @@ export function evaluateGrantDispatch(report: GrantDispatchReport): {
   if (!firstGrant) reasons.push('the first-grant phase is missing');
   if (!workerRestart) reasons.push('the worker-restart phase is missing');
   if (!browserRestart) reasons.push('the browser-restart phase is missing');
-  for (const phase of [firstGrant, workerRestart, browserRestart]) {
-    if (phase) reasons.push(...phaseProblems(phase));
-  }
+  if (firstGrant) reasons.push(...phaseProblems(firstGrant, firstGrantMatch));
+  if (workerRestart)
+    reasons.push(...phaseProblems(workerRestart, workerRestartMatch));
+  if (browserRestart)
+    reasons.push(...phaseProblems(browserRestart, browserRestartMatch));
   if (firstGrant && workerRestart) {
     if (workerRestart.loadSerial === firstGrant.loadSerial)
       reasons.push('the worker-restart phase did not observe a new worker');
     if (firstGrant.namespaceAtLoad)
       reasons.push('the first-grant worker already saw the webRequest API');
-  } else if (firstGrant && !workerRestart) {
-    reasons.push('worker identity could not be compared');
   }
   if (browserRestart && !browserRestart.namespaceAtLoad)
     reasons.push(

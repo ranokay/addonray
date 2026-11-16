@@ -1,5 +1,6 @@
 import { expect, it } from 'bun:test';
 import {
+  countControlledMatches,
   duplicateRegistrationCount,
   evaluateGrantDispatch,
   matchPositiveControl,
@@ -35,9 +36,10 @@ function attempt(
   filter: 'allUrls' | 'exactHost',
   result: string,
   stage = 'top-level',
+  at = 1,
   namespace = true,
 ): RegistrationAttempt {
-  return { stage, filter, namespace, result, at: 1 };
+  return { stage, filter, namespace, result, at };
 }
 
 function controlledEvents(
@@ -51,7 +53,7 @@ function controlledEvents(
     type: 'xmlhttprequest',
     tabId: 42,
     initiator: origin,
-    at: 1,
+    at: 10,
     ...overrides,
   }));
 }
@@ -63,6 +65,11 @@ function phase(
     namespaceAtLoad: boolean;
     attempts: RegistrationAttempt[];
     events: DispatchEvent[];
+    trafficStartedAt?: number;
+    observedMs?: number;
+    samples?: number;
+    readiness?: DispatchPhase['readiness'];
+    statuses?: number[];
   },
 ): DispatchPhase {
   return {
@@ -70,6 +77,16 @@ function phase(
     loadSerial: options.loadSerial,
     namespaceAtLoad: options.namespaceAtLoad,
     attempts: options.attempts,
+    readiness:
+      options.readiness === undefined
+        ? {
+            at: 1,
+            loadSerial: options.loadSerial,
+            namespaceAtLoad: options.namespaceAtLoad,
+            attempts: options.attempts,
+          }
+        : options.readiness,
+    trafficStartedAt: options.trafficStartedAt ?? 10,
     counters: {
       allUrls: options.events.filter((event) => event.filter === 'allUrls')
         .length,
@@ -77,11 +94,24 @@ function phase(
         .length,
     },
     events: options.events,
-    observedMs: 5000,
-    samples: 20,
-    fetch: { tabId: 42, origin, statuses: [200, 200, 200], documentId: 'doc' },
+    observedMs: options.observedMs ?? 5000,
+    samples: options.samples ?? 20,
+    fetch: {
+      tabId: 42,
+      origin,
+      startedAt: 10,
+      statuses: options.statuses ?? [200, 200, 200],
+      documentId: 'doc',
+    },
   };
 }
+
+const firstGrantAttempts = [
+  attempt('allUrls', 'Cannot access webRequest', 'top-level', 1, false),
+  attempt('exactHost', 'Cannot access webRequest', 'top-level', 1, false),
+  attempt('allUrls', 'ok', 'permissions.onAdded', 2),
+  attempt('exactHost', 'ok', 'permissions.onAdded', 2),
+];
 
 function reportWith(
   overrides: Partial<GrantDispatchReport['phases']> = {},
@@ -107,14 +137,7 @@ function reportWith(
       firstGrant: phase('first grant', {
         loadSerial: 'worker-a',
         namespaceAtLoad: false,
-        attempts: [
-          attempt('allUrls', 'Cannot access webRequest', 'top-level', false),
-          attempt('exactHost', 'Cannot access webRequest', 'top-level', false),
-          attempt('allUrls', 'ok', 'permissions.onAdded'),
-          attempt('exactHost', 'ok', 'permissions.onAdded'),
-          attempt('allUrls', 'already-registered', 'message:arm'),
-          attempt('exactHost', 'already-registered', 'message:arm'),
-        ],
+        attempts: firstGrantAttempts,
         events: [],
       }),
       workerRestart: phase('worker restart', {
@@ -123,8 +146,8 @@ function reportWith(
         attempts: [
           attempt('allUrls', 'ok'),
           attempt('exactHost', 'ok'),
-          attempt('allUrls', 'already-registered', 'message:arm'),
-          attempt('exactHost', 'already-registered', 'message:arm'),
+          attempt('allUrls', 'already-registered', 'message:arm', 3),
+          attempt('exactHost', 'already-registered', 'message:arm', 3),
         ],
         events: [],
       }),
@@ -136,6 +159,8 @@ function reportWith(
           ...controlledEvents('allUrls'),
           ...controlledEvents('exactHost'),
         ],
+        observedMs: 17,
+        samples: 1,
       }),
       extensionReload: null,
       ...overrides,
@@ -144,23 +169,194 @@ function reportWith(
   };
 }
 
+function firstGrantWith(
+  overrides: Partial<DispatchPhase> & { statuses?: number[] },
+): GrantDispatchReport {
+  const base = reportWith().phases.firstGrant!;
+  const { statuses, ...phaseOverrides } = overrides;
+  return reportWith({
+    firstGrant: {
+      ...base,
+      ...phaseOverrides,
+      ...(statuses === undefined ? {} : { fetch: { ...base.fetch, statuses } }),
+    },
+  });
+}
+
 it('reproduces the failed first-grant gate when only the restarted context observes', () => {
   const evaluation = evaluateGrantDispatch(reportWith());
   expect(evaluation.outcome).toBe('reproduction-succeeded');
   expect(evaluation.browserRestart.complete).toBe(true);
   expect(evaluation.firstGrant.matchedEvents).toBe(0);
   expect(evaluation.workerRestart.matchedEvents).toBe(0);
+  expect(evaluation.reasons.join(' ')).toContain(
+    'no controlled terminal events',
+  );
 });
 
 it('classifies unexpected first-grant dispatch as gate-passed, never as a failure record', () => {
-  const first = reportWith().phases.firstGrant;
   const evaluation = evaluateGrantDispatch(
-    reportWith({
-      firstGrant: { ...first!, events: controlledEvents('allUrls') },
+    firstGrantWith({
+      events: controlledEvents('allUrls'),
+      samples: 1,
+      observedMs: 20,
     }),
   );
   expect(evaluation.outcome).toBe('gate-passed');
   expect(evaluation.reasons.join(' ')).toContain('classified separately');
+});
+
+it('rejects a negative window that ended before the bounded observation', () => {
+  for (const overrides of [
+    { samples: 1, observedMs: 0 },
+    { samples: 3, observedMs: 700 },
+    { samples: 20, observedMs: 4999 },
+  ]) {
+    const evaluation = evaluateGrantDispatch(firstGrantWith(overrides));
+    expect(evaluation.outcome).toBe('inconclusive');
+    expect(evaluation.reasons.join(' ')).toContain('negative window');
+  }
+});
+
+it('rejects malformed observation values and missing readiness', () => {
+  for (const overrides of [
+    { observedMs: Number.NaN },
+    { observedMs: Number.POSITIVE_INFINITY },
+    { samples: 1.5 },
+    { samples: 0 },
+    { readiness: null },
+    {
+      readiness: {
+        at: 11,
+        loadSerial: 'worker-a',
+        namespaceAtLoad: false,
+        attempts: firstGrantAttempts,
+      },
+    },
+  ]) {
+    const evaluation = evaluateGrantDispatch(firstGrantWith(overrides));
+    expect(evaluation.outcome).toBe('inconclusive');
+  }
+  const wrongWorker = evaluateGrantDispatch(
+    firstGrantWith({
+      readiness: {
+        at: 1,
+        loadSerial: 'worker-z',
+        namespaceAtLoad: false,
+        attempts: firstGrantAttempts,
+      },
+    }),
+  );
+  expect(wrongWorker.reasons.join(' ')).toContain('different worker');
+});
+
+it('requires exactly-once successful registration of both filters before traffic', () => {
+  const missing = evaluateGrantDispatch(
+    firstGrantWith({
+      attempts: firstGrantAttempts.filter(
+        (attempt) => attempt.filter !== 'exactHost' || attempt.result !== 'ok',
+      ),
+    }),
+  );
+  expect(missing.outcome).toBe('inconclusive');
+  expect(missing.reasons.join(' ')).toContain('never registered the exactHost');
+
+  const afterTraffic = evaluateGrantDispatch(
+    firstGrantWith({
+      attempts: [
+        attempt('allUrls', 'ok', 'permissions.onAdded', 2),
+        attempt('exactHost', 'ok', 'permissions.onAdded', 11),
+      ],
+    }),
+  );
+  expect(afterTraffic.reasons.join(' ')).toContain('after traffic');
+
+  const failedAfterSuccess = evaluateGrantDispatch(
+    firstGrantWith({
+      attempts: [
+        ...firstGrantAttempts,
+        attempt('allUrls', 'registration failed', 'message:arm', 5),
+      ],
+    }),
+  );
+  expect(failedAfterSuccess.reasons.join(' ')).toContain(
+    'failed allUrls registration after success',
+  );
+});
+
+it('requires three successful controlled fetches and a source identity', () => {
+  for (const overrides of [
+    { statuses: [200, 200, 500] },
+    { statuses: [200, 200] },
+    { statuses: [] },
+  ]) {
+    expect(evaluateGrantDispatch(firstGrantWith(overrides)).outcome).toBe(
+      'inconclusive',
+    );
+  }
+  const missingDocument = firstGrantWith({});
+  missingDocument.phases.firstGrant!.fetch.documentId = '';
+  expect(evaluateGrantDispatch(missingDocument).outcome).toBe('inconclusive');
+});
+
+it('treats a saturated debug event list as truncated, not as a conclusion', () => {
+  const restarted = reportWith().phases.browserRestart;
+  const saturated = reportWith({
+    browserRestart: {
+      ...restarted!,
+      events: Array.from({ length: 40 }, () => controlledEvents()[0]!),
+    },
+  });
+  expect(evaluateGrantDispatch(saturated).outcome).toBe('inconclusive');
+});
+
+it('does not let unrelated events end a negative conclusion', () => {
+  const unrelated: DispatchEvent = {
+    filter: 'allUrls',
+    url: `${origin}/favicon.ico`,
+    statusCode: 200,
+    type: 'image',
+    tabId: 42,
+    initiator: origin,
+    at: 20,
+  };
+  const evaluation = evaluateGrantDispatch(
+    firstGrantWith({
+      events: [unrelated],
+      counters: { allUrls: 7, exactHost: 5 },
+    }),
+  );
+  expect(evaluation.outcome).toBe('reproduction-succeeded');
+  expect(evaluation.firstGrant.matchedEvents).toBe(0);
+});
+
+it('counts only controlled matches while polling', () => {
+  const unrelated: DispatchEvent = {
+    filter: 'allUrls',
+    url: `${origin}/favicon.ico`,
+    statusCode: 200,
+    type: 'image',
+    tabId: 42,
+    initiator: origin,
+    at: 1,
+  };
+  expect(
+    countControlledMatches([unrelated], { cases, origin, tabId: 42 }),
+  ).toBe(0);
+  expect(
+    countControlledMatches([...controlledEvents('allUrls'), unrelated], {
+      cases,
+      origin,
+      tabId: 42,
+    }),
+  ).toBe(3);
+  expect(
+    countControlledMatches(controlledEvents('allUrls', { tabId: 43 }), {
+      cases,
+      origin,
+      tabId: 42,
+    }),
+  ).toBe(0);
 });
 
 it('is inconclusive without a complete restarted positive control', () => {
@@ -180,27 +376,32 @@ it('is inconclusive without a complete restarted positive control', () => {
 });
 
 it('is inconclusive when a gating phase or worker identity comparison is missing', () => {
-  const missing = evaluateGrantDispatch(reportWith({ workerRestart: null }));
-  expect(missing.outcome).toBe('inconclusive');
-  const sameWorker = evaluateGrantDispatch(
-    reportWith({
-      workerRestart: {
-        ...reportWith().phases.workerRestart!,
-        loadSerial: 'worker-a',
-      },
-    }),
-  );
-  expect(sameWorker.outcome).toBe('inconclusive');
+  expect(
+    evaluateGrantDispatch(reportWith({ workerRestart: null })).outcome,
+  ).toBe('inconclusive');
+  expect(
+    evaluateGrantDispatch(
+      reportWith({
+        workerRestart: {
+          ...reportWith().phases.workerRestart!,
+          loadSerial: 'worker-a',
+          readiness: {
+            at: 1,
+            loadSerial: 'worker-a',
+            namespaceAtLoad: true,
+            attempts: reportWith().phases.workerRestart!.attempts,
+          },
+        },
+      }),
+    ).outcome,
+  ).toBe('inconclusive');
 });
 
 it('is inconclusive when the first-grant worker already saw the API or the restart did not', () => {
-  const first = reportWith().phases.firstGrant;
-  const restarted = reportWith().phases.browserRestart;
   expect(
-    evaluateGrantDispatch(
-      reportWith({ firstGrant: { ...first!, namespaceAtLoad: true } }),
-    ).outcome,
+    evaluateGrantDispatch(firstGrantWith({ namespaceAtLoad: true })).outcome,
   ).toBe('inconclusive');
+  const restarted = reportWith().phases.browserRestart;
   expect(
     evaluateGrantDispatch(
       reportWith({ browserRestart: { ...restarted!, namespaceAtLoad: false } }),
@@ -226,13 +427,12 @@ it.each([
 });
 
 it('matches the positive control by tab, origin, path, status and resource type', () => {
-  const events = controlledEvents('allUrls');
   const matched = matchPositiveControl(
     phase('browser restart', {
       loadSerial: 'worker-c',
       namespaceAtLoad: true,
       attempts: [],
-      events,
+      events: controlledEvents('allUrls'),
     }),
     fixture,
   );
@@ -269,17 +469,16 @@ it('ignores unrelated bounded events and requires both filters', () => {
     initiator: origin,
     at: 1,
   };
-  const events = [
-    unrelated,
-    ...controlledEvents('allUrls'),
-    ...controlledEvents('exactHost'),
-  ];
   const matched = matchPositiveControl(
     phase('browser restart', {
       loadSerial: 'worker-c',
       namespaceAtLoad: true,
       attempts: [],
-      events,
+      events: [
+        unrelated,
+        ...controlledEvents('allUrls'),
+        ...controlledEvents('exactHost'),
+      ],
     }),
     fixture,
   );
@@ -287,26 +486,18 @@ it('ignores unrelated bounded events and requires both filters', () => {
   expect(matched.matchedEvents).toBe(6);
 });
 
-it('detects duplicate listener registration and oversized debug event lists', () => {
+it('detects duplicate listener registration', () => {
   expect(
     duplicateRegistrationCount([
       attempt('allUrls', 'ok'),
       attempt('exactHost', 'ok'),
-      attempt('allUrls', 'already-registered', 'message:arm'),
+      attempt('allUrls', 'already-registered', 'message:arm', 3),
     ]),
   ).toBe(0);
   expect(
     duplicateRegistrationCount([
       attempt('allUrls', 'ok', 'top-level'),
-      attempt('allUrls', 'ok', 'permissions.onAdded'),
+      attempt('allUrls', 'ok', 'permissions.onAdded', 2),
     ]),
   ).toBe(1);
-  const restarted = reportWith().phases.browserRestart;
-  const oversized = reportWith({
-    browserRestart: {
-      ...restarted!,
-      events: Array.from({ length: 41 }, () => controlledEvents()[0]!),
-    },
-  });
-  expect(evaluateGrantDispatch(oversized).outcome).toBe('inconclusive');
 });
